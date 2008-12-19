@@ -97,14 +97,3 @@ def get_dir_contents(dir, sort_by="name", parent=True):
 
     return contents
 
-
-######################################################################
-# Main.
-
-#start_dir = os.path.abspath(sys.argv[1])
-#print "Starting with %s ..." % ( start_dir )
-#walk_from(start_dir)
-#print "Directory contents:\n"
-#show_dir_contents(start_dir)
-
-
