@@ -26,13 +26,38 @@ def page(title, content):
             + html.div(content, att='id="main"')
             + html.div("This is the footer", att='class="footer"')))
 
+# File size stuff.
+file_size_class = [
+    (1024, 'B'),
+    (1024**2, 'KB'),
+    (1024**3, 'MB'),
+    (1024**4, 'GB'),
+    (1024**5, 'TB')
+]
+
+def filesize_exp(size):
+    s = file_size_class[0]
+    if size < s[0]:
+        return str(size)
+
+    s = file_size_class[-1]
+    if not size < s[0]:
+        return "%0.1f%s" % ( float(size)/(s[0]/1024), s[1] )
+
+    for s in file_size_class[1:]:
+        if size < s[0]:
+            return "%0.1f%s" % ( float(size)/(s[0]/1024), s[1] )
+
+# Given size in bytes, return suitable HTML expression.
+def filesize_html(size):
+    return html.span(filesize_exp(size), att="value=%s" % ( size ))
 
 def tr_filespec(filespec):
     f = filespec
     fname = f['name']
     if f['type'] == 'dir':
         fname = html.a(fname, att='href="/?path=%s"' % ( f['path'] ))
-    return html.tr(html.td([f['type'], f['size'], fname, time.ctime(f['mtime'])]))
+    return html.tr(html.td([f['type'], filesize_html(f['size']), fname, time.ctime(f['mtime'])]))
 
 def dir_table(path):
     dir_header = html.tr(html.th(['Type', 'Size', 'Name', 'Last Modified']))
