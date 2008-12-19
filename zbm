@@ -1,0 +1,87 @@
+#!/usr/bin/python
+
+import cherrypy
+from cherrypy import expose, tools, url
+
+import os
+import time
+import string
+
+import html
+from html import head, body, title
+
+# Filesystem-browsing functionality.
+import browse
+
+local_dir = os.path.join(os.getcwd(), os.path.dirname(__file__))
+
+# Pages.
+
+def page(title, content):
+    return html.html(head(
+            html.title(title)
+            + html.link(att='rel="stylesheet" href="/static/zbm.css"')) # <link rel="stylesheet" href="/trac/css/trac.css" type="text/css" />
+        + body(
+            html.div("This is the header", att='class="header"')
+            + html.div(content, att='id="main"')
+            + html.div("This is the footer", att='class="footer"')))
+
+
+def tr_filespec(filespec):
+    f = filespec
+    fname = f['name']
+    if f['type'] == 'dir':
+        fname = html.a(fname, att='href="/?path=%s"' % ( f['path'] ))
+    return html.tr(html.td([f['type'], f['size'], fname, time.ctime(f['mtime'])]))
+
+def dir_table(path):
+    dir_header = html.tr(html.th(['Type', 'Size', 'Name', 'Last Modified']))
+    dir_contents = string.join(map(tr_filespec, browse.get_dir_contents(path)))
+    return html.table(dir_header + dir_contents, att="style='margin-left:10%;width:80%'")
+
+class ZfsBackupManager:
+    @expose
+    def index(self, path=local_dir):
+        return page("Title",
+            html.h1("Directory: %s" % ( path ))
+            + html.p("Behold ye the files.")
+            + html.img(att="src='/static/made_with_cherrypy_small.png'' alt='Made with CherryPy'")
+            + dir_table(path))
+
+    static = tools.staticdir.handler(section="/static",
+            dir=os.path.join(local_dir, "static"))
+
+# Config.
+
+zbm_config = {
+    'global' : {
+        'server.socket_port': 8000,
+        'server.thread_pool': 10,
+        'tools.sessions.on' : True
+    }
+}
+
+app_config = {
+    'global' : {
+        'tools.staticdir.root' : os.path.join(os.path.abspath('.'), "static")
+    },
+
+    # Define the web-app's favicon.
+    '/favicon.ico' : {
+        'tools.staticfile.on' : True,
+        'tools.staticfile.filename' : os.path.join(os.path.abspath('.'), "static/zbm.ico")
+    }
+}
+
+######################################################################
+## 3.0-specific syntax.
+cherrypy.config.update(zbm_config)
+cherrypy.quickstart(ZfsBackupManager(), config=app_config)
+
+######################################################################
+## 3.1-specific syntax.
+#cherrypy.config.update(zbm_config)
+#cherrypy.tree.mount(ZfsBackupManager(), '/', app_config)
+#cherrypy.engine.start()
+#cherrypy.engine.block()
+

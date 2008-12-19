@@ -1,0 +1,150 @@
+/* A simple CSS starting point. */
+
+body {
+    font-family: Arial, sans-serif;
+    font-size: 13px;
+    color: black;
+    background-color: #dddddd;
+    margin-left: 5%;
+    width: 90%;
+}
+
+h1 {
+    text-align: center;
+    margin-top: 0px;
+    margin-bottom: 10px;
+}
+
+/*
+a:link {
+    color: #004026;
+}
+*/
+
+div#main {
+    background-color: white;
+}
+
+div.authinfo {
+    float: right;
+}
+div.authinfo a {
+    color: white;
+}
+
+div#menu {
+    width: 150px;
+    min-height: 600px;
+    float: left;
+
+    left: 20px;
+    background-color: #004026;
+    color: white;
+    border: 1px dashed #999;
+    border: none;
+}
+div#menu strong {
+    margin-left: 10px;
+}
+div#menu a {
+    color: white;
+}
+
+div#menu dl {
+    margin-left: 25px;
+    margin-top: 0px;
+    font-size: 0.9em;
+}
+div#menu dt {
+    margin-top: 8px;
+    margin-bottom: 8px;
+}
+
+div#container {
+    width: 100%;
+    background: white url(lormenubg.gif) repeat-y left;
+    float: right;
+    margin-left: -150px;
+}
+
+div#content {
+    font-size: 0.9em;
+    margin-left: 160px;
+    min-height: 120px;
+    border: 1px dashed #a33;
+    border:none;
+}
+
+div.header {
+    width: 100%;
+    background-color: #004026;
+    color: white;
+}
+div.header img {
+    display: inline;
+}
+div.header span.hdrdisplay {
+    vertical-align: top;
+    font-size: 1.5em;
+    font-weight: bold;
+}
+div.header span.hdrdisplay span {
+    font-size: 0.6em;
+    font-weight: normal;
+}
+
+div.footer {
+    text-align: center;
+    background-color: white;
+    font-size: 0.8em;
+}
+
+.clearing {
+    height: 0;
+    clear: both;
+}
+
+/* Tables in general. */
+table {
+    border: 1px solid black;
+    border-collapse: collapse;
+    font-size: 0.9em;
+}
+
+td,th {
+    border: 1px solid black;
+    border-collapse: collapse;
+    padding: 1px;
+    padding-left: 4px;
+    padding-right: 4px;
+}
+
+td.label {
+    font-weight: bold;
+    text-align: right;
+}
+span.label {
+    font-weight: bold;
+    text-align: right;
+}
+
+th { background-color: #ffe400; }
+
+/* Completely borderless tables.
+   Mostly for tabular form elements. */
+table.borderless {
+    border: none;
+}
+
+table.borderless td {
+    border: none;
+}
+table.borderless th {
+    border: none;
+}
+
+
+span.error_message {
+    color: red;
+}
+
