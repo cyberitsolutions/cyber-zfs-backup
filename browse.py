@@ -92,7 +92,7 @@ def get_dir_contents(dir, sort_by="name", parent=True):
 
     if parent:
         parent_dir_path = os.path.abspath(os.path.join(dir, '..'))
-        parent_dir = make_filespec(parent_dir_path, name="PARENT DIRECTORY")
+        parent_dir = make_filespec(parent_dir_path, name="Up to higher level directory")
         contents.insert(0, parent_dir)
 
     return contents
