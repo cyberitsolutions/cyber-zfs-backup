@@ -52,17 +52,30 @@ def filesize_exp(size):
 def filesize_html(size):
     return html.span(filesize_exp(size), att="value=%s" % ( size ))
 
-def tr_filespec(filespec):
+def filename_html(filespec):
     f = filespec
     fname = f['name']
     if f['type'] == 'dir':
-        fname = html.a(fname, att='href="/?path=%s"' % ( f['path'] ))
-    return html.tr(html.td([f['type'], filesize_html(f['size']), fname, time.ctime(f['mtime'])]))
+        return html.a(fname, att='href="/?path=%s"' % ( f['path'] ))
+    return fname
+
+def tr_filespec(filespec):
+    f = filespec
+    return html.tr(html.td([f['type'], filesize_html(f['size']), filename_html(f), time.ctime(f['mtime'])]))
+
+def can_access_parent(path):
+    return path != '/'
 
 def dir_table(path):
     dir_header = html.tr(html.th(['Type', 'Size', 'Name', 'Last Modified']))
-    dir_contents = string.join(map(tr_filespec, browse.get_dir_contents(path)))
-    return html.table(dir_header + dir_contents, att="style='margin-left:10%;width:80%'")
+    dir_contents = browse.get_dir_contents(path)
+
+    parent_dir_html = ""
+    if can_access_parent(path):
+        parent_dir_html = html.p(filename_html(dir_contents[0]))
+
+    dir_contents_html = string.join(map(tr_filespec, dir_contents[1:]))
+    return html.table(parent_dir_html + dir_header + dir_contents_html, att="style='margin-left:10%;width:80%'")
 
 class ZfsBackupManager:
     @expose
