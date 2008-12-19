@@ -25,8 +25,6 @@ def walk_from(start_dir):
         print root, "consumes",
         print sum([getlsize(join(root, name)) for name in files]),
         print "bytes in", len(files), "non-directory files"
-        #if 'CVS' in dirs:
-        #    dirs.remove('CVS')  # don't visit CVS directories
 
 def file_type(filepath):
     if os.path.islink(filepath):
