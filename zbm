@@ -70,7 +70,7 @@ class ZfsBackupManager:
         return page("Title",
             html.h1("Directory: %s" % ( path ))
             + html.p("Behold ye the files.")
-            + html.img(att="src='/static/made_with_cherrypy_small.png'' alt='Made with CherryPy'")
+            + html.img(att="src='/static/made_with_cherrypy_small.png' alt='Made with CherryPy'")
             + dir_table(path))
 
     static = tools.staticdir.handler(section="/static",
