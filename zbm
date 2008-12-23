@@ -20,7 +20,12 @@ local_dir = os.path.join(os.getcwd(), os.path.dirname(__file__))
 def page(title, content):
     return html.html(head(
             html.title(title)
-            + html.link(att='rel="stylesheet" href="/static/zbm.css"')) # <link rel="stylesheet" href="/trac/css/trac.css" type="text/css" />
+            + html.link(att='type="text/css" rel="stylesheet" href="/static/zbm.css"') # <link rel="stylesheet" href="/trac/css/trac.css" type="text/css" />
+            + html.link(att='type="text/css" rel="stylesheet" href="/static/tablesorter.css"')
+            + html.script(att='type="text/javascript" src="/static/jquery-1.2.6.min.js"')
+            + html.script(att='type="text/javascript" src="/static/jquery.tablesorter.min.js"')
+            + html.script(att='type="text/javascript" src="/static/zbm.js"')
+            )
         + body(
             html.div("This is the header", att='class="header"')
             + html.div(content, att='id="main"')
