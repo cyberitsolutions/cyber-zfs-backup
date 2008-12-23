@@ -148,3 +148,9 @@ span.error_message {
     color: red;
 }
 
+
+table.browsedir {
+    margin-left: 10%;
+    width: 80%;
+}
+
