@@ -60,6 +60,8 @@ def display(tde):
 
     return display_string
 
+def show(td):
+    return display(extract(td))
 
 ######################################################################
 # Main.
@@ -68,6 +70,5 @@ if __name__ == '__main__':
 
     expression = sys.argv[1]
     supplied_datetime = datetime.strptime(expression, "%Y-%m-%d %H:%M:%S")
-    tde = extract( datetime.now() - supplied_datetime )
-    print display(tde) + " ago."
+    print show(datetime.now() - supplied_datetime) + " ago."
 
