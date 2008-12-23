@@ -75,15 +75,15 @@ def can_access_parent(path):
     return path != '/'
 
 def dir_table(path):
-    dir_header = html.tr(html.th(['Type', 'Size', 'Name', 'Last Modified']))
+    dir_header = html.thead(html.tr(html.th(['Type', 'Size', 'Name', 'Last Modified'])))
     dir_contents = browse.get_dir_contents(path)
 
     parent_dir_html = ""
     if can_access_parent(path):
         parent_dir_html = html.p(filename_html(dir_contents[0]))
 
-    dir_contents_html = string.join(map(tr_filespec, dir_contents[1:]))
-    return html.table(parent_dir_html + dir_header + dir_contents_html, att="style='margin-left:10%;width:80%'")
+    dir_contents_html = html.tbody(string.join(map(tr_filespec, dir_contents[1:])))
+    return parent_dir_html + html.table(dir_header + dir_contents_html, att="class='browsedir tablesorter'")
 
 class ZfsBackupManager:
     @expose
