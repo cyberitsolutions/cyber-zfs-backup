@@ -68,16 +68,27 @@ def filename_html(filespec):
 
 def tr_filespec(filespec):
     f = filespec
+
+    lmt = time.localtime(f['mtime'])
+    time_exp = time.strftime('%Y/%m/%d %H:%M:%S', lmt)
+
+    now = datetime.now()
+    mtime_dt = datetime(*lmt[:6])
+    age_exp = ''
+    if mtime_dt < now:
+        age_exp = str(timediff.show(now - mtime_dt))
+
     return html.tr(html.td([f['type'],
         filesize_html(f['size']),
         filename_html(f),
-        time.strftime('%Y/%m/%d %H:%M:%S', time.localtime(f['mtime'])) ]))
+        time_exp,
+        age_exp]))
 
 def can_access_parent(path):
     return path != '/'
 
 def dir_table(path):
-    dir_header = html.thead(html.tr(html.th(['Type', 'Size', 'Name', 'Last Modified'])))
+    dir_header = html.thead(html.tr(html.th(['Type', 'Size', 'Name', 'Last Modified', 'Age'])))
     dir_contents = browse.get_dir_contents(path)
 
     parent_dir_html = ""
