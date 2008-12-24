@@ -58,7 +58,7 @@ def filesize_exp(size):
 
 # Given size in bytes, return suitable HTML expression.
 def filesize_html(size):
-    return html.span(filesize_exp(size), att="value=%s" % ( size ))
+    return html.span(filesize_exp(size), att="value='%s'" % ( size ))
 
 def filename_html(filespec):
     f = filespec
