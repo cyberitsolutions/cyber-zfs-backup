@@ -82,7 +82,11 @@ def get_dir_contents(dir, sort_by="name", parent=True):
     if not os.path.isdir(dir):
         raise NotDirectory("%s is not a directory." % ( dir ))
 
-    dir_contents = os.listdir(dir)
+    dir_contents = []
+    try:
+        dir_contents = os.listdir(dir)
+    except OSError, e:
+        pass
     contents = []
     for fname in dir_contents:
         abspath = os.path.abspath(os.path.join(dir, fname))
