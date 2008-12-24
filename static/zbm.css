@@ -148,6 +148,9 @@ span.error_message {
     color: red;
 }
 
+span.faint {
+    color: #888888;
+}
 
 table.browsedir {
     margin-left: 10%;
