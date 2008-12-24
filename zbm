@@ -88,7 +88,7 @@ def can_access_parent(path):
     return path != '/'
 
 def dir_table(path):
-    dir_header = html.thead(html.tr(html.th(['Type', 'Size', 'Name', 'Last Modified', 'Age'])))
+    dir_header = html.thead(html.tr(html.th(['Type', 'Size', 'Name', 'Last Modified']) + html.th('Age', att="class='{sorter:false}'")))
     dir_contents = browse.get_dir_contents(path)
 
     parent_dir_html = ""
