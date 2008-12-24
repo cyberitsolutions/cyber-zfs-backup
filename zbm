@@ -68,8 +68,15 @@ def filename_html(filespec):
         return html.a(fname, att='href="/?path=%s"' % ( f['path'] ))
     return fname
 
-def tr_filespec(filespec):
+def tr_filespec(filespec, alternator=None):
     f = filespec
+
+    tr_attr = ""
+    if not alternator is None:
+        if alternator.state():
+            tr_attr = "class='row_even'"
+        else:
+            tr_attr = "class='row_odd'"
 
     lmt = time.localtime(f['mtime'])
     time_exp = time.strftime('%Y-%m-%d %H:%M:%S', lmt)
@@ -95,10 +102,19 @@ def tr_filespec(filespec):
             filename_html(f),
             filename_ext,
             time_exp,
-            age_exp]))
+            age_exp]), att=tr_attr)
 
 def can_access_parent(path):
     return path != '/'
+
+# Alternates between False and True.
+class Alternator:
+    def __init__(self):
+        self._state = False
+    def state(self):
+        rv = self._state
+        self._state = not rv
+        return rv
 
 def dir_table(path):
     select_all_checkbox = html.input(att="name='select_all' type='checkbox'")
@@ -109,7 +125,9 @@ def dir_table(path):
     if can_access_parent(path):
         parent_dir_html = html.p(filename_html(dir_contents[0]))
 
-    dir_contents_html = html.tbody(string.join(map(tr_filespec, dir_contents[1:])))
+    alternator = Alternator()
+
+    dir_contents_html = html.tbody(string.join(map(lambda fs: tr_filespec(fs, alternator), dir_contents[1:])))
     return parent_dir_html + html.table(dir_header + dir_contents_html, att="class='browsedir tablesorter'")
 
 class ZfsBackupManager:
