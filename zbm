@@ -10,6 +10,7 @@ import timediff
 import string
 import re
 
+import cgi
 import html
 from html import head, body, title
 
@@ -84,8 +85,8 @@ def tr_filespec(filespec):
     if mtime_dt < now:
         age_exp = str(timediff.show(now - mtime_dt))
 
-    escaped_path = re.sub("'", "&#x27;", f['path'])
-    checkbox_attr = "name='path:%s' type='checkbox'" % ( escaped_path )
+    escaped_path = cgi.escape(f['path'], quote=True)
+    checkbox_attr = 'name="path:%s" type="checkbox"' % ( escaped_path )
     return html.tr(
         html.td([
             html.input(att=checkbox_attr),
