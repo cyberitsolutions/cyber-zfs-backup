@@ -19,12 +19,13 @@ $(document).ready(
             //debug: true,
             textExtraction: extractValue,
             headers: {
-                0: { sorter: "text" },
-                1: { sorter: "digit" },
-                2: { sorter: "text" },
+                0: { sorter: false },
+                1: { sorter: "text" },
+                2: { sorter: "digit" },
                 3: { sorter: "text" },
-                4: { sorter: "isoDate" },
-                5: { sorter: false }
+                4: { sorter: "text" },
+                5: { sorter: "isoDate" },
+                6: { sorter: false }
             },
         });
     }

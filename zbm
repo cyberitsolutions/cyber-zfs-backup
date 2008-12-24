@@ -84,18 +84,24 @@ def tr_filespec(filespec):
     if mtime_dt < now:
         age_exp = str(timediff.show(now - mtime_dt))
 
-    return html.tr(html.td([f['type'],
-        filesize_html(f['size']),
-        filename_html(f),
-        filename_ext,
-        time_exp,
-        age_exp]))
+    escaped_path = re.sub("'", "&#x27;", f['path'])
+    checkbox_attr = "name='path:%s' type='checkbox'" % ( escaped_path )
+    return html.tr(
+        html.td([
+            html.input(att=checkbox_attr),
+            f['type'],
+            filesize_html(f['size']),
+            filename_html(f),
+            filename_ext,
+            time_exp,
+            age_exp]))
 
 def can_access_parent(path):
     return path != '/'
 
 def dir_table(path):
-    dir_header = html.thead(html.tr(html.th(['Type', 'Size', 'Name', 'Ext', 'Last Modified', 'Age'])))
+    select_all_checkbox = html.input(att="name='select_all' type='checkbox'")
+    dir_header = html.thead(html.tr(html.th([select_all_checkbox, 'Type', 'Size', 'Name', 'Ext', 'Last Modified', 'Age'])))
     dir_contents = browse.get_dir_contents(path)
 
     parent_dir_html = ""
