@@ -1,5 +1,5 @@
 
-function extractValue(node) {
+function extract_value(node) {
     var child = node.childNodes[0];
     if (!child) { return ''; }
     if (child.nodeName == "#text") {
@@ -17,7 +17,7 @@ function extractValue(node) {
 function setup_browsedir_sort() {
     $("table.browsedir").tablesorter({
         //debug: true,
-        textExtraction: extractValue,
+        textExtraction: extract_value,
         headers: {
             0: { sorter: false },
             1: { sorter: "text" },
