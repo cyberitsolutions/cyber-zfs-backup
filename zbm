@@ -68,15 +68,12 @@ def filename_html(filespec):
         return html.a(fname, att='href="/?path=%s"' % ( f['path'] ))
     return fname
 
-def tr_filespec(filespec, alternator=None):
+def tr_filespec(filespec, revolver=None):
     f = filespec
 
     tr_attr = ""
-    if not alternator is None:
-        if alternator.state():
-            tr_attr = "class='row_even'"
-        else:
-            tr_attr = "class='row_odd'"
+    if not revolver is None:
+        tr_attr = "class='%s'" % ( revolver.state() )
 
     lmt = time.localtime(f['mtime'])
     time_exp = time.strftime('%Y-%m-%d %H:%M:%S', lmt)
@@ -107,13 +104,27 @@ def tr_filespec(filespec, alternator=None):
 def can_access_parent(path):
     return path != '/'
 
-# Alternates between False and True.
-class Alternator:
-    def __init__(self):
-        self._state = False
+class EmptyRevolverError(Exception):
+    def __init__(self, value):
+        self.value = value
+    def __str__(self):
+        return repr(self.value)
+
+# Rotates through the values of a given array/tuple.
+class Revolver:
+    def __init__(self, collection):
+        if len(collection) == 0:
+            raise EmptyRevolverError("Empty collection supplied to Revolver.")
+        self._collection = collection
+        self._index = 0
+
     def state(self):
-        rv = self._state
-        self._state = not rv
+        rv = self._collection[self._index]
+        incremented = self._index + 1
+        if incremented < len(self._collection):
+            self._index = incremented
+        else:
+            self._index = 0
         return rv
 
 def dir_table(path):
@@ -125,9 +136,9 @@ def dir_table(path):
     if can_access_parent(path):
         parent_dir_html = html.p(filename_html(dir_contents[0]))
 
-    alternator = Alternator()
+    revolver = Revolver(('row_odd', 'row_even'))
 
-    dir_contents_html = html.tbody(string.join(map(lambda fs: tr_filespec(fs, alternator), dir_contents[1:])))
+    dir_contents_html = html.tbody(string.join(map(lambda fs: tr_filespec(fs, revolver), dir_contents[1:])))
     return parent_dir_html + html.table(dir_header + dir_contents_html, att="class='browsedir tablesorter'")
 
 class ZfsBackupManager:
