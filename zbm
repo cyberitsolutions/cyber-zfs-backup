@@ -128,7 +128,7 @@ class Revolver:
         return rv
 
 def dir_table(path):
-    select_all_checkbox = html.input(att="name='select_all' type='checkbox'")
+    select_all_checkbox = html.input(att="id='select_all' name='select_all' type='checkbox'")
     dir_header = html.thead(html.tr(html.th([select_all_checkbox, 'Type', 'Size', 'Name', 'Ext', 'Last Modified', 'Age'])))
     dir_contents = browse.get_dir_contents(path)
 
