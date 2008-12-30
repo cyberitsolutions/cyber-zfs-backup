@@ -68,6 +68,26 @@ def filename_html(filespec):
         return html.a(fname, att='href="/?path=%s"' % ( f['path'] ))
     return fname
 
+def pathname_dirlink(pathname):
+    """
+    Takes a path string and return a string where each directory
+    name is a link to that directory, eg.:
+
+    "/etc/" => '<a href="/?path=/">&nbsp;/</a><a href="/?path=/etc">etc/</a>'
+
+    The trailing / should be included in the link text.
+
+    Note that there is no validation that it's a real path.
+    """
+    if pathname == '/':
+        return html.a(html.b("/"), att='href="/?path=/"')
+
+    (basepath, basename) = os.path.split(pathname)
+    name_html = html.a(basename + "/", att='href="/?path=%s"' % ( cgi.escape(pathname, quote=True) ))
+    if basepath == '':
+        return name_html
+    return pathname_dirlink(basepath) + '&nbsp;' + name_html
+
 def tr_filespec(filespec, revolver=None):
     f = filespec
 
@@ -145,7 +165,7 @@ class ZfsBackupManager:
     @expose
     def index(self, path=local_dir):
         return page("Title",
-            html.h1("Directory: %s" % ( path ))
+            html.h1("Directory: %s" % ( pathname_dirlink(path) ))
             + html.p("Behold ye the files.")
             + html.img(att='src="/static/made_with_cherrypy_small.png" alt="Made with CherryPy"')
             + dir_table(path))
