@@ -65,7 +65,7 @@ def filename_html(filespec):
     f = filespec
     fname = f['name']
     if f['type'] == 'dir':
-        return html.a(fname, att='href="/?path=%s"' % ( f['path'] ))
+        return html.a(fname, att='href="/?path=%s"' % ( cgi.escape(f['path'], quote=True) ))
     return fname
 
 def pathname_dirlink(pathname):
