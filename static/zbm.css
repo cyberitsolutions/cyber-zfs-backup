@@ -156,8 +156,11 @@ span.faint {
     color: #888888;
 }
 
-table.browsedir {
+div.browsedir {
     margin-left: 10%;
     width: 80%;
+}
+table.browsedir {
+    width: 100%;
 }
 
