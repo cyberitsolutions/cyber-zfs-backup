@@ -63,30 +63,43 @@ def filesize_html(size):
 
 def filename_html(filespec):
     f = filespec
-    fname = f['name']
-    if f['type'] == 'dir':
-        return html.a(fname, att='href="/?path=%s"' % ( cgi.escape(f['path'], quote=True) ))
+    fname = f.name
+    if f.type == 'dir':
+        return html.a(fname, att='href="/browse?path=%s"' % ( cgi.escape(f.path, quote=True) ))
     return fname
+
+def split_path(pathname):
+    if pathname == '/':
+        return ['/']
+    if pathname == '':
+        return []
+    (basepath, basename) = os.path.split(pathname)
+
+    sp = split_path(basepath)
+    if basename != '':
+        sp.append(basename)
+    return sp
+
 
 def pathname_dirlink(pathname):
     """
     Takes a path string and return a string where each directory
     name is a link to that directory, eg.:
 
-    "/etc/" => '<a href="/?path=/">&nbsp;/</a><a href="/?path=/etc">etc/</a>'
+    "/etc/" => '<a href="/browse?path=/">&nbsp;/</a><a href="/browse?path=/etc">etc/</a>'
 
     The trailing / should be included in the link text.
 
     Note that there is no validation that it's a real path.
     """
     if pathname == '/':
-        return html.a(html.b("/"), att='href="/?path=/"')
+        return html.a(html.b("/"), att='href="/browse?path=/"')
 
     (basepath, basename) = os.path.split(pathname)
-    name_html = html.a(basename + "/", att='href="/?path=%s"' % ( cgi.escape(pathname, quote=True) ))
+    name_html = html.a(basename + "/", att='class="dirlink" href="/browse?path=%s"' % ( cgi.escape(pathname, quote=True) ))
     if basepath == '':
         return name_html
-    return pathname_dirlink(basepath) + '&nbsp;' + name_html
+    return pathname_dirlink(basepath) + name_html
 
 def tr_filespec(filespec, revolver=None):
     f = filespec
@@ -95,11 +108,11 @@ def tr_filespec(filespec, revolver=None):
     if not revolver is None:
         tr_attr = "class='%s'" % ( revolver.state() )
 
-    lmt = time.localtime(f['mtime'])
+    lmt = time.localtime(f.mtime)
     time_exp = time.strftime('%Y-%m-%d %H:%M:%S', lmt)
 
     filename_ext = ''
-    m = re.search(r'^[^.].*\.([^.]+)$', f['name'])
+    m = re.search(r'^[^.].*\.([^.]+)$', f.name)
     if m:
         filename_ext = string.lower(m.group(1))
 
@@ -109,13 +122,13 @@ def tr_filespec(filespec, revolver=None):
     if mtime_dt < now:
         age_exp = str(timediff.show(now - mtime_dt))
 
-    escaped_path = cgi.escape(f['path'], quote=True)
+    escaped_path = cgi.escape(f.path, quote=True)
     checkbox_attr = 'name="path:%s" type="checkbox"' % ( escaped_path )
     return html.tr(
         html.td([
             html.input(att=checkbox_attr),
-            f['type'],
-            filesize_html(f['size']),
+            f.type,
+            filesize_html(f.size),
             filename_html(f),
             filename_ext,
             time_exp,
@@ -147,31 +160,55 @@ class Revolver:
             self._index = 0
         return rv
 
-def dir_table(path):
+def dir_box(path_prefix, path):
     select_all_checkbox = html.input(att='id="select_all" name="select_all" type="checkbox"')
     dir_header = html.thead(html.tr(html.th([select_all_checkbox, 'Type', 'Size', 'Name', 'Ext', 'Last Modified', 'Age'])))
-    dir_contents = browse.get_dir_contents(path)
+    dir_contents = browse.get_dir_contents(path_prefix, path)
 
     parent_dir_html = ""
-    if can_access_parent(path):
+    if not dir_contents[0] is None:
         parent_dir_html = html.p(filename_html(dir_contents[0]))
 
     revolver = Revolver(('row_odd', 'row_even'))
 
     dir_contents_html = html.tbody(string.join(map(lambda fs: tr_filespec(fs, revolver), dir_contents[1:])))
-    return parent_dir_html + html.table(dir_header + dir_contents_html, att='class="browsedir tablesorter"')
+    return html.div(parent_dir_html + html.table(dir_header + dir_contents_html, att='class="browsedir tablesorter"'), att='class="browsedir"')
+
 
 class ZfsBackupManager:
+
+    def __init__(self, base_path="/"):
+        self.path_prefix = browse.PathPrefix(base_path)
+
     @expose
-    def index(self, path=local_dir):
-        return page("Title",
+    def index(self, path=""):
+        return self.browse(path)
+
+    @expose
+    def browse(self, path=""):
+        path = os.path.normpath(path)
+        error_message = ""
+        dir_box_html = ""
+        try:
+            dir_box_html = dir_box(self.path_prefix, path)
+        except browse.InaccessiblePathError, e:
+            error_message = html.p(html.span(str(e), att='class="error_message"'))
+            path = ""
+            dir_box_html = dir_box(self.path_prefix, path)
+
+        return page("ZBM - Zfs Backup Manager",
             html.h1("Directory: %s" % ( pathname_dirlink(path) ))
-            + html.p("Behold ye the files.")
+            + error_message
             + html.img(att='src="/static/made_with_cherrypy_small.png" alt="Made with CherryPy"')
-            + dir_table(path))
+            + dir_box_html)
 
     static = tools.staticdir.handler(section="/static",
             dir=os.path.join(local_dir, "static"))
+
+    @expose
+    def json(self, *args, **kwargs):
+        pass
+
 
 # Config.
 
@@ -199,7 +236,7 @@ app_config = {
 ######################################################################
 ## 3.0-specific syntax.
 cherrypy.config.update(zbm_config)
-cherrypy.quickstart(ZfsBackupManager(), config=app_config)
+cherrypy.quickstart(ZfsBackupManager(os.environ['HOME']), config=app_config)
 
 ######################################################################
 ## 3.1-specific syntax.
