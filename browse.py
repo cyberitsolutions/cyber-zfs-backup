@@ -20,12 +20,6 @@ def getlsize(path):
 def getlmtime(path):
     return os.lstat(path)[8]
 
-def walk_from(start_dir):
-    for root, dirs, files in os.walk(start_dir):
-        print root, "consumes",
-        print sum([getlsize(join(root, name)) for name in files]),
-        print "bytes in", len(files), "non-directory files"
-
 def file_type(filepath):
     if os.path.islink(filepath):
         return 'link'
