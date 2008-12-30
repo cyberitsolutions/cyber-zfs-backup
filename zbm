@@ -102,7 +102,7 @@ def tr_filespec(filespec, revolver=None):
             age_exp]), att=tr_attr)
 
 def can_access_parent(path):
-    return path != '/'
+    return not ( path == '/' or path == '' )
 
 class EmptyRevolverError(Exception):
     def __init__(self, value):
