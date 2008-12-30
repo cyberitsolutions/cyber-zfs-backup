@@ -164,3 +164,7 @@ table.browsedir {
     width: 100%;
 }
 
+a.dirlink :hover {
+    color: red;
+}
+
