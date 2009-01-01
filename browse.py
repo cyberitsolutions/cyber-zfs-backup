@@ -135,6 +135,9 @@ class FileSpec:
         self.size = getlsize(self.real_path)
         self.mtime = getlmtime(self.real_path)
 
+        if self.type == 'link':
+            self.name = html.a(self.name, att='title="%s"' % ( cgi.escape(os.readlink(self.real_path)) ))
+
 
 # os.path.islink
 # os.path.isdir
