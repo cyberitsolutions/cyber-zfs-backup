@@ -50,13 +50,6 @@ def filesize_exp(size):
 def filesize_html(size):
     return html.span(filesize_exp(size), att='value="%s"' % ( size ))
 
-def filename_html(filespec):
-    f = filespec
-    fname = f.name
-    if f.type == 'dir':
-        return html.a(fname, att='href="/browse?path=%s"' % ( cgi.escape(f.path, quote=True) ))
-    return fname
-
 def split_path(pathname):
     if pathname == '/':
         return ['/']
@@ -118,7 +111,7 @@ def tr_filespec(filespec, revolver=None):
             html.input(att=checkbox_attr),
             f.type,
             filesize_html(f.size),
-            filename_html(f),
+            f.display,
             filename_ext,
             time_exp,
             age_exp]), att=tr_attr)
@@ -156,7 +149,7 @@ def dir_box(chrooted_path):
 
     parent_dir_html = ""
     if not dir_contents[0] is None:
-        parent_dir_html = html.p(filename_html(dir_contents[0]))
+        parent_dir_html = html.p(dir_contents[0].display)
 
     revolver = Revolver(('row_odd', 'row_even'))
 
