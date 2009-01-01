@@ -21,50 +21,6 @@ class InaccessiblePathError(Exception):
         return self.value
 
 ######################################################################
-# Classes.
-
-# A quasi-chroot.
-#class PathPrefix:
-#    def __init__(self, path_prefix='/'):
-#        if path_prefix[0] != '/':
-#            raise BadPrefixError()
-#        self.path_prefix = os.path.realpath(os.path.normpath(path_prefix))
-#
-#    def prefix(self, path):
-#        np = self.normed(path)
-#        # Remove the automatically-leading / before the join.
-#        return os.path.join(self.path_prefix, np[1:])
-#
-#    def is_prefixed(self, real_path):
-#        plog("is_prefixed(%s)" % ( real_path ))
-#        return self.path_prefix == real_path[0:len(self.path_prefix)]
-#
-#    def is_accessible(self, path):
-#        plog("is_accessible(%s)" % ( path ))
-#        return self.is_prefixed(self._real(path))
-#
-#    def normed(self, path):
-#        plog("normed(%s)" % ( path ))
-#        subbed = '/' + re.sub('^\.?/+', '', path)
-#        plog("subbed == '%s'" % ( subbed ))
-#        return os.path.normpath(subbed)
-#
-#    def _real(self, path):
-#        plog("_real(%s)" % ( path ))
-#        ( containing_dir, basename ) = os.path.split(self.normed(path))
-#        plog("containing_dir == %s ; basename == %s" % ( containing_dir, basename ))
-#        # We want the containing_dir realpathed, but *not*
-#        # the basename!
-#        return os.path.join(os.path.realpath(self.prefix(containing_dir)), basename)
-#
-#    def real(self, path):
-#        real_path = self._real(path)
-#        if self.is_prefixed(real_path):
-#            return real_path
-#        # Someone's playing tricks with symlinks or .. dirs.
-#        raise BadPrefixError("Real path %s doesn't match prefix %s" % ( real_path, self.path_prefix ))
-
-######################################################################
 # Functions.
 
 def getlsize(path):
