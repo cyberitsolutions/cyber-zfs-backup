@@ -129,8 +129,6 @@ span.label {
     text-align: right;
 }
 
-th { background-color: #ffe400; }
-
 /* Completely borderless tables.
    Mostly for tabular form elements. */
 table.borderless {
