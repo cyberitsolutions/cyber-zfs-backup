@@ -14,6 +14,8 @@ import cgi
 import html
 from html import head, body, title
 
+import chroot
+
 # Filesystem-browsing functionality.
 import browse
 
@@ -160,10 +162,10 @@ class Revolver:
             self._index = 0
         return rv
 
-def dir_box(path_prefix, path):
+def dir_box(chrooted_path):
     select_all_checkbox = html.input(att='id="select_all" name="select_all" type="checkbox"')
     dir_header = html.thead(html.tr(html.th([select_all_checkbox, 'Type', 'Size', 'Name', 'Ext', 'Last Modified', 'Age'])))
-    dir_contents = browse.get_dir_contents(path_prefix, path)
+    dir_contents = browse.get_dir_contents(chrooted_path)
 
     parent_dir_html = ""
     if not dir_contents[0] is None:
@@ -178,23 +180,22 @@ def dir_box(path_prefix, path):
 class ZfsBackupManager:
 
     def __init__(self, base_path="/"):
-        self.path_prefix = browse.PathPrefix(base_path)
+        # If an exception is raised here, let it go.
+        self.chroot = chroot.Chroot(base_path)
 
     @expose
-    def index(self, path=""):
+    def index(self, path="/"):
         return self.browse(path)
 
     @expose
-    def browse(self, path=""):
-        path = os.path.normpath(path)
+    def browse(self, path="/"):
         error_message = ""
         dir_box_html = ""
         try:
-            dir_box_html = dir_box(self.path_prefix, path)
-        except browse.InaccessiblePathError, e:
+            chrooted_path = self.chroot.chrooted_path(path)
+            dir_box_html = dir_box(chrooted_path)
+        except chroot.BadChrootPath, e:
             error_message = html.p(html.span(str(e), att='class="error_message"'))
-            path = ""
-            dir_box_html = dir_box(self.path_prefix, path)
 
         return page("ZBM - Zfs Backup Manager",
             html.h1("Directory: %s" % ( pathname_dirlink(path) ))
