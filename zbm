@@ -16,6 +16,9 @@ from html import head, body, title
 
 import chroot
 
+# The authentication module.
+from auth import AuthController, require, member_of, name_is
+
 # Filesystem-browsing functionality.
 import browse
 
