@@ -7,6 +7,9 @@
 import cherrypy
 import urllib
 
+import html
+from page import page
+
 SESSION_KEY = '_cp_username'
 
 def check_credentials(username, password):
@@ -109,15 +112,26 @@ class AuthController(object):
     def on_logout(self, username):
         """Called on logout"""
 
-    def get_loginform(self, username, msg="Enter login information", from_page="/"):
-        return """<html><body>
-            <form method="post" action="/auth/login">
-            <input type="hidden" name="from_page" value="%(from_page)s" />
-            %(msg)s<br />
-            Username: <input type="text" name="username" value="%(username)s" /><br />
-            Password: <input type="password" name="password" /><br />
-            <input type="submit" value="Log in" />
-        </body></html>""" % locals()
+    def get_loginform(self, username, msg="Enter login information.", from_page="/"):
+        return page("ZBM - Login",
+            html.h1("Login")
+            + html.form(
+                html.input(att='type="hidden" name="from_page" value="%s"' % ( from_page ))
+                + html.p(msg)
+                + html.table(
+                    html.tbody(
+                        html.tr([
+                                html.th("Username:") + html.td(html.input(att='type="text" name="username" value="%s"' % ( username ))),
+                                html.th("Password:") + html.td(html.input(att='type="password" name="password"')),
+                                html.td(html.input(att='type="submit" value="Login"'),
+                                    att='colspan="2"')
+                            ]
+                        )
+                    ),
+                    att='class="borderless"'),
+                att='name="login" method="post" action="/auth/login"')
+            + html.script('document.getElementsByName("username")[0].focus();', att='language="javascript"'))
+
 
     @cherrypy.expose
     def login(self, username=None, password=None, from_page="/"):
