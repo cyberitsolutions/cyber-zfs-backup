@@ -27,7 +27,7 @@ def check_credentials(username, password):
 
 def check_auth(*args, **kwargs):
     """A tool that looks in config for 'auth.require'. If found and it
-    is not None, a login is required and the entry is evaluated as alist of
+    is not None, a login is required and the entry is evaluated as a list of
     conditions that the user must fulfil."""
     conditions = cherrypy.request.config.get('auth.require', None)
     # format GET params
