@@ -3,6 +3,7 @@
 import cherrypy
 from cherrypy import expose, tools, url
 
+import sys
 import os
 import time
 from datetime import datetime, timedelta
@@ -233,6 +234,13 @@ app_config = {
 
 ######################################################################
 ## 3.0-specific syntax.
+
+# Check the session storage path exists.
+storage_path = zbm_config['global']['tools.sessions.storage_path']
+if not os.path.isdir(storage_path):
+    print "Session storage path %s does not exist!\nBailing out." % ( storage_path )
+    sys.exit(1)
+
 cherrypy.config.update(zbm_config)
 cherrypy.quickstart(ZfsBackupManager(os.environ['HOME']), config=app_config)
 
