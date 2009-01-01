@@ -80,13 +80,16 @@ class FileSpec:
             name = self.basename
         
         self.name = name
+        self.display = name
         self.path = chrooted_path.path
         self.type = file_type(self.real_path)
         self.size = getlsize(self.real_path)
         self.mtime = getlmtime(self.real_path)
 
         if self.type == 'link':
-            self.name = html.a(self.name, att='title="%s"' % ( cgi.escape(os.readlink(self.real_path)) ))
+            self.display = html.a(self.name, att='title="%s"' % ( cgi.escape(os.readlink(self.real_path), quote=True) ))
+        elif self.type == 'dir':
+            self.display = html.a(self.name, att='href="/browse?path=%s"' % ( cgi.escape(self.path, quote=True) ))
 
 
 # os.path.islink
