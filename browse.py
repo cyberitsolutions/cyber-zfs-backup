@@ -6,6 +6,11 @@ import time
 from os.path import join
 import re
 
+import html
+import cgi
+import chroot
+
+
 ######################################################################
 # Exceptions.
 
@@ -115,17 +120,17 @@ filespec_cmp = {
 ######################################################################
 
 class FileSpec:
-    def __init__(self, path_prefix, path, name=False):
-        self.path_prefix = path_prefix
-        self.real_path = path_prefix.real(path)
+    def __init__(self, chrooted_path, name=False):
+        self.chrooted_path = chrooted_path
+        self.real_path = self.chrooted_path.real_path
 
         # Need to handle (non-basename) softlinks appropriately.
-        self.basename = os.path.basename(path)
+        self.basename = os.path.basename(self.chrooted_path.path)
         if not name:
             name = self.basename
         
         self.name = name
-        self.path = path
+        self.path = chrooted_path.path
         self.type = file_type(self.real_path)
         self.size = getlsize(self.real_path)
         self.mtime = getlmtime(self.real_path)
@@ -134,28 +139,27 @@ class FileSpec:
 # os.path.islink
 # os.path.isdir
 # os.path.isfile
-def get_dir_contents(path_prefix, dir, sort_by="name", include_parent=True):
-    if not path_prefix.is_accessible(dir):
-        raise InaccessiblePathError("Path %s is not accessible." % ( dir ))
-    real_dir = path_prefix.real(dir)
+def get_dir_contents(chrooted_path, sort_by="name", include_parent=True):
+    real_dir = chrooted_path.real_path
     if not os.path.isdir(real_dir):
-        raise InaccessiblePathError("%s is not an accessible directory." % ( dir ))
+        raise InaccessiblePathError("%s is not an accessible directory." % ( chrooted_path.path ))
 
     dir_contents = []
     try:
         dir_contents = os.listdir(real_dir)
     except OSError, e:
         pass
-    contents = [ FileSpec(path_prefix, os.path.join(dir, fname)) for fname in dir_contents ]
+    contents = [ FileSpec(chrooted_path.child(fname)) for fname in dir_contents ]
 
     contents.sort(filespec_cmp[sort_by])
 
     if include_parent:
-        pdir = os.path.join(dir, '..')
-        parent_dir = None
-        if path_prefix.is_accessible(pdir):
-            parent_dir = FileSpec(path_prefix, pdir, name="Up to higher level directory")
-        contents.insert(0, parent_dir)
+        if chrooted_path.has_parent():
+            pdir = chrooted_path.parent()
+            parent_dir = FileSpec(pdir, name="Up to higher level directory")
+            contents.insert(0, parent_dir)
+        else:
+            contents.insert(0, None)
 
     return contents
 
