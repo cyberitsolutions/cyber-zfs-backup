@@ -181,6 +181,7 @@ def dir_box(chrooted_path):
 
 
 class ZfsBackupManager:
+    auth = AuthController()
 
     def __init__(self, base_path="/"):
         # If an exception is raised here, let it go.
