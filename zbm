@@ -215,7 +215,7 @@ class ZfsBackupManager:
     @expose
     @require(name_is("joe"))
     def json(self, *args, **kwargs):
-        pass
+        return page("JSON Page", html.h1("This is just the JSON page"))
 
 
 # Config.
