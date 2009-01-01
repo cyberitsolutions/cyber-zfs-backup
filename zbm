@@ -83,6 +83,13 @@ def pathname_dirlink(pathname):
         return name_html
     return pathname_dirlink(basepath) + name_html
 
+def get_extension(filename):
+    filename_ext = ''
+    m = re.search(r'^[^.].*\.([^.]+)$', filename)
+    if m:
+        filename_ext = string.lower(m.group(1))
+    return filename_ext
+
 def tr_filespec(filespec, revolver=None):
     f = filespec
 
@@ -93,10 +100,7 @@ def tr_filespec(filespec, revolver=None):
     lmt = time.localtime(f.mtime)
     time_exp = time.strftime('%Y-%m-%d %H:%M:%S', lmt)
 
-    filename_ext = ''
-    m = re.search(r'^[^.].*\.([^.]+)$', f.name)
-    if m:
-        filename_ext = string.lower(m.group(1))
+    filename_ext = get_extension(f.name)
 
     now = datetime.now()
     mtime_dt = datetime(*lmt[:6])
