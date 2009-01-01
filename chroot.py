@@ -2,11 +2,6 @@
 import os
 import re
 
-def plog(msg):
-    f = open("/tmp/p.log", 'a')
-    f.write(msg + "\n")
-    f.close()
-
 
 class BadChroot(Exception):
     def __init__(self, value=""):
@@ -43,7 +38,6 @@ class ChrootedPath:
             raise BadChrootPath("Path %s maps to real path %s which is not inside chroot dir %s." % ( path, real_path, self.chroot.chroot_dir ))
 
         self.real_path = real_path
-        plog("Successful ChrootedPath: self.path == %s ; supplied path == %s" % ( self.path, path ))
 
     def has_parent(self):
         return self.path != '/'
@@ -52,10 +46,7 @@ class ChrootedPath:
         return self.chroot.chrooted_path(os.path.join(self.path, '..'))
 
     def child(self, filename):
-        plog("cp.child('%s') , will be joining to %s ..." % ( filename, self.path ))
-        rv = self.chroot.chrooted_path(os.path.join(self.path, filename))
-        plog("cp.child('%s') => %s" % ( filename, rv ))
-        return rv
+        return self.chroot.chrooted_path(os.path.join(self.path, filename))
 
 
 class Chroot:
