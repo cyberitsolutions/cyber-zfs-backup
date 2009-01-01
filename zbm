@@ -188,10 +188,12 @@ class ZfsBackupManager:
         self.chroot = chroot.Chroot(base_path)
 
     @expose
+    @require()
     def index(self, path="/"):
         return self.browse(path)
 
     @expose
+    @require()
     def browse(self, path="/"):
         error_message = ""
         dir_box_html = ""
@@ -211,6 +213,7 @@ class ZfsBackupManager:
             dir=os.path.join(local_dir, "static"))
 
     @expose
+    @require(name_is("joe"))
     def json(self, *args, **kwargs):
         pass
 
