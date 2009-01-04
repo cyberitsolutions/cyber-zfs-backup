@@ -210,7 +210,7 @@ zbm_config = {
 
         # To set data for the current session, use
         # cherrypy.session['fieldname'] = 'fieldvalue'.
-        # To get data use cherrypy.session.get('fieldname'). 
+        # To get data use cherrypy.session.get('fieldname').
         'tools.sessions.on' : True,
         'tools.sessions.storage_type' : 'file',
         'tools.sessions.storage_path' : os.path.join(os.path.abspath('.'), "sessions"),
