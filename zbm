@@ -17,6 +17,9 @@ from page import page
 
 import chroot
 
+# Simple database-access functionality.
+import db
+
 # The authentication module.
 from auth import AuthController, require, member_of, name_is
 
@@ -185,9 +188,15 @@ class ZfsBackupManager:
         except chroot.BadChrootPath, e:
             error_message = html.p(html.span(str(e), att='class="error_message"'))
 
+        full_name = html.span("unknown", att='class="error_message"')
+        username = cherrypy.session.get('_cp_username')
+        full_name = db.get1("select full_name from users where username = %(username)s", vars())[0]
+        full_name_message = html.p("Your username is %s and your full name is %s." % ( username, full_name ))
+
         return page("ZBM - Zfs Backup Manager",
             html.h1("Directory: %s" % ( pathname_dirlink(path) ))
             + error_message
+            + full_name_message
             + html.img(att='src="/static/made_with_cherrypy_small.png" alt="Made with CherryPy"')
             + dir_box_html)
 
@@ -240,6 +249,10 @@ storage_path = zbm_config['global']['tools.sessions.storage_path']
 if not os.path.isdir(storage_path):
     print "Session storage path %s does not exist!\nBailing out." % ( storage_path )
     sys.exit(1)
+
+# Tell CherryPy to call the db module's "connect" for each thread,
+# when it starts up.
+cherrypy.engine.subscribe('start_thread', db.connect)
 
 cherrypy.config.update(zbm_config)
 cherrypy.quickstart(ZfsBackupManager(os.environ['HOME']), config=app_config)
