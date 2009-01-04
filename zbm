@@ -20,6 +20,9 @@ import chroot
 # Simple database-access functionality.
 import db
 
+# ZBM config module.
+import zbm_cfg as cfg
+
 # The authentication module.
 from auth import AuthController, require, member_of, name_is
 
