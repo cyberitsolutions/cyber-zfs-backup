@@ -208,8 +208,10 @@ class ZfsBackupManager:
 
     @expose
     @require(name_is("joe"))
-    def json(self, *args, **kwargs):
-        return page("JSON Page", html.h1("This is just the JSON page"))
+    def json(self, **kwargs):
+        # Whatever happens here, we return plaintext JSON.
+        cherrypy.response.headers['Content-Type'] = "text/plain"
+        return "[1, 2, 3]"
 
 
 # Config.
