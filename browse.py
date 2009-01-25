@@ -32,6 +32,7 @@ def getdusize(path):
     """ Returns the path's du-size in bytes.
 
         Always recursive for directories, use with caution. """
+    # Note: Assumes du(1) is in path (usually a safe assumption).
     output = sp.Popen(["du", '-sb', path], stdout=sp.PIPE).communicate()[0]
     return int(output.split('\t')[0])
 
