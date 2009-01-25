@@ -6,21 +6,41 @@
 
 import cherrypy
 import urllib
+import db
+import md5
 
 import html
 import page
 
-SESSION_KEY = '_cp_username'
+# Keys stored in session.
+USER_NAME = '_cp_username'
+USER_FULLNAME = '_cp_fullname'
+COMPANY_NAME = '_cp_company'
+COMPANY_FULLNAME = '_cp_company_full'
+
+def login_status():
+    """ Returns (username, fullname, companyname) if logged in or None if not. """
+    username = cherrypy.session.get(USER_NAME)
+    if username is None:
+        return None
+    fullname = cherrypy.session.get(USER_FULLNAME)
+    companyname = cherrypy.session.get(COMPANY_FULLNAME)
+    return (username, fullname, companyname)
 
 def check_credentials(username, password):
     """Verifies credentials for username and password.
     Returns None on success or a string describing the error on failure"""
     # Adapt to your needs
-    if username in ('joe', 'steve') and password == 'secret':
-        return None
-    else:
-        return u"Incorrect username or password."
+    hashed_password = md5.md5(password).hexdigest()
+    row = db.get1("select u.full_name, c.name, c.long_name from users u, companies c where u.company_name = c.name and username = %(username)s and hashed_password = %(hashed_password)s", vars())
+    if row is None:
+        return ( "Incorrect username or password.", None )
 
+    return ( None, {
+        'full_name':row[0],
+        'company_name':row[1],
+        'company_fullname':row[2]
+    } )
     # An example implementation which uses an ORM could be:
     # u = User.get(username)
     # if u is None:
@@ -36,7 +56,7 @@ def check_auth(*args, **kwargs):
     # format GET params
     get_params = urllib.quote(cherrypy.request.request_line.split()[1])
     if conditions is not None:
-        username = cherrypy.session.get(SESSION_KEY)
+        username = cherrypy.session.get(USER_NAME)
         if username:
             cherrypy.request.login = username
             for condition in conditions:
@@ -138,19 +158,26 @@ class AuthController(object):
         if username is None or password is None:
             return self.get_loginform("", from_page=from_page)
 
-        error_msg = check_credentials(username, password)
-        if error_msg:
+        ( error_msg, user ) = check_credentials(username, password)
+        if not error_msg is None:
             return self.get_loginform(username, error_msg, from_page)
         else:
-            cherrypy.session[SESSION_KEY] = cherrypy.request.login = username
+            sess = cherrypy.session
+            sess[USER_NAME] = cherrypy.request.login = username
+            sess[USER_FULLNAME] = user['full_name']
+            sess[COMPANY_NAME] = user['company_name']
+            sess[COMPANY_FULLNAME] = user['company_fullname']
             self.on_login(username)
             raise cherrypy.HTTPRedirect(from_page or "/")
 
     @cherrypy.expose
     def logout(self, from_page="/"):
         sess = cherrypy.session
-        username = sess.get(SESSION_KEY, None)
-        sess[SESSION_KEY] = None
+        username = sess.get(USER_NAME, None)
+        sess[USER_NAME] = None
+        sess[USER_FULLNAME] = None
+        sess[COMPANY_NAME] = None
+        sess[COMPANY_FULLNAME] = None
         if username:
             cherrypy.request.login = None
             self.on_logout(username)
