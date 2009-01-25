@@ -192,13 +192,9 @@ class ZfsBackupManager:
         except chroot.BadChrootPath, e:
             error_message = html.p(html.span(str(e), att='class="error_message"'))
 
-        ( username, full_name, company_name ) = auth.login_status()
-        full_name_message = html.p("Your username is %s and your full name is %s." % ( username, full_name ))
-
         return page.page("ZBM - Zfs Backup Manager",
             html.h1("Directory: %s" % ( pathname_dirlink(path) ))
             + error_message
-            + full_name_message
             + html.img(att='src="/static/made_with_cherrypy_small.png" alt="Made with CherryPy"')
             + dir_box_html)
 
