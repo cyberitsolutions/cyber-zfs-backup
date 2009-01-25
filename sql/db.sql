@@ -69,7 +69,7 @@ comment on column users.hashed_password is
 create table restores (
     id serial primary key,
     company_name varchar(32) not null,
-    creation datetime not null,
+    creation timestamp not null,
 
     foreign key ( company_name ) references companies ( name )
 );
