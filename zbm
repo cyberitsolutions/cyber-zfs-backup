@@ -195,7 +195,6 @@ class ZfsBackupManager:
         return page.page("ZBM - Zfs Backup Manager",
             html.h1("Directory: %s" % ( pathname_dirlink(path) ))
             + error_message
-            + html.img(att='src="/static/made_with_cherrypy_small.png" alt="Made with CherryPy"')
             + dir_box_html)
 
     static = tools.staticdir.handler(section="/static",
