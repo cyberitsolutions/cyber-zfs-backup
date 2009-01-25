@@ -208,7 +208,7 @@ class ZfsBackupManager:
             dir=os.path.join(local_dir, "static"))
 
     @expose
-    @require(name_is("joe"))
+    @require()
     def json(self, **kwargs):
         # Whatever happens here, we return plaintext JSON.
         cherrypy.response.headers['Content-Type'] = "text/plain"
