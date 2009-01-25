@@ -61,3 +61,29 @@ comment on column users.company_name is
 comment on column users.hashed_password is
     'MD5-hashed form of the user''s plaintext password.';
 
+----------------------------------------------------------------------
+
+-- One record for each restore in progress.
+-- One restore at a time per user.
+-- Enforce at application level, not database.
+create table restores (
+    id serial primary key,
+    company_name varchar(32) not null,
+    creation datetime not null,
+
+    foreign key ( company_name ) references companies ( name )
+);
+
+-- Now *this* should be a larger table.
+create table restore_files (
+    restore_id integer not null,
+    file_path text not null,
+    -- A directory file means that we much be including
+    -- *everything* underneath it (ie. recursive).
+    -- If we don't want everything under the dir, we
+    -- don't include the directory.
+    du_size integer not null,
+
+    foreign key ( restore_id ) references restores ( id )
+);
+
