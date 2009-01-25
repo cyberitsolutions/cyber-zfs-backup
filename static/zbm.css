@@ -83,6 +83,9 @@ div.header {
 div.header img {
     display: inline;
 }
+div.header span.logout {
+    float: right;
+}
 div.header span.hdrdisplay {
     vertical-align: top;
     font-size: 1.5em;
