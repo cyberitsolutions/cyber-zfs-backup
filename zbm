@@ -13,7 +13,8 @@ import re
 
 import cgi
 import html
-from page import page
+import auth
+import page
 
 import chroot
 
