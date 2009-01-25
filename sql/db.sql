@@ -28,7 +28,7 @@ create table shares (
 );
 
 comment on table shares is
-    'Users of the ZBM application.';
+    'Fileshares owned by a company.';
 
 comment on column shares.name is
     'Name of the share - will also be used as a directory name.';
