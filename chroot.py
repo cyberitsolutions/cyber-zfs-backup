@@ -39,6 +39,9 @@ class ChrootedPath:
 
         self.real_path = real_path
 
+        # Not acquired by default, usually not necessary.
+        self.ancestors = None
+
     def has_parent(self):
         return self.path != '/'
 
@@ -47,6 +50,19 @@ class ChrootedPath:
 
     def child(self, filename):
         return self.chroot.chrooted_path(os.path.join(self.path, filename))
+
+    def acquire_ancestors(self):
+        """ Generates list of ancestors, nearest first. """
+        if self.ancestors is None:
+            if not self.has_parent():
+                self.ancestors = []
+            else:
+                parent = self.parent()
+                self.ancestors = [parent]
+                parent.acquire_ancestors()
+                self.ancestors.extend(parent.ancestors)
+        # A list of ChrootedPath objects.
+        return self.ancestors
 
 
 class Chroot:
