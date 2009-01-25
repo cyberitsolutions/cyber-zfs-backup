@@ -28,8 +28,8 @@ class InaccessiblePathError(Exception):
 # Yay! Awesome. This will do fine.
 # Perhaps a tad sluggish on huge dirs, but more than
 # good enough for the time being.
-def getdusize(path):
-    """ Returns the path's du-size in bytes.
+def get_disk_usage(path):
+    """ Returns the path's disk usage in bytes.
 
         Always recursive for directories, use with caution. """
     # Note: Assumes du(1) is in path (usually a safe assumption).
