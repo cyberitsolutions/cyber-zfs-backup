@@ -4,6 +4,8 @@ import os
 import datetime
 import time
 from os.path import join
+import subprocess as sp
+
 import re
 
 import html
@@ -22,6 +24,16 @@ class InaccessiblePathError(Exception):
 
 ######################################################################
 # Functions.
+
+# Yay! Awesome. This will do fine.
+# Perhaps a tad sluggish on huge dirs, but more than
+# good enough for the time being.
+def getdusize(path):
+    """ Returns the path's du-size in bytes.
+
+        Always recursive for directories, use with caution. """
+    output = sp.Popen(["du", '-sb', path], stdout=sp.PIPE).communicate()[0]
+    return int(output.split('\t')[0])
 
 def getlsize(path):
     return os.lstat(path)[6]
