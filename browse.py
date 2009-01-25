@@ -97,12 +97,18 @@ class FileSpec:
         self.path = chrooted_path.path
         self.type = file_type(self.real_path)
         self.size = getlsize(self.real_path)
+        # Not acquired by default, as it can be expensive.
+        self.disk_usage = None
         self.mtime = getlmtime(self.real_path)
 
         if self.type == 'link':
             self.display = html.a(self.name, att='title="%s"' % ( cgi.escape(os.readlink(self.real_path), quote=True) ))
         elif self.type == 'dir':
             self.display = html.a(self.name, att='href="/browse?path=%s"' % ( cgi.escape(self.path, quote=True) ))
+
+    def acquire_disk_usage(self):
+        """ This can be expensive, so is not done by default. """
+        self.disk_usage = get_disk_usage(self.real_path)
 
 
 # os.path.islink
