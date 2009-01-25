@@ -2,9 +2,18 @@
 import html
 from html import head, body, title
 
+import auth
 
-def header(content="Header"):
-    return html.div(content, att='class="header"')
+
+def header(content=None):
+    logout_span = html.span(html.a("Logout", att='href="/auth/logout"'), att='class="logout"')
+    if content is None:
+        status = auth.login_status()
+        if status is None:
+            content = ''
+        else:
+            content = "%s (%s) of %s" % ( status[0], status[1], status[2] )
+    return html.div(logout_span + content, att='class="header"')
 
 def footer(content="Footer"):
     return html.div(content, att='class="footer"')
