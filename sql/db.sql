@@ -68,10 +68,10 @@ comment on column users.hashed_password is
 -- Enforce at application level, not database.
 create table restores (
     id serial primary key,
-    company_name varchar(32) not null,
+    username varchar(32) not null,
     creation timestamp not null,
 
-    foreign key ( company_name ) references companies ( name )
+    foreign key ( username ) references users ( username )
 );
 
 -- Now *this* should be a larger table.
