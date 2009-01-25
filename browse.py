@@ -108,7 +108,8 @@ class FileSpec:
 
     def acquire_disk_usage(self):
         """ This can be expensive, so is not done by default. """
-        self.disk_usage = get_disk_usage(self.real_path)
+        if self.disk_usage is None:
+            self.disk_usage = get_disk_usage(self.real_path)
 
 
 # os.path.islink
