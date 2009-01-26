@@ -103,6 +103,11 @@ class FileSpec:
         self.name = name
         self.display = name
         self.path = chrooted_path.path
+
+        # Used as a unique ID (well, unique by company).
+        self.share_plus_path = join_share_to_path(self.share, self.path)
+
+        # Extra file info.
         self.type = file_type(self.real_path)
         self.size = getlsize(self.real_path)
         # Not acquired by default, as it can be expensive.
