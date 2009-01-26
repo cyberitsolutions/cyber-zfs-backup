@@ -18,10 +18,11 @@ comment on column companies.long_name is
 
 ----------------------------------------------------------------------
 create table shares (
+    id serial primary key,
     name varchar(32) not null,
     company_name varchar(32) not null,
 
-    primary key ( name, company_name ),
+    unique ( name, company_name ),
     foreign key ( company_name ) references companies ( name ),
     check ( length(name) > 0 ),
     check ( name ~* '^[-a-zA-Z0-9_]+$' )    -- Alphanumeric or [-_].
