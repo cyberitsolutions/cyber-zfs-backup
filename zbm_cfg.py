@@ -1,9 +1,13 @@
 
-BACKUP_BASE_DIR = '/opt/backup'
+# Configuration constants for zbm.
 
-RESTORE_BASE_DIR = '/opt/restore'
+#BACKUP_BASE_DIR = '/opt/backup'
+BACKUP_BASE_DIR = os.path.join(os.path.abspath('.'), "test/backup")
 
-# The snapshot dir of a client share should be accessed like so:
-# os.path.join(BACKUP_BASE_DIR, client_name, share_name, SNAPSHOT_DIR)
+#RESTORE_BASE_DIR = '/opt/restore'
+RESTORE_BASE_DIR = os.path.join(os.path.abspath('.'), "test/restore")
+
+# The snapshot dir of a company share should be accessed like so:
+# os.path.join(BACKUP_BASE_DIR, company_name, share_name, SNAPSHOT_DIR)
 SNAPSHOT_DIR = '.zfs/snapshot'
 
