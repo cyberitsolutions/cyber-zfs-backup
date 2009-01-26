@@ -12,7 +12,7 @@ def header(content=None):
         if status is None:
             content = ''
         else:
-            content = "%s (%s) of %s" % ( status[0], status[1], status[2] )
+            content = "%s (%s) of %s" % ( status[0], status[1], status[3] )
     return html.div(logout_span + content, att='class="header"')
 
 def footer(content="Footer"):

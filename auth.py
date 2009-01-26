@@ -24,8 +24,9 @@ def login_status():
     if username is None:
         return None
     fullname = cherrypy.session.get(USER_FULLNAME)
-    companyname = cherrypy.session.get(COMPANY_FULLNAME)
-    return (username, fullname, companyname)
+    company_name = cherrypy.session.get(COMPANY_FULLNAME)
+    company_fullname = cherrypy.session.get(COMPANY_FULLNAME)
+    return (username, fullname, company_name, company_fullname)
 
 def check_credentials(username, password):
     """Verifies credentials for username and password.
