@@ -83,9 +83,10 @@ filespec_cmp = {
 ######################################################################
 
 class FileSpec:
-    def __init__(self, chrooted_path, name=False):
+    def __init__(self, chrooted_path, share, name=False):
         self.chrooted_path = chrooted_path
         self.real_path = self.chrooted_path.real_path
+        self.share = share
 
         # Need to handle (non-basename) softlinks appropriately.
         self.basename = os.path.basename(self.chrooted_path.path)
@@ -104,7 +105,7 @@ class FileSpec:
         if self.type == 'link':
             self.display = html.a(self.name, att='title="%s"' % ( cgi.escape(os.readlink(self.real_path), quote=True) ))
         elif self.type == 'dir':
-            self.display = html.a(self.name, att='href="/browse?path=%s"' % ( cgi.escape(self.path, quote=True) ))
+            self.display = html.a(self.name, att='href="/browse?share=%s&amp;path=%s"' % ( cgi.escape(self.share, quote=True), cgi.escape(self.path, quote=True) ))
 
     def acquire_disk_usage(self):
         """ This can be expensive, so is not done by default. """
@@ -115,7 +116,7 @@ class FileSpec:
 # os.path.islink
 # os.path.isdir
 # os.path.isfile
-def get_dir_contents(chrooted_path, sort_by="name", include_parent=True):
+def get_dir_contents(chrooted_path, share, sort_by="name", include_parent=True):
     real_dir = chrooted_path.real_path
     if not os.path.isdir(real_dir):
         raise InaccessiblePathError("%s is not an accessible directory." % ( chrooted_path.path ))
@@ -125,14 +126,14 @@ def get_dir_contents(chrooted_path, sort_by="name", include_parent=True):
         dir_contents = os.listdir(real_dir)
     except OSError, e:
         pass
-    contents = [ FileSpec(chrooted_path.child(fname)) for fname in dir_contents ]
+    contents = [ FileSpec(chrooted_path.child(fname), share) for fname in dir_contents ]
 
     contents.sort(filespec_cmp[sort_by])
 
     if include_parent:
         if chrooted_path.has_parent():
             pdir = chrooted_path.parent()
-            parent_dir = FileSpec(pdir, name="Up to higher level directory")
+            parent_dir = FileSpec(pdir, share, name="Up to higher level directory")
             contents.insert(0, parent_dir)
         else:
             contents.insert(0, None)
