@@ -75,6 +75,7 @@ create table restores (
     active boolean default true not null;
 
     unique ( username, creation ),
+    -- TODO: Add check constraint to enforce only one active restore per user.
     foreign key ( company_name ) references companies ( name ),
     foreign key ( username ) references users ( username )
 );
