@@ -1,4 +1,5 @@
 
+import os
 # Configuration constants for zbm.
 
 #BACKUP_BASE_DIR = '/opt/backup'
