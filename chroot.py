@@ -2,6 +2,7 @@
 import os
 import re
 
+import zbm_cfg as cfg
 
 class BadChroot(Exception):
     def __init__(self, value=""):
@@ -12,6 +13,9 @@ class BadChroot(Exception):
 class BadChrootPath(BadChroot):
     pass
 
+
+def build_share_path(company, share):
+    return os.path.join(cfg.BACKUP_BASE_DIR, company, share, cfg.SNAPSHOT_DIR)
 
 class ChrootedPath:
     def __init__(self, chroot, path):
