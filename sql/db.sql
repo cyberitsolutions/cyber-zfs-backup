@@ -81,6 +81,7 @@ create table restores (
 -- Now *this* should be a larger table.
 create table restore_files (
     restore_id integer not null,
+    share_id integer not null,
     file_path text not null,
     -- A directory file means that we much be including
     -- *everything* underneath it (ie. recursive).
@@ -88,6 +89,7 @@ create table restore_files (
     -- don't include the directory.
     du_size integer not null,
 
-    foreign key ( restore_id ) references restores ( id )
+    foreign key ( restore_id ) references restores ( id ),
+    foreign key ( share_id ) references shares ( id )
 );
 
