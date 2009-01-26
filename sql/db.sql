@@ -72,6 +72,7 @@ create table restores (
     username varchar(32) not null,
     company_name varchar(32) not null,
     creation timestamp not null,
+    active boolean default true not null;
 
     unique ( username, creation ),
     foreign key ( company_name ) references companies ( name ),
