@@ -91,6 +91,7 @@ create table restore_files (
     -- don't include the directory.
     du_size integer not null,
 
+    primary key ( restore_id, share_id, file_path ),
     foreign key ( restore_id ) references restores ( id ),
     foreign key ( share_id ) references shares ( id )
 );
