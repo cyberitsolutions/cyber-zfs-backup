@@ -72,7 +72,7 @@ create table restores (
     username varchar(32) not null,
     company_name varchar(32) not null,
     creation timestamp not null,
-    active boolean default true not null;
+    active boolean default true not null,
 
     unique ( username, creation ),
     -- TODO: Add check constraint to enforce only one active restore per user.
