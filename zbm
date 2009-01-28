@@ -27,6 +27,9 @@ import zbm_cfg as cfg
 # The authentication module.
 from auth import AuthController, require, member_of, name_is
 
+# The restore handler.
+import restore_spec
+
 # Filesystem-browsing functionality.
 import browse
 
@@ -181,6 +184,19 @@ class ZfsBackupManager:
     @require()
     def index(self, share=None, path="/"):
         return self.browse(share=share, path=path)
+
+    @expose
+    @require()
+    def show(self, restore_id=None):
+
+        if restore_id is None:
+            rs = restore_spec.RestoreSpec()
+            restore_id = rs.restore_id
+        else:
+            restore_id = int(restore_id)
+
+        return page.page("ZBM - Current Restore",
+            html.h1("Current Restore") + html.p("Current restore id is %d." % ( restore_id )))
 
     @expose
     @require()
