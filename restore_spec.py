@@ -40,6 +40,7 @@ class RestoreSpec:
             row = db.get1("select id from restores where username = %(username)s and company_name = %(company_name)s and creation = %(creation)s", vars())
             restore_id = row[0]
 
+        debug.plog("Setting restore_id to %s..." % ( restore_id ))
         self.restore_id = restore_id
 
         # Initialise.
@@ -49,6 +50,7 @@ class RestoreSpec:
         self.update_from_db()
 
     def update_from_db(self):
+        debug.plog("Current self.restore_id is %s of type %s." % ( self.restore_id, str(type(self.restore_id)) ))
         rows = db.get("select s.name, file_path, du_size from restore_files r, shares s where r.share_id = s.id and r.id = %(restore_id)d", { 'restore_id' : self.restore_id })
 
         for r in rows:
