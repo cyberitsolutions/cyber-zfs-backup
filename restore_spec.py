@@ -36,11 +36,15 @@ class RestoreSpec:
         self.username = username
         self.company_name = company_name
         if restore_id is None:
-            # Create a new one.
-            creation = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            db.do("insert into restores ( username, company_name, creation ) values ( %(username)s, %(creation)s )", vars())
-            row = db.get1("select id from restores where username = %(username)s and company_name = %(company_name)s and creation = %(creation)s", vars())
-            restore_id = row[0]
+            # Either create new or grab existing(!).
+            row = db.get1("select id from restores where active and username = %(username)s and company_name = %(company_name)s", vars())
+            if row is None:
+                # Create a new one.
+                creation = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                db.do("insert into restores ( username, company_name, creation ) values ( %(username)s, %(company_name)s, %(creation)s )", vars())
+                row = db.get1("select id from restores where username = %(username)s and company_name = %(company_name)s and creation = %(creation)s", vars())
+            # Grab the id.
+            restore_id = int(row[0])
 
         debug.plog("Setting restore_id to %s..." % ( restore_id ))
         self.restore_id = restore_id
@@ -88,6 +92,17 @@ class RestoreSpec:
         self.disk_usage_running_total += file_spec.disk_usage
         # Include it.
         self.include_set[file_spec.path] = file_spec
+
+        # Update the DB.
+        row = db.get1("select id from shares where name = %(share_name)s and company_name = %(company_name)s", { 'company_name' : self.company_name, 'share_name' : file_spec.share })
+        if row is None:
+            # FIXME: Raise a better exception.
+            raise BadInclude("Share %s does not exist in DB." % ( file_spec.share ))
+        share_id = row[0]
+        restore_id = self.restore_id
+        file_path = file_spec.path
+        db.do("insert into restore_files ( restore_id, share_id, file_path, du_size ) values ( %(restore_id)d, %(share_id)d, %(file_path)s)", vars())
+
 
     def remove(self, file_spec):
         # Can only remove paths that are directly included.
