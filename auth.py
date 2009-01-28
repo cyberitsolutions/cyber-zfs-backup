@@ -24,7 +24,7 @@ def login_status():
     if username is None:
         return None
     fullname = cherrypy.session.get(USER_FULLNAME)
-    company_name = cherrypy.session.get(COMPANY_FULLNAME)
+    company_name = cherrypy.session.get(COMPANY_NAME)
     company_fullname = cherrypy.session.get(COMPANY_FULLNAME)
     return (username, fullname, company_name, company_fullname)
 
