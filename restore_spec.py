@@ -30,7 +30,8 @@ class BadInclude(Exception):
 # available, it'll be fine. Remember ec.cgi!
 class RestoreSpec:
     def __init__(self, restore_id=None):
-
+        # Try to grab the current active restore for this user. If
+        # there isn't one there, create one.
         ( username, _, company_name, _ ) = auth.login_status()
         self.username = username
         self.company_name = company_name
