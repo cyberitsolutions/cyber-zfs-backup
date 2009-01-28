@@ -70,6 +70,10 @@ class RestoreSpec:
         
         self.disk_usage_running_total = sum([ r[2] for r in rows ])
 
+    def __str__(self):
+        """ Return a list of the included share+paths. """
+        return str([ sp for sp in self.include_set ])
+
     def is_included(self, file_spec):
         # It has to be both the share and the path.
         if file_spec.share_plus_path in self.include_set:
