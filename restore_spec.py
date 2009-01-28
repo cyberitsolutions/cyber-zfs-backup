@@ -10,6 +10,7 @@ import datetime
 
 import db
 import browse
+import auth
 
 class BadInclude(Exception):
     def __init__(self, value=""):
