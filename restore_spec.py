@@ -57,7 +57,8 @@ class RestoreSpec:
 
     def update_from_db(self):
         debug.plog("Current self.restore_id is %s of type %s." % ( self.restore_id, str(type(self.restore_id)) ))
-        rows = db.get("select s.name, file_path, du_size from restore_files r, shares s where r.share_id = s.id and r.id = %(restore_id)d", { 'restore_id' : self.restore_id })
+        restore_id = self.restore_id
+        rows = db.get("select s.name, file_path, du_size from restore_files r, shares s where r.share_id = s.id and r.restore_id = %(restore_id)s", vars())
 
         for r in rows:
             share = r[0]
@@ -105,7 +106,7 @@ class RestoreSpec:
         share_id = row[0]
         restore_id = self.restore_id
         file_path = file_spec.path
-        db.do("insert into restore_files ( restore_id, share_id, file_path, du_size ) values ( %(restore_id)d, %(share_id)d, %(file_path)s)", vars())
+        db.do("insert into restore_files ( restore_id, share_id, file_path, du_size ) values ( %(restore_id)s, %(share_id)s, %(file_path)s)", vars())
 
 
     def remove(self, file_spec):
