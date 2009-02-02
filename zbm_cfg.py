@@ -1,6 +1,6 @@
+# Configuration constants for zbm.
 
 import os
-# Configuration constants for zbm.
 
 #BACKUP_BASE_DIR = '/opt/backup'
 BACKUP_BASE_DIR = os.path.join(os.path.abspath('.'), "test/backup")
