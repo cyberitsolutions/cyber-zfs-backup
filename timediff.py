@@ -1,9 +1,7 @@
 #!/usr/bin/python
 
 import re
-
 from datetime import datetime, timedelta
-
 
 def extract(td):
     """ Convert the timedelta into a dict of years, months, weeks, days, hours, minutes, seconds. """
@@ -32,7 +30,6 @@ def extract(td):
         'minutes' : minutes,
         'seconds' : seconds,
     }
-
 
 def num_unit_string(num, unit):
     if num == 0:
