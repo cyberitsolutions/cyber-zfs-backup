@@ -89,7 +89,7 @@ class RestoreSpec:
         return False
 
     def include(self, file_spec):
-        # This is a crucial part of the logic
+        # This is a crucial part of the logic.
         if self.is_included(file_spec):
             raise BadInclude("File %s is already included in the restore spec." % ( file_spec.path ))
         # We need the disk usage.
