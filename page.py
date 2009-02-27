@@ -1,4 +1,6 @@
 
+import string
+
 import html
 from html import head, body, title
 
@@ -6,14 +8,15 @@ import auth
 
 
 def header(content=None):
-    logout_span = html.span(html.a("Logout", att='href="/auth/logout"'), att='class="logout"')
+    logout_link = html.a("Logout", att='href="/auth/logout"')
     if content is None:
         status = auth.login_status()
         if status is None:
             content = ''
         else:
             content = "%s (%s) of %s" % ( status[0], status[1], status[3] )
-    return html.div(logout_span + content, att='class="header"')
+    menu_bar = string.join([html.a("Status", att='href="/show"'), html.a("Browse", att='href="/browse"')], " | ")
+    return html.div(html.span(content + html.nbsp(3) + logout_link, att='class="logout"') + menu_bar, att='class="header"')
 
 def footer(content="Footer"):
     return html.div(content, att='class="footer"')
