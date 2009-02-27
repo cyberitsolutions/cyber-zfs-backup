@@ -5,7 +5,7 @@ create table companies (
     long_name varchar(256) unique not null,
 
     check ( length(name) > 0 ),
-    check ( name ~* '^[-a-zA-Z0-9_]+$' ),   -- Alphanumeric or [-_].
+    check ( name ~* '^[-a-zA-Z0-9_:.]+$' ),   -- Alphanumeric or [-_].
     check ( length(long_name) > 0 )
 );
 comment on table companies is
@@ -25,7 +25,7 @@ create table shares (
     unique ( name, company_name ),
     foreign key ( company_name ) references companies ( name ),
     check ( length(name) > 0 ),
-    check ( name ~* '^[-a-zA-Z0-9_]+$' )    -- Alphanumeric or [-_].
+    check ( name ~* '^[-a-zA-Z0-9_:.]+$' )    -- Alphanumeric or [-_].
 );
 
 comment on table shares is
