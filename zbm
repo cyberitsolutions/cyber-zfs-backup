@@ -277,20 +277,24 @@ class ZfsBackupManager:
                 return simplejson.dumps([False, None, "Invalid action: %s" % ( action )])
             
             rs = restore_spec.RestoreSpec()
+            message = ""
             if action == "include":
                 if not rs.is_included(file_spec):
                     rs.include(file_spec)
+                    message = "Included %s" % ( file_spec.name )
                 # Doesn't matter if it's already included - we just
                 # act in the same way if it'd just been successfully
                 # included.
             elif action == "remove":
                 if rs.is_included(file_spec):
                     rs.remove(file_spec)
+                    message = "Removed %s" % ( file_spec.name )
 
             # The information returned in the second spot should
             # just be two numbers - the current number of selected
             # files/dirs and the running-total du_size.
-            return simplejson.dumps([True, [len(rs.include_set.keys()), rs.disk_usage_running_total], ""]) 
+            message += "<br/>Running total: %s" % ( filesize_exp(rs.disk_usage_running_total)  )
+            return simplejson.dumps([True, [len(rs.include_set.keys()), rs.disk_usage_running_total], message]) 
 
         # Returns:
         # * a true/false for success/failure,
