@@ -87,3 +87,7 @@ def textarea(data='', att=''): return tag('textarea', data, att)
 def option(data='', att=''): return tag('option', data, att)
 def select(data='', att=''): return tag('select', data, att)
 
+# Entities
+def nbsp(n):
+    return "&nbsp;" * n
+
