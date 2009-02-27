@@ -96,14 +96,14 @@ class RestoreSpec:
         debug.plog("Trying to include %s into include_set %s..." % ( file_spec.share_plus_path, self.include_set ))
         # This is a crucial part of the logic.
         if self.is_included(file_spec):
-            raise BadInclude("File %s is already included in the restore spec." % ( file_spec.path ))
+            raise BadInclude("File %s is already included in the restore spec." % ( file_spec.share_plus_path ))
         # We need the disk usage.
         file_spec.acquire_disk_usage()
         # Just for the insert.
         du_size = file_spec.disk_usage
         self.disk_usage_running_total += file_spec.disk_usage
         # Include it.
-        self.include_set[file_spec.path] = file_spec
+        self.include_set[file_spec.share_plus_path] = file_spec
 
         # Update the DB.
         row = db.get1("select id from shares where name = %(share_name)s and company_name = %(company_name)s", { 'company_name' : self.company_name, 'share_name' : file_spec.share })
@@ -119,11 +119,11 @@ class RestoreSpec:
     def remove(self, file_spec):
         debug.plog("Trying to remove %s from include_set %s..." % ( file_spec.share_plus_path, self.include_set ))
         # Can only remove paths that are directly included.
-        if not file_spec.path in self.include_set:
-            raise BadInclude("File %s is not directly included in the restore spec." % ( file_spec.path ))
+        if not file_spec.share_plus_path in self.include_set:
+            raise BadInclude("File %s is not directly included in the restore spec." % ( file_spec.share_plus_path ))
         # We need the disk usage.
         file_spec.acquire_disk_usage()
         self.disk_usage_running_total -= file_spec.disk_usage
         # Remove it.
-        del self.include_set[file_spec.path]
+        del self.include_set[file_spec.share_plus_path]
 
