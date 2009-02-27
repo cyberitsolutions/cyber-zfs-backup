@@ -80,6 +80,9 @@ div.header {
     /*background-color: #90e0b6;*/
     background-color: #c0c0c6;
     color: black;
+    font-weight: bold;
+    padding-top: 4px;
+    padding-bottom: 4px;
 }
 div.header img {
     display: inline;
