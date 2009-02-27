@@ -9,6 +9,7 @@ import debug
 import datetime
 
 import db
+import chroot
 import browse
 import auth
 
