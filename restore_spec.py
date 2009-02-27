@@ -38,11 +38,13 @@ class RestoreSpec:
         if restore_id is None:
             # Either create new or grab existing(!).
             row = db.get1("select id from restores where active and username = %(username)s and company_name = %(company_name)s", vars())
+            db.commit()
             if row is None:
                 # Create a new one.
                 creation = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 db.do("insert into restores ( username, company_name, creation ) values ( %(username)s, %(company_name)s, %(creation)s )", vars())
                 row = db.get1("select id from restores where username = %(username)s and company_name = %(company_name)s and creation = %(creation)s", vars())
+                db.commit()
             # Grab the id.
             restore_id = int(row[0])
 
@@ -59,6 +61,7 @@ class RestoreSpec:
         debug.plog("Current self.restore_id is %s of type %s." % ( self.restore_id, str(type(self.restore_id)) ))
         restore_id = self.restore_id
         rows = db.get("select s.name, file_path, du_size from restore_files r, shares s where r.share_id = s.id and r.restore_id = %(restore_id)s", vars())
+        db.commit()
 
         for r in rows:
             share = r[0]
@@ -106,8 +109,8 @@ class RestoreSpec:
         share_id = row[0]
         restore_id = self.restore_id
         file_path = file_spec.path
-        db.do("insert into restore_files ( restore_id, share_id, file_path, du_size ) values ( %(restore_id)s, %(share_id)s, %(file_path)s)", vars())
-
+        db.do("insert into restore_files ( restore_id, share_id, file_path, du_size ) values ( %(restore_id)s, %(share_id)s, %(file_path)s, %(du_size)s)", vars())
+        db.commit()
 
     def remove(self, file_spec):
         # Can only remove paths that are directly included.
