@@ -88,7 +88,7 @@ def pathname_dirlink(share, pathname):
     """
     escaped_share = cgi.escape(share, quote=True)
     if pathname == '/':
-        return html.a(html.b("/"), att='href="/browse?share=%s&amp;path=/"' % ( escaped_share ))
+        return html.a(escaped_share+"/", att='class="dirlink" href="/browse?share=%s&amp;path=/"' % ( escaped_share ))
 
     (basepath, basename) = os.path.split(pathname)
     name_html = html.a(basename + "/", att='class="dirlink" href="/browse?share=%s&amp;path=%s"' % ( escaped_share, cgi.escape(pathname, quote=True) ))
