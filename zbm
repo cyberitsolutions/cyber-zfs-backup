@@ -240,7 +240,7 @@ class ZfsBackupManager:
             error_message = html.p(html.span(str(e), att='class="error_message"'))
 
         return page.page("ZBM - Browse Share",
-            html.h1("Directory: %s" % ( pathname_dirlink(share, path) ))
+            html.h1(pathname_dirlink(share, path))
             + error_message
             + dir_box_html)
 
