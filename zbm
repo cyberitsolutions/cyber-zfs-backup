@@ -278,14 +278,12 @@ class ZfsBackupManager:
             
             rs = restore_spec.RestoreSpec()
             if action == "include":
-                rs = restore_spec.RestoreSpec()
                 if not rs.is_included(file_spec):
                     rs.include(file_spec)
                 # Doesn't matter if it's already included - we just
                 # act in the same way if it'd just been successfully
                 # included.
             elif action == "remove":
-                rs = restore_spec.RestoreSpec()
                 if rs.is_included(file_spec):
                     rs.remove(file_spec)
 
