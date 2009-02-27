@@ -173,6 +173,12 @@ def dir_box(share, chrooted_path):
     dir_contents_html = html.tbody(string.join(map(lambda fs: tr_filespec(fs, revolver), dir_contents[1:])))
     return html.div(parent_dir_html + html.table(dir_header + dir_contents_html, att='class="browsedir tablesorter"'), att='class="browsedir"')
 
+def make_file_spec(company_name, share_name, path):
+    """ Returns a FileSpec from a company_name, share_name, path. """
+    sp = chroot.build_share_path(company_name, share_name)
+    mychroot = chroot.Chroot(sp)
+    return browse.FileSpec(mychroot.chrooted_path(path), share_name)
+
 
 class ZfsBackupManager:
     auth = AuthController()
