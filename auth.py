@@ -34,6 +34,7 @@ def check_credentials(username, password):
     # Adapt to your needs
     hashed_password = md5.md5(password).hexdigest()
     row = db.get1("select u.full_name, c.name, c.long_name from users u, companies c where u.company_name = c.name and username = %(username)s and hashed_password = %(hashed_password)s", vars())
+    db.commit()
     if row is None:
         return ( "Incorrect username or password.", None )
 
