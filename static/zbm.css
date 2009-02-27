@@ -77,7 +77,8 @@ div#content {
 
 div.header {
     width: 100%;
-    background-color: #90e0b6;*/
+    /*background-color: #90e0b6;*/
+    background-color: #c0c0c6;
     color: black;
 }
 div.header img {
