@@ -103,7 +103,7 @@ def get_extension(filename):
         filename_ext = string.lower(m.group(1))
     return filename_ext
 
-def tr_filespec(file_spec, revolver=None):
+def tr_filespec(rs, file_spec, revolver=None):
     f = file_spec
 
     tr_attr = ""
@@ -122,7 +122,10 @@ def tr_filespec(file_spec, revolver=None):
         age_exp = str(timediff.show(now - mtime_dt))
 
     escaped_path = cgi.escape(f.path, quote=True)
-    checkbox_attr = 'class="zbm_select" name="path:%s" type="checkbox"' % ( escaped_path )
+    is_checked = ""
+    if rs.is_included(f):
+        is_checked = " checked"
+    checkbox_attr = 'class="zbm_select" name="path:%s" type="checkbox"%s' % ( escaped_path, is_checked )
     return html.tr(
         html.td([
             html.input(att=checkbox_attr),
@@ -159,8 +162,8 @@ class Revolver:
             self._index = 0
         return rv
 
-def dir_box(share, chrooted_path):
-    select_all_checkbox = html.input(att='id="select_all" name="select_all" type="checkbox"')
+def dir_box(rs, share, chrooted_path):
+    select_all_checkbox = html.input(att='id="select_all" name="select_all" type="checkbox" disabled')
     dir_header = html.thead(html.tr(html.th([select_all_checkbox, 'Type', 'Size', 'Name', 'Ext', 'Last Modified', 'Age'])))
     dir_contents = browse.get_dir_contents(chrooted_path, share)
 
@@ -170,7 +173,7 @@ def dir_box(share, chrooted_path):
 
     revolver = Revolver(('row_odd', 'row_even'))
 
-    dir_contents_html = html.tbody(string.join(map(lambda fs: tr_filespec(fs, revolver), dir_contents[1:])))
+    dir_contents_html = html.tbody(string.join(map(lambda fs: tr_filespec(rs, fs, revolver), dir_contents[1:])))
     return html.div(parent_dir_html + html.table(dir_header + dir_contents_html, att='class="browsedir tablesorter"'), att='class="browsedir"')
 
 def make_file_spec(company_name, share_name, path):
@@ -222,6 +225,7 @@ class ZfsBackupManager:
                 html.h1("Select Share")
                 + html.ul(html.li(links)))
 
+        rs = restore_spec.RestoreSpec()
         error_message = ""
         dir_box_html = ""
         try:
@@ -231,7 +235,7 @@ class ZfsBackupManager:
             mychroot = chroot.Chroot(sp)
             chrooted_path = mychroot.chrooted_path(path)
             # Supply the share name as well as the chrooted path.
-            dir_box_html = dir_box(share, chrooted_path)
+            dir_box_html = dir_box(rs, share, chrooted_path)
         except chroot.BadChrootPath, e:
             error_message = html.p(html.span(str(e), att='class="error_message"'))
 
