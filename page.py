@@ -26,6 +26,7 @@ css_links = html.link(att='type="text/css" rel="stylesheet" href="/static/zbm.cs
 
 js_links = html.script(att='type="text/javascript" src="/static/jquery-1.2.6.min.js"') \
     + html.script(att='type="text/javascript" src="/static/jquery.tablesorter.min.js"') \
+    + html.script(att='type="text/javascript" src="/static/jquery.growl.js"') \
     + html.script(att='type="text/javascript" src="/static/zbm.js"')
 
 # Default page template.
