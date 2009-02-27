@@ -97,6 +97,8 @@ class RestoreSpec:
             raise BadInclude("File %s is already included in the restore spec." % ( file_spec.path ))
         # We need the disk usage.
         file_spec.acquire_disk_usage()
+        # Just for the insert.
+        du_size = file_spec.disk_usage
         self.disk_usage_running_total += file_spec.disk_usage
         # Include it.
         self.include_set[file_spec.path] = file_spec
