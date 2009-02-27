@@ -88,6 +88,6 @@ def option(data='', att=''): return tag('option', data, att)
 def select(data='', att=''): return tag('select', data, att)
 
 # Entities
-def nbsp(n):
+def nbsp(n=1):
     return "&nbsp;" * n
 
