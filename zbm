@@ -103,8 +103,8 @@ def get_extension(filename):
         filename_ext = string.lower(m.group(1))
     return filename_ext
 
-def tr_filespec(filespec, revolver=None):
-    f = filespec
+def tr_filespec(file_spec, revolver=None):
+    f = file_spec
 
     tr_attr = ""
     if not revolver is None:
