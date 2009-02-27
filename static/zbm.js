@@ -32,7 +32,21 @@ function setup_browsedir_sort() {
 
 function file_change() {
     node = this;
-    console.debug("name: " + node.name);
+    share = $("#share_name").get(0).name;
+    path = node.name;
+    //console.debug("name: " + node.name + ", share_name: " + share_name);
+    if (node.checked) {
+        action = "include";
+    } else {
+        action = "remove";
+    }
+    $.getJSON("/json", {"action":action, "share":share, "path":path},
+        function (data) {
+            if (data[0]) {
+                $.growl(data[2]);
+            }
+        });
+    //$.growl(action + " a file", action + " " + node.name + " for share " + share_name);
 }
 
 
