@@ -299,7 +299,7 @@ class ZfsBackupManager:
         # Returns:
         # * a true/false for success/failure,
         # * a data structure of information iff success,
-        # * an error message string iff failure.
+        # * a message string (error message iff failure).
         return simplejson.dumps([False, None, ""])
 
 # Config.
