@@ -248,7 +248,6 @@ class ZfsBackupManager:
     def json(self, **kwargs):
         # Whatever happens here, we return plaintext JSON.
         cherrypy.response.headers['Content-Type'] = "text/plain"
-        return ""
 
 
 # Config.
