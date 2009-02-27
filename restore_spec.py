@@ -93,6 +93,7 @@ class RestoreSpec:
         return False
 
     def include(self, file_spec):
+        debug.plog("Trying to include %s into include_set %s..." % ( file_spec.share_plus_path, self.include_set ))
         # This is a crucial part of the logic.
         if self.is_included(file_spec):
             raise BadInclude("File %s is already included in the restore spec." % ( file_spec.path ))
@@ -116,6 +117,7 @@ class RestoreSpec:
         db.commit()
 
     def remove(self, file_spec):
+        debug.plog("Trying to remove %s from include_set %s..." % ( file_spec.share_plus_path, self.include_set ))
         # Can only remove paths that are directly included.
         if not file_spec.path in self.include_set:
             raise BadInclude("File %s is not directly included in the restore spec." % ( file_spec.path ))
