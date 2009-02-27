@@ -30,10 +30,17 @@ function setup_browsedir_sort() {
     });
 }
 
+function file_change() {
+    node = this;
+    console.debug("name: " + node.name);
+}
+
 
 $(document).ready(
     function() {
         setup_browsedir_sort();
+
+        $("input.zbm_select").click(file_change);
     }
 );
 
