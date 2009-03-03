@@ -89,7 +89,7 @@ create table restore_files (
     -- *everything* underneath it (ie. recursive).
     -- If we don't want everything under the dir, we
     -- don't include the directory.
-    du_size integer not null,
+    du_size bigint not null,
 
     primary key ( restore_id, share_id, file_path ),
     foreign key ( restore_id ) references restores ( id ),
