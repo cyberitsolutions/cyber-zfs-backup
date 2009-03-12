@@ -38,7 +38,7 @@ div.authinfo a {
 div.header {
     width: 100%;
     /*background-color: #90e0b6;*/
-    background-color: #c0c0c6;
+    background-color: #eeeeee;
     color: black;
     font-weight: bold;
     padding-top: 4px;
@@ -62,7 +62,7 @@ div.header span.hdrdisplay span {
 
 div.footer {
     text-align: center;
-    background-color: white;
+    background-color: #eeeeee;
     font-size: 0.9em;
 }
 
