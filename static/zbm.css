@@ -32,49 +32,6 @@ div.authinfo a {
     color: white;
 }
 
-div#menu {
-    width: 150px;
-    min-height: 600px;
-    float: left;
-
-    left: 20px;
-    background-color: #004026;
-    color: white;
-    border: 1px dashed #999;
-    border: none;
-}
-div#menu strong {
-    margin-left: 10px;
-}
-div#menu a {
-    color: white;
-}
-
-div#menu dl {
-    margin-left: 25px;
-    margin-top: 0px;
-    font-size: 0.9em;
-}
-div#menu dt {
-    margin-top: 8px;
-    margin-bottom: 8px;
-}
-
-div#container {
-    width: 100%;
-    background: white url(lormenubg.gif) repeat-y left;
-    float: right;
-    margin-left: -150px;
-}
-
-div#content {
-    font-size: 0.9em;
-    margin-left: 160px;
-    min-height: 120px;
-    border: 1px dashed #a33;
-    border:none;
-}
-
 div.header {
     width: 100%;
     /*background-color: #90e0b6;*/
