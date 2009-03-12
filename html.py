@@ -60,7 +60,7 @@ def body(data='', att=''): return tag('body', data, att)
 def title(data='', att=''): return tag('title', data, att)
 def div(data='', att=''): return tag('div', data, att)
 def span(data='', att=''): return tag('span', data, att)
-def link(data='', att=''): return tag('link', data, att)
+def link(data='', att=''): return tag('link', data, att, close=False)
 def script(data='', att=''): return tag('script', data, att)
 
 # Tables.
