@@ -25,6 +25,7 @@ a:link {
 
 div#main {
     background-color: white;
+    padding-bottom: 10px;
 }
 
 div.authinfo {
