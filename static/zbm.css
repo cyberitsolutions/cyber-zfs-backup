@@ -129,6 +129,9 @@ div.browsedir {
 table.browsedir {
     width: 100%;
 }
+table.restore_display {
+    width: 96%;
+}
 
 /* Not just a.dirlink - best for all links. */
 a:hover {
