@@ -117,6 +117,8 @@ class RestoreSpec:
         db.commit()
 
     def remove(self, file_spec):
+        # FIXME: Should check that the restore_id is active
+        # before doing anything.
         debug.plog("Trying to remove %s from include_set %s..." % ( file_spec.share_plus_path, self.include_set ))
         # Can only remove paths that are directly included.
         if not file_spec.share_plus_path in self.include_set:
