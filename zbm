@@ -231,10 +231,7 @@ class ZfsBackupManager:
             parent_file_path = parent_file_spec.path
 
             escaped_share_name = cgi.escape(share_name, quote=True)
-            escaped_file_path = cgi.escape(parent_file_path, quote=True)
-
-            return html.a(html.b(escaped_share_name) + html.nbsp() + escaped_file_path,
-                    att='class="dirlink" href="/browse?share=%s&amp;path=%s"' % ( escaped_share_name, escaped_file_path ))
+            return pathname_dirlink(share_name, parent_file_path, highlight_share=True) + cgi.escape(file_spec.basename, quote=True)
 
         spps = rs.include_set.keys()
         # Sort them for a more orderly display.
