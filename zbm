@@ -125,6 +125,9 @@ def tr_filespec(rs, file_spec, revolver=None):
     is_checked = ""
     if rs.is_included(f):
         is_checked = " checked"
+        if not rs.is_directly_included(f):
+            is_checked += " disabled"
+
     checkbox_attr = 'class="zbm_select" name="path:%s" type="checkbox"%s' % ( escaped_path, is_checked )
     return html.tr(
         html.td([
