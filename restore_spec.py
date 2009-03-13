@@ -67,11 +67,12 @@ class RestoreSpec:
         for r in rows:
             share = r[0]
             path = r[1]
+            du_size = r[2]
             sp = chroot.build_share_path(self.company_name, r[0])
             mychroot = chroot.Chroot(sp)
             chrooted_path = mychroot.chrooted_path(path)
             share_plus_path = browse.join_share_to_path(share, path)
-            self.include_set[share_plus_path] = browse.FileSpec(chrooted_path, share)
+            self.include_set[share_plus_path] = browse.FileSpec(chrooted_path, share, disk_usage=du_size)
         
         self.disk_usage_running_total = sum([ r[2] for r in rows ])
 
