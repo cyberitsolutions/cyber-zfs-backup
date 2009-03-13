@@ -84,10 +84,10 @@ filespec_cmp = {
 ######################################################################
 
 def join_share_to_path(share, path):
-    return string.join([share, path], ':')
+    return string.join([share, path], '+')
 
 def split_share_from_path(share_plus_path):
-    return share_plus_path.split(':', 1)
+    return share_plus_path.split('+', 1)
 
 class FileSpec:
     def __init__(self, chrooted_path, share, name=False, disk_usage=None):
