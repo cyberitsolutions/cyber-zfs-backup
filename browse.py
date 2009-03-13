@@ -90,7 +90,7 @@ def split_share_from_path(share_plus_path):
     return share_plus_path.split(':', 1)
 
 class FileSpec:
-    def __init__(self, chrooted_path, share, name=False):
+    def __init__(self, chrooted_path, share, name=False, disk_usage=None):
         self.chrooted_path = chrooted_path
         self.real_path = self.chrooted_path.real_path
         self.share = share
@@ -111,7 +111,7 @@ class FileSpec:
         self.type = file_type(self.real_path)
         self.size = getlsize(self.real_path)
         # Not acquired by default, as it can be expensive.
-        self.disk_usage = None
+        self.disk_usage = disk_usage
         self.mtime = getlmtime(self.real_path)
 
         if self.type == 'link':
@@ -123,6 +123,14 @@ class FileSpec:
         """ This can be expensive, so is not done by default. """
         if self.disk_usage is None:
             self.disk_usage = get_disk_usage(self.real_path)
+        return self.disk_usage
+
+    def get_parent(self, name=False):
+        """ Returns FileSpec of parent directory (if inside chroot). """
+        if not self.chrooted_path.has_parent():
+            return None
+        pdir = self.chrooted_path.parent()
+        return FileSpec(pdir, self.share, name=name)
 
 
 # os.path.islink

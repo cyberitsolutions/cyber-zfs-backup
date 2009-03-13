@@ -198,15 +198,51 @@ class ZfsBackupManager:
     @expose
     @require()
     def show(self, restore_id=None):
+        company_name = cherrypy.session.get(auth.COMPANY_NAME)
 
+        rs = None
         if restore_id is None:
             rs = restore_spec.RestoreSpec()
             restore_id = rs.restore_id
         else:
             restore_id = int(restore_id)
+            rs = restore_spec.RestoreSpec(restore_id)
 
+        # Assemble simple list of the files in given restore.
+        def spp_to_link(spp):
+            """ Returns a HTML link for displaying a share-plus-path expression. """
+            m = re.search('^([^:]+):(.*)$', spp)
+            if not m:
+                raise EmptyRevolverError("Invalid share-plus-path expression: %s" % ( spp ))
+            share_name = m.group(1)
+            file_spec = make_file_spec(company_name, share_name, m.group(2))
+
+            # The file_path we want to use is the *parent* of the
+            # file_spec above.
+            parent_file_spec = file_spec.get_parent()
+            if parent_file_spec is None:
+                # This technically should not happen, as we don't
+                # provide a way to select an entire share.
+                parent_file_spec = file_spec
+
+            parent_file_path = parent_file_spec.path
+
+            escaped_share_name = cgi.escape(share_name, quote=True)
+            escaped_file_path = cgi.escape(parent_file_path, quote=True)
+
+            return html.a(html.b(escaped_share_name) + html.nbsp() + escaped_file_path,
+                    att='class="dirlink" href="/browse?share=%s&amp;path=%s"' % ( escaped_share_name, escaped_file_path ))
+
+        restore_path_links = [ spp_to_link(spp) for spp in rs.include_set ]
+
+        # Okay, let's show some actual *details* about the current
+        # restore.
         return page.page("ZBM - Current Restore",
-            html.h1("Current Restore") + html.p("Current restore id is %d." % ( restore_id )))
+            html.h1("Current Restore")
+            + html.p("Current restore id is %d." % ( restore_id ))
+            + html.p("Running total size is %s." % ( filesize_exp(rs.disk_usage_running_total) ) )
+            + html.ul(html.li(restore_path_links))
+            )
 
     @expose
     @require()

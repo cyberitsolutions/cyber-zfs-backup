@@ -67,11 +67,12 @@ class RestoreSpec:
         for r in rows:
             share = r[0]
             path = r[1]
+            du_size = r[2]
             sp = chroot.build_share_path(self.company_name, r[0])
             mychroot = chroot.Chroot(sp)
             chrooted_path = mychroot.chrooted_path(path)
             share_plus_path = browse.join_share_to_path(share, path)
-            self.include_set[share_plus_path] = browse.FileSpec(chrooted_path, share)
+            self.include_set[share_plus_path] = browse.FileSpec(chrooted_path, share, disk_usage=du_size)
         
         self.disk_usage_running_total = sum([ r[2] for r in rows ])
 
@@ -98,9 +99,8 @@ class RestoreSpec:
         if self.is_included(file_spec):
             raise BadInclude("File %s is already included in the restore spec." % ( file_spec.share_plus_path ))
         # We need the disk usage.
-        file_spec.acquire_disk_usage()
         # Just for the insert.
-        du_size = file_spec.disk_usage
+        du_size = file_spec.acquire_disk_usage()
         self.disk_usage_running_total += file_spec.disk_usage
         # Include it.
         self.include_set[file_spec.share_plus_path] = file_spec
@@ -117,6 +117,8 @@ class RestoreSpec:
         db.commit()
 
     def remove(self, file_spec):
+        # FIXME: Should check that the restore_id is active
+        # before doing anything.
         debug.plog("Trying to remove %s from include_set %s..." % ( file_spec.share_plus_path, self.include_set ))
         # Can only remove paths that are directly included.
         if not file_spec.share_plus_path in self.include_set:
@@ -126,4 +128,16 @@ class RestoreSpec:
         self.disk_usage_running_total -= file_spec.disk_usage
         # Remove it.
         del self.include_set[file_spec.share_plus_path]
+
+        # Update the DB.
+        row = db.get1("select id from shares where name = %(share_name)s and company_name = %(company_name)s", { 'company_name' : self.company_name, 'share_name' : file_spec.share })
+        if row is None:
+            # FIXME: Raise a better exception.
+            raise BadInclude("Share %s does not exist in DB." % ( file_spec.share ))
+        share_id = row[0]
+        restore_id = self.restore_id
+        file_path = file_spec.path
+
+        db.do("delete from restore_files where restore_id = %(restore_id)s and share_id = %(share_id)s and file_path = %(file_path)s", vars())
+        db.commit()
 
