@@ -211,11 +211,8 @@ class ZfsBackupManager:
         # Assemble simple list of the files in given restore.
         def spp_to_link(spp):
             """ Returns a HTML link for displaying a share-plus-path expression. """
-            m = re.search('^([^:]+):(.*)$', spp)
-            if not m:
-                raise EmptyRevolverError("Invalid share-plus-path expression: %s" % ( spp ))
-            share_name = m.group(1)
-            file_spec = make_file_spec(company_name, share_name, m.group(2))
+            ( share_name, file_spec_path ) = browse.split_share_from_path(spp)
+            file_spec = make_file_spec(company_name, share_name, file_spec_path)
 
             # The file_path we want to use is the *parent* of the
             # file_spec above.
