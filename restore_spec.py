@@ -129,3 +129,15 @@ class RestoreSpec:
         # Remove it.
         del self.include_set[file_spec.share_plus_path]
 
+        # Update the DB.
+        row = db.get1("select id from shares where name = %(share_name)s and company_name = %(company_name)s", { 'company_name' : self.company_name, 'share_name' : file_spec.share })
+        if row is None:
+            # FIXME: Raise a better exception.
+            raise BadInclude("Share %s does not exist in DB." % ( file_spec.share ))
+        share_id = row[0]
+        restore_id = self.restore_id
+        file_path = file_spec.path
+
+        db.do("delete from restore_files where restore_id = %(restore_id)s and share_id = %(share_id)s and file_path = %(file_path)s", vars())
+        db.commit()
+
