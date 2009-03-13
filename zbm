@@ -230,7 +230,10 @@ class ZfsBackupManager:
             return html.a(html.b(escaped_share_name) + html.nbsp() + escaped_file_path,
                     att='class="dirlink" href="/browse?share=%s&amp;path=%s"' % ( escaped_share_name, escaped_file_path ))
 
-        restore_path_links = [ spp_to_link(spp) for spp in rs.include_set ]
+        spps = rs.include_set.keys()
+        # Sort them for a more orderly display.
+        spps.sort()
+        restore_path_links = [ spp_to_link(spp) for spp in spps ]
 
         # Okay, let's show some actual *details* about the current
         # restore.
