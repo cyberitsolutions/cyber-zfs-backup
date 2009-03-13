@@ -4,8 +4,8 @@
 . ./db-cfg.sh
 
 # Drop and re-create database.
-dropdb $DB_NAME
-createdb $DB_NAME
+dropdb -U $SUPER_USER $DB_NAME
+createdb -U $SUPER_USER $DB_NAME
 
 # Set up tables and initial data.
 psql -U $SUPER_USER $DB_NAME < db.sql
