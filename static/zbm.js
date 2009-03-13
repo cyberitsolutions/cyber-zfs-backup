@@ -46,6 +46,19 @@ function setup_browsedir_sort() {
     table_browsedir.bind("sortEnd", function () { table_odd_even(table_browsedir); });
 }
 
+function setup_restore_display_sort() {
+    var restore_display_tables = $("table.restore_display");
+    var ts_cfg = {
+        textExtraction: extract_value,
+        headers: {
+            0: { sorter: "digit" },
+            1: { sorter: "text" },
+        },
+    };
+    restore_display_tables.tablesorter(ts_cfg);
+    restore_display_tables.bind("sortEnd", function () { table_odd_even(restore_display_tables); });
+}
+
 function file_change() {
     node = this;
     share = $("#share_name").get(0).name;
@@ -69,7 +82,7 @@ function file_change() {
 $(document).ready(
     function() {
         setup_browsedir_sort();
-
+        setup_restore_display_sort();
         $("input.zbm_select").click(file_change);
     }
 );
