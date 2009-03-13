@@ -123,6 +123,14 @@ class FileSpec:
         """ This can be expensive, so is not done by default. """
         if self.disk_usage is None:
             self.disk_usage = get_disk_usage(self.real_path)
+        return self.disk_usage
+
+    def get_parent(self, name=False):
+        """ Returns FileSpec of parent directory (if inside chroot). """
+        if not self.chrooted_path.has_parent():
+            return None
+        pdir = self.chrooted_path.parent()
+        return FileSpec(pdir, self.share, name=name)
 
 
 # os.path.islink
