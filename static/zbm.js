@@ -14,8 +14,23 @@ function extract_value(node) {
     }
 }
 
+// Takes a table node, alternately applies CSS classes
+// row_odd and row_even to its rows.
+function table_odd_even(table) {
+    var kids = $(table).children("tbody").children("tr").get();
+    var num_kids = kids.length;
+    for (var i=0; i<num_kids; ++i) {
+        if (i % 2 == 0) {
+            $(kids[i]).removeClass("row_odd").addClass("row_even");
+        } else {
+            $(kids[i]).removeClass("row_even").addClass("row_odd");
+        }
+    }
+}
+
 function setup_browsedir_sort() {
-    $("table.browsedir").tablesorter({
+    var table_browsedir = $("table.browsedir");
+    table_browsedir.tablesorter({
         //debug: true,
         textExtraction: extract_value,
         headers: {
@@ -28,6 +43,7 @@ function setup_browsedir_sort() {
             6: { sorter: false }
         },
     });
+    table_browsedir.bind("sortEnd", function () { table_odd_even(table_browsedir); });
 }
 
 function file_change() {
