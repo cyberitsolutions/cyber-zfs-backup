@@ -75,7 +75,7 @@ def split_path(pathname):
     return sp
 
 
-def pathname_dirlink(share, pathname):
+def pathname_dirlink(share, pathname, highlight_share=False):
     """
     Takes a path string and return a string where each directory
     name is a link to that directory, eg.:
@@ -88,13 +88,16 @@ def pathname_dirlink(share, pathname):
     """
     escaped_share = cgi.escape(share, quote=True)
     if pathname == '/':
-        return html.a(escaped_share+"/", att='id="share_name" name="%s" class="dirlink" href="/browse?share=%s&amp;path=/"' % ( escaped_share, escaped_share ))
+        share_link = html.a(escaped_share+"/", att='id="share_name" name="%s" class="dirlink" href="/browse?share=%s&amp;path=/"' % ( escaped_share, escaped_share ))
+        if highlight_share:
+            return html.b(share_link)
+        return share_link
 
     (basepath, basename) = os.path.split(pathname)
     name_html = html.a(basename + "/", att='class="dirlink" href="/browse?share=%s&amp;path=%s"' % ( escaped_share, cgi.escape(pathname, quote=True) ))
     if basepath == '':
         return name_html
-    return pathname_dirlink(share, basepath) + name_html
+    return pathname_dirlink(share, basepath, highlight_share=highlight_share) + name_html
 
 def get_extension(filename):
     filename_ext = ''
