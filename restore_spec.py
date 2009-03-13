@@ -80,6 +80,9 @@ class RestoreSpec:
         """ Return a list of the included share+paths. """
         return str([ sp for sp in self.include_set ])
 
+    def is_directly_included(self, file_spec):
+        return file_spec.share_plus_path in self.include_set
+
     def is_included(self, file_spec):
         # It has to be both the share and the path.
         if file_spec.share_plus_path in self.include_set:
