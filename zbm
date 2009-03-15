@@ -244,7 +244,7 @@ class ZfsBackupManager:
 
             escaped_share_name = cgi.escape(share_name, quote=True)
             file_spec_size_span = filesize_html(file_spec.acquire_disk_usage())
-            return html.tr(html.td([file_spec_size_span,
+            return html.tr(html.td([make_checkbox_input(file_spec), file_spec_size_span,
                     html.span(pathname_dirlink(share_name, parent_file_path, highlight_share=True) + cgi.escape(file_spec.basename, quote=True), att='value="%s"' % ( spp )) ]), att=tr_attr)
 
         spps = rs.include_set.keys()
