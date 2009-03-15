@@ -349,10 +349,13 @@ class ZfsBackupManager:
                     message = "Removed %s (%s)" % ( file_spec.name, filesize_exp(file_spec.acquire_disk_usage()) )
 
             # The information returned in the second spot should
-            # just be two numbers - the current number of selected
-            # files/dirs and the running-total du_size.
-            message += "<br/>Running total: %s" % ( filesize_exp(rs.disk_usage_running_total)  )
-            return simplejson.dumps([True, [len(rs.include_set.keys()), rs.disk_usage_running_total], message]) 
+            # just be two numbers and a string:
+            # * the current number of selected files/dirs
+            # * the running-total du_size, and
+            # * the running-total du_size as a string expression.
+            du_exp = filesize_exp(rs.disk_usage_running_total)
+            message += "<br/>Running total: %s" % ( du_exp )
+            return simplejson.dumps([True, [len(rs.include_set.keys()), rs.disk_usage_running_total, du_exp], message]) 
 
         # Returns:
         # * a true/false for success/failure,
