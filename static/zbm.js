@@ -99,6 +99,7 @@ function file_change() {
         if (data[0]) { $.growl(data[2]); }
     }
     $.getJSON("/json", {"action":action, "share":share, "path":path}, action_complete);
+    update_select_all();
 }
 
 function share_file_remove() {
