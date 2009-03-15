@@ -97,9 +97,8 @@ function share_file_remove() {
     var share = m[1];
     var path = m[2];
 
-    action = "remove";
-
-    $.getJSON("/json", {"action":action, "share":share, "path":path},
+    $.growl("Removing " + get_basename(path) + " ...");
+    $.getJSON("/json", {"action":"remove", "share":share, "path":path},
         function (data) {
             if (data[0]) {
                 $.growl(data[2]);
