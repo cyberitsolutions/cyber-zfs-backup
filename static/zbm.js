@@ -96,7 +96,10 @@ function file_change() {
     }
     $.growl(actioning + " " + get_basename(path) + " ...");
     function action_complete(data) {
-        if (data[0]) { $.growl(data[2]); }
+        if (data[0]) {
+            $.growl(data[2]);
+            $(".running_total_size").html(data[1][2]);
+        }
     }
     $.getJSON("/json", {"action":action, "share":share, "path":path}, action_complete);
     update_select_all();
@@ -115,6 +118,7 @@ function share_file_remove() {
     $.getJSON("/json", {"action":"remove", "share":share, "path":path},
         function (data) {
             if (data[0]) {
+                $(".running_total_size").html(data[1][2]);
                 $.growl(data[2]);
                 // Now remove the tr row.
                 tr = node.parentNode.parentNode;
