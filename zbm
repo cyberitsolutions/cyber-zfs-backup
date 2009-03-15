@@ -214,8 +214,8 @@ class ZfsBackupManager:
 
     @expose
     @require()
-    def index(self, share=None, path="/"):
-        return self.browse(share=share, path=path)
+    def index(self):
+        return self.show()
 
     @expose
     @require()
