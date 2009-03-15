@@ -28,6 +28,11 @@ def login_status():
     company_fullname = cherrypy.session.get(COMPANY_FULLNAME)
     return (username, fullname, company_name, company_fullname)
 
+def reset_password(username, password):
+    hashed_password = md5.md5(password).hexdigest()
+    db.do("update users set hashed_password = %(hashed_password)s where username = %(username)s", vars())
+    db.commit()
+
 def check_credentials(username, password):
     """Verifies credentials for username and password.
     Returns None on success or a string describing the error on failure"""
