@@ -51,8 +51,9 @@ function setup_restore_display_sort() {
     var ts_cfg = {
         textExtraction: extract_value,
         headers: {
-            0: { sorter: "digit" },
-            1: { sorter: "text" },
+            0: { sorter: false },
+            1: { sorter: "digit" },
+            2: { sorter: "text" },
         },
     };
     restore_display_tables.tablesorter(ts_cfg);
