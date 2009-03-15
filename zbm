@@ -335,6 +335,19 @@ class ZfsBackupManager:
 
     @expose
     @require()
+    def action(self, **kwargs):
+        if 'cancel_restore' in kwargs:
+            restore_spec.cancel_current_restore()
+            return self.show()
+        if 'create_tarball' in kwargs:
+            return self.show()
+        if 'create_zipfile' in kwargs:
+            return self.show()
+
+        return self.show()
+
+    @expose
+    @require()
     def user(self, old_password=None, new_password1=None, new_password2=None):
         error_message = ""
         lstatus = auth.login_status()
