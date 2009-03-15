@@ -334,14 +334,14 @@ class ZfsBackupManager:
             if action == "include":
                 if not rs.is_included(file_spec):
                     rs.include(file_spec)
-                    message = "Included %s" % ( file_spec.name )
+                    message = "Included %s (%s)" % ( file_spec.name, filesize_exp(file_spec.acquire_disk_usage()) )
                 # Doesn't matter if it's already included - we just
                 # act in the same way if it'd just been successfully
                 # included.
             elif action == "remove":
                 if rs.is_included(file_spec):
                     rs.remove(file_spec)
-                    message = "Removed %s" % ( file_spec.name )
+                    message = "Removed %s (%s)" % ( file_spec.name, filesize_exp(file_spec.acquire_disk_usage()) )
 
             # The information returned in the second spot should
             # just be two numbers - the current number of selected
