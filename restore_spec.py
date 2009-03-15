@@ -171,13 +171,9 @@ class RestoreSpec:
         # We need the disk usage to update the running total.
         # Do NOT call acquire_disk_usage as we don't need to.
         du_row = db.get1("select du_size from restore_files where restore_id = %(restore_id)s and share_id = %(share_id)s and file_path = %(file_path)s", vars())
-        debug.plog("du_row == %s" % ( str(du_row) ))
         disk_usage = 0
-        if du_row is None:
-            debug.plog("Looks like we have to acquire the disk usage - fark.")
-        else:
-            self.disk_usage = du_row[0]
-            debug.plog("Good, using disk_usage == %s." % ( disk_usage))
+        if not du_row is None:
+            file_spec.disk_usage = du_row[0]
         disk_usage = file_spec.acquire_disk_usage()
         self.disk_usage_running_total -= disk_usage
         # Remove it.
