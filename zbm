@@ -248,9 +248,15 @@ class ZfsBackupManager:
                     html.span(pathname_dirlink(share_name, parent_file_path, highlight_share=True) + cgi.escape(file_spec.basename, quote=True), att='value="%s"' % ( spp )) ]), att=tr_attr)
 
         spps = rs.include_set.keys()
-        # Sort them for a more orderly display.
-        spps.sort()
-        restore_path_rows = string.join([ spp_to_row(spp) for spp in spps ])
+
+        restore_display = ""
+        if len(spps) > 0:
+            # Sort them for a more orderly display.
+            spps.sort()
+            restore_path_rows = string.join([ spp_to_row(spp) for spp in spps ])
+            restore_display = html.table(spp_header + html.tbody(restore_path_rows), att='style="margin-left:10px" class="tablesorter restore_display"')
+        else:
+            restore_display = html.p("Current restore is empty.")
 
         # Okay, let's show some actual *details* about the current
         # restore.
@@ -258,7 +264,7 @@ class ZfsBackupManager:
             html.h1("Current Restore")
             + html.p("Current restore id is %d." % ( restore_id ))
             + html.p("Running total size is %s." % ( filesize_exp(rs.disk_usage_running_total) ) )
-            + html.table(spp_header + html.tbody(restore_path_rows), att='style="margin-left:10px" class="tablesorter restore_display"')
+            + restore_display 
             )
 
     @expose
