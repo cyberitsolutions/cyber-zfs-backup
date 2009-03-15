@@ -69,6 +69,18 @@ function setup_restore_display_sort() {
     restore_display_tables.bind("sortEnd", function () { table_odd_even(restore_display_tables); });
 }
 
+function update_select_all() {
+    var all = $("input.zbm_select").get();
+    var select_all = $("#select_all");
+    for (var i=0; i<all.length; ++i) {
+        if (!all[i].checked) {
+            select_all.removeAttr("checked");
+            return;
+        }
+    }
+    select_all.attr("checked", "checked");
+}
+
 function file_change() {
     var node = this;
     var share = $("#share_name").get(0).name;
