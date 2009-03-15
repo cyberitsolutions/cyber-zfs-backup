@@ -323,6 +323,59 @@ class ZfsBackupManager:
 
     @expose
     @require()
+    def user(self, old_password=None, new_password1=None, new_password2=None):
+        error_message = ""
+        lstatus = auth.login_status()
+        username = lstatus[0]
+
+        password_form = html.form(
+            html.table(
+                html.tbody(
+                    html.tr([
+                            html.th("Old Password:") + html.td(html.input(att='type="password" name="old_password"')),
+                            html.th("New Password:") + html.td(html.input(att='type="password" name="new_password1"')),
+                            html.th("New Password (again):") + html.td(html.input(att='type="password" name="new_password2"')),
+                            html.td(html.input(att='type="submit" value="Login"'), att='colspan="2"')
+                        ]
+                    )
+                ),
+                att='class="borderless"'),
+            att='name="user" method="post" action="/user"'
+        ) + html.script('document.getElementsByName("old_password")[0].focus();', att='language="javascript"')
+
+        error_message = ""
+        info_message = ""
+
+        if old_password is None and new_password1 is None and new_password2 is None:
+            pass
+        elif old_password is None or new_password1 is None or new_password2 is None:
+            error_message = "Not all passwords supplied."
+        elif new_password1 != new_password2:
+            error_message = "New passwords do not match."
+        elif len(new_password1) < 6:
+            error_message = "New password must be at least six characters long."
+        else:
+            auth_check = auth.check_credentials(username, old_password)
+            if auth_check[0] is None:
+                # All good. Set the new password.
+                auth.reset_password(username, new_password1)
+                info_message = "Password successfully changed."
+            else:
+                error_message = "Old password is incorrect."
+
+        if len(info_message) > 0:
+            info_message = html.p(info_message)
+        if len(error_message) > 0:
+            error_message = html.p(html.span(error_message, att='class="error_message"'))
+
+        return page.page("ZBM - Change Password",
+            html.h1("Change Password")
+            + info_message
+            + error_message
+            + password_form)
+
+    @expose
+    @require()
     def json(self, **kwargs):
         # Whatever happens here, we return plaintext JSON.
         cherrypy.response.headers['Content-Type'] = "text/plain"
