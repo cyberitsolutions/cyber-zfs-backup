@@ -214,7 +214,7 @@ class ZfsBackupManager:
             restore_id = int(restore_id)
             rs = restore_spec.RestoreSpec(restore_id)
 
-        spp_header = html.thead(html.tr(html.th(['Size', 'Name'])))
+        spp_header = html.thead(html.tr(html.th(['', 'Size', 'Name'])))
         # Assemble simple list of the files in given restore.
         revolver = Revolver(('row_odd', 'row_even'));
         def spp_to_row(spp):
