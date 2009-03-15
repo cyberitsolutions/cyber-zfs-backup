@@ -79,6 +79,32 @@ function file_change() {
     //$.growl(action + " a file", action + " " + node.name + " for share " + share_name);
 }
 
+function share_file_remove() {
+    var node = this;
+    var regex = /^spath:([^+]+)\+(.*)$/;
+    var m = regex.exec(node.name);
+
+    if (!m) { return; }
+    var share = m[1];
+    var path = m[2];
+
+    action = "remove";
+
+    $.getJSON("/json", {"action":action, "share":share, "path":path},
+        function (data) {
+            if (data[0]) {
+                $.growl(data[2]);
+                // Now remove the tr row.
+                tr = node.parentNode.parentNode;
+                $(tr).remove();
+
+                tbl = $("table.restore_display");
+                tbl.trigger("update");
+                table_odd_even(tbl);
+            }
+        });
+}
+
 
 $(document).ready(
     function() {
