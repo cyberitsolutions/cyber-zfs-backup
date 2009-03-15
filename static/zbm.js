@@ -111,6 +111,7 @@ $(document).ready(
         setup_browsedir_sort();
         setup_restore_display_sort();
         $("input.zbm_select").click(file_change);
+        $("input.zbm_deselect").click(share_file_remove);
     }
 );
 
