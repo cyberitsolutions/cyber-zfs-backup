@@ -169,9 +169,25 @@ class Revolver:
         return rv
 
 def dir_box(rs, share, chrooted_path):
-    select_all_checkbox = html.input(att='id="select_all" name="select_all" type="checkbox" disabled')
-    dir_header = html.thead(html.tr(html.th([select_all_checkbox, 'Type', 'Size', 'Name', 'Ext', 'Last Modified', 'Age'])))
+    dir_filespec = browse.FileSpec(chrooted_path, share)
+    escaped_share_plus_path = cgi.escape(dir_filespec.share_plus_path, quote=True)
     dir_contents = browse.get_dir_contents(chrooted_path, share)
+
+    def all_directly_included(rs, fs):
+        for f in fs:
+            if not rs.is_directly_included(f):
+                return False
+        return True
+
+    # Check to see if all dir_contents are (directly) included.
+    select_all_extra = ""
+    if rs.is_included(dir_filespec):
+        select_all_extra = " disabled checked"
+    elif len(dir_contents) > 1 and all_directly_included(rs, dir_contents[1:]):
+        select_all_extra = " checked"
+
+    select_all_checkbox = html.input(att='id="select_all" name="spath:%s" title="Select/deselect all" type="checkbox"%s' % ( escaped_share_plus_path, select_all_extra ))
+    dir_header = html.thead(html.tr(html.th([select_all_checkbox, 'Type', 'Size', 'Name', 'Ext', 'Last Modified', 'Age'])))
 
     parent_dir_html = ""
     if not dir_contents[0] is None:
