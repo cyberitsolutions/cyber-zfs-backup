@@ -146,13 +146,8 @@ class RestoreSpec:
         # Can only remove paths that are directly included.
         if not file_spec.share_plus_path in self.include_set:
             raise BadInclude("File %s is not directly included in the restore spec." % ( file_spec.share_plus_path ))
-        # We need the disk usage.
-        file_spec.acquire_disk_usage()
-        self.disk_usage_running_total -= file_spec.disk_usage
-        # Remove it.
-        del self.include_set[file_spec.share_plus_path]
 
-        # Update the DB.
+        # Prepare to update the DB.
         row = db.get1("select id from shares where name = %(share_name)s and company_name = %(company_name)s", { 'company_name' : self.company_name, 'share_name' : file_spec.share })
         if row is None:
             # FIXME: Raise a better exception.
@@ -160,6 +155,21 @@ class RestoreSpec:
         share_id = row[0]
         restore_id = self.restore_id
         file_path = file_spec.path
+
+        # We need the disk usage to update the running total.
+        # Do NOT call acquire_disk_usage as we don't need to.
+        du_row = db.get1("select du_size from restore_files where restore_id = %(restore_id)s and share_id = %(share_id)s and file_path = %(file_path)s", vars())
+        debug.plog("du_row == %s" % ( str(du_row) ))
+        disk_usage = 0
+        if du_row is None:
+            debug.plog("Looks like we have to acquire the disk usage - fark.")
+        else:
+            self.disk_usage = du_row[0]
+            debug.plog("Good, using disk_usage == %s." % ( disk_usage))
+        disk_usage = file_spec.acquire_disk_usage()
+        self.disk_usage_running_total -= disk_usage
+        # Remove it.
+        del self.include_set[file_spec.share_plus_path]
 
         db.do("delete from restore_files where restore_id = %(restore_id)s and share_id = %(share_id)s and file_path = %(file_path)s", vars())
         if do_commit:
