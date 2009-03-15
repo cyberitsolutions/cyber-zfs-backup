@@ -110,8 +110,8 @@ table.borderless th {
 }
 
 /* FIXME: Handle this better. */
-table tr.row_even { background-color: #eaeaea !important; }
-table tr.row_even td { background-color: #eaeaea !important; }
+table tr.row_even { background-color: #f0f0f0 !important; }
+table tr.row_even td { background-color: #f0f0f0 !important; }
 
 
 span.error_message {
