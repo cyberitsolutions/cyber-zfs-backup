@@ -108,12 +108,25 @@ class RestoreSpec:
         # This is a crucial part of the logic.
         if self.is_included(file_spec):
             raise BadInclude("File %s is already included in the restore spec." % ( file_spec.share_plus_path ))
+
+        # Grab a copy of the include_set keys *before* including this
+        # file_spec.
+        before_fs_included_keys = self.include_set.keys()
+
         # We need the disk usage.
         # Just for the insert.
         du_size = file_spec.acquire_disk_usage()
         self.disk_usage_running_total += file_spec.disk_usage
         # Include it.
         self.include_set[file_spec.share_plus_path] = file_spec
+
+        # Now we much check to see if any of the other included
+        # file_specs become indirectly included - if so, they must be
+        # removed.
+        for k in before_fs_included_keys:
+            check_fs = self.include_set[k]
+            if self.is_indirectly_included(check_fs):
+                self.remove(check_fs, do_commit=False)
 
         # Update the DB.
         row = db.get1("select id from shares where name = %(share_name)s and company_name = %(company_name)s", { 'company_name' : self.company_name, 'share_name' : file_spec.share })
