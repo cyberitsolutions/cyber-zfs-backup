@@ -113,7 +113,8 @@ table.borderless th {
 table tr.row_even { background-color: #f0f0f0 !important; }
 table tr.row_even td { background-color: #f0f0f0 !important; }
 
-table tr:hover td { background-color: #f7ff8f !important; }
+table tr.row_even:hover td { background-color: #f7ff8f !important; }
+table tr.row_odd:hover td { background-color: #f7ff8f !important; }
 
 span.error_message {
     color: red;
