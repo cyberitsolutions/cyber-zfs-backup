@@ -18,7 +18,7 @@ def header(content=None):
     menu_bar = string.join([html.a("Status", att='href="/show"'), html.a("Browse", att='href="/browse"')], " | ")
     return html.div(html.span(content + html.nbsp(3) + logout_link + html.nbsp(), att='class="logout"') + html.nbsp() + menu_bar, att='class="header"')
 
-def footer(content="Footer"):
+def footer(content="ZBM"):
     return html.div(content, att='class="footer"')
 
 css_links = html.link(att='type="text/css" rel="stylesheet" href="/static/zbm.css"') \
