@@ -14,7 +14,7 @@ def header(content=None):
         if status is None:
             content = ''
         else:
-            content = "%s (%s) of %s" % ( status[0], status[1], status[3] )
+            content = "%s (%s) of %s" % ( html.a(status[0], att='href="/user"'), status[1], status[3] )
     menu_bar = string.join([html.a("Status", att='href="/show"'), html.a("Browse", att='href="/browse"')], " | ")
     return html.div(html.span(content + html.nbsp(3) + logout_link + html.nbsp(), att='class="logout"') + html.nbsp() + menu_bar, att='class="header"')
 
