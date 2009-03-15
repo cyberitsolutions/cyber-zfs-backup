@@ -29,9 +29,10 @@ function table_odd_even(table) {
     var num_kids = kids.length;
     for (var i=0; i<num_kids; ++i) {
         if (i % 2 == 0) {
-            $(kids[i]).removeClass("row_odd").addClass("row_even");
-        } else {
+            // Starting at 0, remember! An "odd" i => an "even" row.
             $(kids[i]).removeClass("row_even").addClass("row_odd");
+        } else {
+            $(kids[i]).removeClass("row_odd").addClass("row_even");
         }
     }
 }
