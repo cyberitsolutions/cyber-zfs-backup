@@ -262,7 +262,7 @@ class ZfsBackupManager:
         # restore.
         return page.page("ZBM - Current Restore",
             html.h1("Current Restore")
-            + html.p("Running total size is %s." % ( filesize_exp(rs.disk_usage_running_total) ) )
+            + html.p("Running total size is %s." % ( html.span(filesize_exp(rs.disk_usage_running_total), att='class="running_total_size"') ))
             + restore_display 
             )
 
