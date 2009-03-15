@@ -134,6 +134,11 @@ table.browsedir {
 table.restore_display {
     width: 96%;
 }
+table.restore_action {
+    width: 96%;
+    margin-bottom: 10px;
+    text-align: center;
+}
 
 /* Not just a.dirlink - best for all links. */
 a:hover {
