@@ -126,7 +126,7 @@ class RestoreSpec:
         db.do("insert into restore_files ( restore_id, share_id, file_path, du_size ) values ( %(restore_id)s, %(share_id)s, %(file_path)s, %(du_size)s)", vars())
         db.commit()
 
-    def remove(self, file_spec):
+    def remove(self, file_spec, do_commit=True):
         # FIXME: Should check that the restore_id is active
         # before doing anything.
         debug.plog("Trying to remove %s from include_set %s..." % ( file_spec.share_plus_path, self.include_set ))
@@ -149,5 +149,6 @@ class RestoreSpec:
         file_path = file_spec.path
 
         db.do("delete from restore_files where restore_id = %(restore_id)s and share_id = %(share_id)s and file_path = %(file_path)s", vars())
-        db.commit()
+        if do_commit:
+            db.commit()
 
