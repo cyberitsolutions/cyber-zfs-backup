@@ -267,10 +267,22 @@ class ZfsBackupManager:
 
         restore_display = ""
         if len(spps) > 0:
+            form = html.form(
+                html.table(
+                    html.tbody(
+                        html.tr(
+                            html.td([
+                                html.input(att='name="cancel_restore" type="submit" value="Cancel Restore"'),
+                                html.input(att='name="create_tarball" type="submit" value="Create Tarball"'),
+                                html.input(att='name="create_zipfile" type="submit" value="Create Zipfile"')
+                            ]))),
+                    att='class="borderless restore_action"'),
+                att='name="restore" method="post" action="/action"')
+
             # Sort them for a more orderly display.
             spps.sort()
             restore_path_rows = string.join([ spp_to_row(spp) for spp in spps ])
-            restore_display = html.table(spp_header + html.tbody(restore_path_rows), att='style="margin-left:10px" class="tablesorter restore_display"')
+            restore_display = form + html.table(spp_header + html.tbody(restore_path_rows), att='style="margin-left:10px" class="tablesorter restore_display"')
         else:
             restore_display = html.p("Current restore is empty.")
 
