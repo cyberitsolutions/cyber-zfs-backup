@@ -19,6 +19,18 @@ class BadInclude(Exception):
     def __str__(self):
         return self.value
 
+def get_current_restore_id():
+    ( username, _, company_name, _ ) = auth.login_status()
+    row = db.get1("select id from restores where active and username = %(username)s and company_name = %(company_name)s", vars())
+    db.commit()
+    if row is None:
+        return None
+    return int(row[0])
+
+def cancel_current_restore():
+    current_restore_id = get_current_restore_id()
+    db.do("update restores set active = false where id = %(current_restore_id)s", vars())
+    db.commit()
 
 # Tracks paths to include and paths to exclude.
 #
