@@ -271,9 +271,9 @@ class ZfsBackupManager:
                     html.tbody(
                         html.tr(
                             html.td([
-                                html.input(att='name="cancel_restore" type="submit" value="Cancel Restore"'),
-                                html.input(att='name="create_tarball" type="submit" value="Create Tarball"'),
-                                html.input(att='name="create_zipfile" type="submit" value="Create Zipfile"')
+                                html.input(att='name="cancel_restore" type="submit" value="Cancel Restore" title="Wipe out your current set of restore files."'),
+                                html.input(att='name="create_tarball" type="submit" value="Create Tarball" disabled'),
+                                html.input(att='name="create_zipfile" type="submit" value="Create Zipfile" disabled')
                             ]))),
                     att='class="borderless restore_action"'),
                 att='name="restore" method="post" action="/action"')
