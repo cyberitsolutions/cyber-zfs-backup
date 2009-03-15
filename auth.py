@@ -100,7 +100,8 @@ def require(*conditions):
 def member_of(groupname):
     def check():
         # replace with actual check if <username> is in <groupname>
-        return cherrypy.request.login == 'joe' and groupname == 'admin'
+        #return cherrypy.request.login == 'joe' and groupname == 'admin'
+        return False
     return check
 
 def name_is(reqd_username):
