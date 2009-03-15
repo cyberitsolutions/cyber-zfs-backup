@@ -1,4 +1,12 @@
 
+// A crude way to get a path basename.
+function get_basename(path) {
+    var regex = /([^\/]+)$/;
+    var m = regex.exec(path);
+    if (m) { return m[1]; }
+    return "";
+}
+
 function extract_value(node) {
     var child = node.childNodes[0];
     if (!child) { return ''; }
