@@ -121,6 +121,14 @@ $(document).ready(
         setup_restore_display_sort();
         $("input.zbm_select").click(file_change);
         $("input.zbm_deselect").click(share_file_remove);
+        $("#select_all").click(function () {
+            check_val = "";
+            if (this.checked) {
+                $("input.zbm_select").attr("checked", "checked").each(file_change);
+            } else {
+                $("input.zbm_select").removeAttr("checked").each(file_change)
+            }
+        });
     }
 );
 
