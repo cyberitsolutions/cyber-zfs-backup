@@ -81,12 +81,12 @@ class RestoreSpec:
         return str([ sp for sp in self.include_set ])
 
     def is_directly_included(self, file_spec):
+        """ Returns true iff the file_spec is included. """
+        # It has to be both the share and the path.
         return file_spec.share_plus_path in self.include_set
 
-    def is_included(self, file_spec):
-        # It has to be both the share and the path.
-        if file_spec.share_plus_path in self.include_set:
-            return True
+    def is_indirectly_included(self, file_spec):
+        """ Returns true iff an ancestor of the file_spec is included. """
         # First make sure the ancestors are actually acquired.
         file_spec.chrooted_path.acquire_ancestors()
         # Now check for ancestors in the include set.
@@ -94,6 +94,13 @@ class RestoreSpec:
         for ap in ancestor_paths:
             if ap in self.include_set:
                 return True
+        return False
+
+    def is_included(self, file_spec):
+        if self.is_directly_included(file_spec):
+            return True
+        if self.is_indirectly_included(file_spec):
+            return True
         return False
 
     def include(self, file_spec):
