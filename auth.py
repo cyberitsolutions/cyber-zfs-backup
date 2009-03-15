@@ -34,8 +34,8 @@ def reset_password(username, password):
     db.commit()
 
 def check_credentials(username, password):
-    """Verifies credentials for username and password.
-    Returns None on success or a string describing the error on failure"""
+    """ Verifies credentials for username and password.
+        Returns None on success or a string describing the error on failure. """
     # Adapt to your needs
     hashed_password = md5.md5(password).hexdigest()
     row = db.get1("select u.full_name, c.name, c.long_name from users u, companies c where u.company_name = c.name and username = %(username)s and hashed_password = %(hashed_password)s", vars())
