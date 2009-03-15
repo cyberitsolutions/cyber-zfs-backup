@@ -69,22 +69,23 @@ function setup_restore_display_sort() {
 }
 
 function file_change() {
-    node = this;
-    share = $("#share_name").get(0).name;
-    path = node.name;
+    var node = this;
+    var share = $("#share_name").get(0).name;
+    var path = node.name;
     //console.debug("name: " + node.name + ", share_name: " + share_name);
+    var actioning = "";
     if (node.checked) {
         action = "include";
+        actioning = "Including";
     } else {
         action = "remove";
+        actioning = "Removing";
     }
-    $.getJSON("/json", {"action":action, "share":share, "path":path},
-        function (data) {
-            if (data[0]) {
-                $.growl(data[2]);
-            }
-        });
-    //$.growl(action + " a file", action + " " + node.name + " for share " + share_name);
+    $.growl(actioning + " " + get_basename(path) + " ...");
+    function action_complete(data) {
+        if (data[0]) { $.growl(data[2]); }
+    }
+    $.getJSON("/json", {"action":action, "share":share, "path":path}, action_complete);
 }
 
 function share_file_remove() {
