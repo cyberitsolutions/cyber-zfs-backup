@@ -220,7 +220,7 @@ class ZfsBackupManager:
 
     @expose
     @require()
-    def show(self, restore_id=None):
+    def show(self, restore_id=None, message=None):
         company_name = cherrypy.session.get(auth.COMPANY_NAME)
 
         rs = None
@@ -286,10 +286,16 @@ class ZfsBackupManager:
         else:
             restore_display = html.p("Current restore is empty.")
 
+        if message is None:
+            message = ""
+        else:
+            message = html.p(message)
+
         # Okay, let's show some actual *details* about the current
         # restore.
         return page.page("ZBM - Current Restore",
             html.h1("Current Restore")
+            + message
             + html.p("Running total size is %s." % ( html.span(filesize_exp(rs.disk_usage_running_total), att='class="running_total_size"') ))
             + restore_display 
             )
@@ -339,21 +345,21 @@ class ZfsBackupManager:
         rs = restore_spec.RestoreSpec()
         if 'cancel_restore' in kwargs:
             restore_spec.cancel_current_restore()
-            return self.show()
+            return self.show(message="Restore cancelled.")
         if 'create_tarball' in kwargs:
             ( result, partname ) = restore_spec.create_restore_file(rs, "tar")
             if result:
-                debug.plog("Successfully created %s" % ( partname ))
+                message = "Successfully created tarball: %s" % ( html.a(partname, att='href="%s/%s"' % ( cfg.RESTORE_BASE_URL, cgi.escape(partname, quote=True) )) )
             else:
-                debug.plog("Failed - result %s" % ( partname ))
-            return self.show()
+                message = "Failed to create tarball: %s" % ( partname )
+            return self.show(message=message)
         if 'create_zipfile' in kwargs:
             ( result, partname ) = restore_spec.create_restore_file(rs, "zip")
             if result:
-                debug.plog("Successfully created %s" % ( partname ))
+                message = "Successfully created zipfile: %s" % ( html.a(partname, att='href="%s/%s"' % ( cfg.RESTORE_BASE_URL, cgi.escape(partname, quote=True) )) )
             else:
-                debug.plog("Failed - result %s" % ( partname ))
-            return self.show()
+                message = "Failed to create zipfile: %s" % ( partname )
+            return self.show(message=message)
 
         return self.show()
 
