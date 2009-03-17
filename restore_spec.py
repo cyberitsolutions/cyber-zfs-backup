@@ -90,7 +90,26 @@ def create_zip_restore_file(rs):
 def create_tar_restore_file(rs):
     """ Create a tar restore file.
         Returns a tuple (result_boolean, message). """
-    return ( False, "Nothing here yet" )
+    now = datetime.datetime.now()
+    restore_dirname = "restore_%d_%s" % ( rs.restore_id, now.strftime("%Y%m%d%H%M") )
+    restore_basename = restore_dirname + ".tar.gz"
+    # This is the partial-path we return from this function.
+    restore_company_basename = os.path.join(rs.company_name, restore_basename)
+    restore_filename = os.path.join(zbm_cfg.RESTORE_BASE_DIR, restore_company_basename)
+
+    tf = tarfile.open(restore_filename, mode='w:gz')
+
+    # Now we need to add all the files... we need the literal filename
+    # (full path) and the archive name (share plus path).
+    for spp in rs.include_set:
+        fs = rs.include_set[spp]
+        archive_path = os.path.join(restore_dirname, browse.share_plus_path_to_archive_path(spp))
+        debug.plog("Attempting to add file/dir %s as archive path %s" % ( fs.real_path, archive_path ))
+        tf.add(fs.real_path, archive_path)
+
+    tf.close()
+
+    return ( True, restore_company_basename )
 
 def create_restore_file(rs, restore_type):
     """ Create a restore file (zip or tar) from a restore spec.
