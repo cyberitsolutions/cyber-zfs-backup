@@ -8,10 +8,17 @@ import debug
 
 import datetime
 
+import os.path
 import db
 import chroot
 import browse
 import auth
+
+# Needed for RESTORE_BASE_DIR.
+import zbm_cfg
+
+# Used for creating restore files.
+import zipfile, tarfile
 
 class BadInclude(Exception):
     def __init__(self, value=""):
@@ -31,6 +38,96 @@ def cancel_current_restore():
     current_restore_id = get_current_restore_id()
     db.do("update restores set active = false where id = %(current_restore_id)s", vars())
     db.commit()
+
+
+def zip_directory(zip_archive, path, archive_path):
+    """ Handles zipping up a directory. """
+    dir_contents = os.listdir(path)
+    for f in dir_contents:
+        f = os.path.join(path, f)   # Make the path relative.
+        archive_name = os.path.join(archive_path, os.path.basename(f))
+        if os.path.isdir(f):
+            # Recursive case.
+            zip_directory(zip_archive, f, archive_name)
+        else:
+            zip_archive.write(f, archive_name)
+
+def create_zip_restore_file(rs):
+    """ Create a zip restore file.
+        Returns a tuple (result_boolean, message). """
+    # zipfile.ZipFile(name=None, mode='r', compression=zipfile.ZIP_DEFLATED, ...)
+    # name=os.path.join(RESTORE_BASE_DIR), company_name, 'restore_NN_YYYYMMDDhhmm.zip'
+    #     (where NN=restore_id and YYYYMMDDhhmm is a timestamp)
+    # mode='w'
+    #
+    # ZipFile.write(filename, arcname, ...)
+
+    # First work out the restore filename.
+    now = datetime.datetime.now()
+    restore_dirname = "restore_%d_%s" % ( rs.restore_id, now.strftime("%Y%m%d%H%M") )
+    restore_basename = restore_dirname + ".zip"
+    # This is the partial-path we return from this function.
+    restore_company_basename = os.path.join(rs.company_name, restore_basename)
+    restore_filename = os.path.join(zbm_cfg.RESTORE_BASE_DIR, restore_company_basename)
+
+    zf = zipfile.ZipFile(restore_filename, mode='w', compression=zipfile.ZIP_DEFLATED)
+
+    # Now we need to add all the files... we need the literal filename
+    # (full path) and the archive name (share plus path).
+    for spp in rs.include_set:
+        fs = rs.include_set[spp]
+        archive_path = os.path.join(restore_dirname, browse.share_plus_path_to_archive_path(spp))
+        debug.plog("Attempting to add file/dir %s as archive path %s" % ( fs.real_path, archive_path ))
+        if fs.type == 'dir':
+            zip_directory(zf, fs.real_path, archive_path)
+        else:
+            zf.write(fs.real_path, archive_path)
+
+    zf.close()
+
+    return ( True, restore_company_basename )
+
+def create_tar_restore_file(rs):
+    """ Create a tar restore file.
+        Returns a tuple (result_boolean, message). """
+    return ( False, "Nothing here yet" )
+
+def create_restore_file(rs, restore_type):
+    """ Create a restore file (zip or tar) from a restore spec.
+        Returns a tuple (result_boolean, message). """
+    ######################################################################
+    # The include set is rs.include_set - a dictionary of
+    #   share_plus_path => file_spec
+    # 
+    # restore_type is expected to be "zip" or "tar".
+    ######################################################################
+    #
+    # tarfile.open(name=None, mode='r', fileobj=None, bufsize=10240, **kwargs)
+    # name=os.path.join(RESTORE_BASE_DIR), company_name, 'restore_NN_YYYYMMDDhhmm.tar.gz'
+    #     (where NN=restore_id and YYYYMMDDhhmm is a timestamp)
+    # mode='w:gz'
+    #
+    # TarFile.add(name, arcname=None, recursive=True, exclude=None)
+    #
+    #   Add the file name to the archive. name may be any type of file
+    #   (directory, fifo, symbolic link, etc.). If given, arcname
+    #   specifies an alternative name for the file in the archive.
+    #   Directories are added recursively by default.
+    ######################################################################
+    #
+    # zipfile.ZipFile(name=None, mode='r', compression=zipfile.ZIP_DEFLATED, ...)
+    # name=os.path.join(RESTORE_BASE_DIR), company_name, 'restore_NN_YYYYMMDDhhmm.zip'
+    #     (where NN=restore_id and YYYYMMDDhhmm is a timestamp)
+    # mode='w'
+    #
+    # ZipFile.write(filename, arcname, ...)
+    if restore_type == 'zip':
+        return create_zip_restore_file(rs)
+    elif restore_type == 'tar':
+        return create_tar_restore_file(rs)
+
+    # We can't create any other kind of restore file.
+    return ( False, None )
 
 # Tracks paths to include and paths to exclude.
 #
