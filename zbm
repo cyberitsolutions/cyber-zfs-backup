@@ -273,7 +273,7 @@ class ZfsBackupManager:
                         html.tr(
                             html.td([
                                 html.input(att='name="cancel_restore" type="submit" value="Cancel Restore" title="Wipe out your current set of restore files."'),
-                                html.input(att='name="create_tarball" type="submit" value="Create Tarball" disabled'),
+                                html.input(att='name="create_tarball" type="submit" value="Create Tarball" title="Create a restore tarball."'),
                                 html.input(att='name="create_zipfile" type="submit" value="Create Zipfile" title="Create a restore zipfile."')
                             ]))),
                     att='class="borderless restore_action"'),
@@ -341,6 +341,11 @@ class ZfsBackupManager:
             restore_spec.cancel_current_restore()
             return self.show()
         if 'create_tarball' in kwargs:
+            ( result, partname ) = restore_spec.create_restore_file(rs, "tar")
+            if result:
+                debug.plog("Successfully created %s" % ( partname ))
+            else:
+                debug.plog("Failed - result %s" % ( partname ))
             return self.show()
         if 'create_zipfile' in kwargs:
             ( result, partname ) = restore_spec.create_restore_file(rs, "zip")
