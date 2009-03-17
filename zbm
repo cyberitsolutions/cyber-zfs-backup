@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import debug
 import cherrypy
 from cherrypy import expose, tools, url
 
@@ -273,7 +274,7 @@ class ZfsBackupManager:
                             html.td([
                                 html.input(att='name="cancel_restore" type="submit" value="Cancel Restore" title="Wipe out your current set of restore files."'),
                                 html.input(att='name="create_tarball" type="submit" value="Create Tarball" disabled'),
-                                html.input(att='name="create_zipfile" type="submit" value="Create Zipfile" disabled')
+                                html.input(att='name="create_zipfile" type="submit" value="Create Zipfile" title="Create a restore zipfile."')
                             ]))),
                     att='class="borderless restore_action"'),
                 att='name="restore" method="post" action="/action"')
@@ -335,12 +336,18 @@ class ZfsBackupManager:
     @expose
     @require()
     def action(self, **kwargs):
+        rs = restore_spec.RestoreSpec()
         if 'cancel_restore' in kwargs:
             restore_spec.cancel_current_restore()
             return self.show()
         if 'create_tarball' in kwargs:
             return self.show()
         if 'create_zipfile' in kwargs:
+            ( result, partname ) = restore_spec.create_restore_file(rs, "zip")
+            if result:
+                debug.plog("Successfully created %s" % ( partname ))
+            else:
+                debug.plog("Failed - result %s" % ( partname ))
             return self.show()
 
         return self.show()
