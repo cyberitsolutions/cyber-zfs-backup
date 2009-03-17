@@ -89,6 +89,12 @@ def join_share_to_path(share, path):
 def split_share_from_path(share_plus_path):
     return share_plus_path.split('+', 1)
 
+def share_plus_path_to_archive_path(share_plus_path):
+    """ Returns an expression suitable for use as an archive path. """
+    ( share, path ) = split_share_from_path(share_plus_path)
+    # FIXME: Crude and kludgy way to exclude the leading '/' from path.
+    return os.path.join(share, path[1:])
+
 class FileSpec:
     def __init__(self, chrooted_path, share, name=False, disk_usage=None):
         self.chrooted_path = chrooted_path
