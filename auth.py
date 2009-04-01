@@ -8,6 +8,8 @@ import cherrypy
 import urllib
 import db
 import md5
+import os
+import string
 
 import html
 import page
@@ -31,6 +33,17 @@ def login_status():
 def reset_password(username, password):
     hashed_password = md5.md5(password).hexdigest()
     db.do("update users set hashed_password = %(hashed_password)s where username = %(username)s", vars())
+
+    # Also update the htdigest zbm_passwords file.
+    os.system("/etc/zbm/remove_user.sh " + username)
+
+    # We need the company name here.
+    company_name = cherrypy.session.get(COMPANY_NAME)
+    hashed_expression = md5.md5(string.join([username, company_name, password], ':')).hexdigest()
+    f = open('/etc/zbm/zbm_passwords', 'a')
+    f.write("%s\n" % ( string.join([username, company_name, hashed_expression], ':') ))
+    f.close()
+
     db.commit()
 
 def check_credentials(username, password):
