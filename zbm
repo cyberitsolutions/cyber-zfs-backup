@@ -496,6 +496,7 @@ zbm_config = {
 
 app_config = {
     'global' : {
+        'tools.caching.on' : False,
         'tools.staticdir.root' : os.path.join(os.path.abspath('.'), "static")
     },
 
