@@ -84,6 +84,7 @@ def create_zip_restore_file(rs):
             zf.write(fs.real_path, archive_path)
 
     zf.close()
+    os.chmod(restore_filename, 0644)
 
     return ( True, restore_company_basename )
 
@@ -108,6 +109,7 @@ def create_tar_restore_file(rs):
         tf.add(fs.real_path, archive_path)
 
     tf.close()
+    os.chmod(restore_filename, 0644)
 
     return ( True, restore_company_basename )
 
