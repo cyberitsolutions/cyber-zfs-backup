@@ -72,6 +72,7 @@ function setup_restore_display_sort() {
 function update_select_all() {
     var all = $("input.zbm_select").get();
     var select_all = $("#select_all");
+    if (select_all.length == 0) { return; }
     for (var i=0; i<all.length; ++i) {
         if (!all[i].checked) {
             select_all.removeAttr("checked");
