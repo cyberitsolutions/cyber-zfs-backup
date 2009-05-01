@@ -7,6 +7,9 @@ from html import head, body, title
 import auth
 
 
+def mini_header(content=None):
+    return html.div(html.nbsp(), att='class="header"')
+
 def header(content=None):
     logout_link = html.a("Logout", att='href="/auth/logout"')
     if content is None:
@@ -34,6 +37,14 @@ def page(title, content=""):
     return html.html(
         head(html.title(title) + css_links + js_links)
         + body(header()
+            + html.div(content, att='id="main"')
+            + footer()))
+
+# Mini-header-using page template.
+def mini_page(title, content=""):
+    return html.html(
+        head(html.title(title) + css_links + js_links)
+        + body(mini_header()
             + html.div(content, att='id="main"')
             + footer()))
 
