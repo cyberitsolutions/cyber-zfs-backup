@@ -84,9 +84,17 @@ function update_select_all() {
 
 function file_change() {
     var node = this;
-    var share = $("#share_name").get(0).name;
+    var regex = /^spath:([^+]+)\+(.*)$/;
+    var m = regex.exec(node.name);
+
     var path = node.name;
-    //console.debug("name: " + node.name + ", share_name: " + share_name);
+    var share;
+    if (m) {
+        share = m[1];
+        path = m[2];
+    } else {
+        share = $("#share_name").get(0).name;
+    }
     var actioning = "";
     if (node.checked) {
         action = "include";
@@ -106,39 +114,12 @@ function file_change() {
     update_select_all();
 }
 
-function share_file_remove() {
-    var node = this;
-    var regex = /^spath:([^+]+)\+(.*)$/;
-    var m = regex.exec(node.name);
-
-    if (!m) { return; }
-    var share = m[1];
-    var path = m[2];
-
-    $.growl("Removing " + get_basename(path) + " ...");
-    $.getJSON("/json", {"action":"remove", "share":share, "path":path},
-        function (data) {
-            if (data[0]) {
-                $(".running_total_size").html(data[1][2]);
-                $.growl(data[2]);
-                // Now remove the tr row.
-                tr = node.parentNode.parentNode;
-                $(tr).remove();
-
-                tbl = $("table.restore_display");
-                tbl.trigger("update");
-                table_odd_even(tbl);
-            }
-        });
-}
-
 
 $(document).ready(
     function() {
         setup_browsedir_sort();
         setup_restore_display_sort();
         $("input.zbm_select").click(file_change);
-        $("input.zbm_deselect").click(share_file_remove);
         $("#select_all").click(function () {
             check_val = "";
             if (this.checked) {
