@@ -240,7 +240,7 @@ class ZfsBackupManager:
             # Note the prefix of the name attribute's value is
             # "spath", not "path" - because it has to be a
             # share_plus_path expression.
-            checkbox_attr = 'class="zbm_deselect" name="spath:%s" type="checkbox" checked' % ( escaped_share_plus_path )
+            checkbox_attr = 'class="zbm_select" name="spath:%s" type="checkbox" checked' % ( escaped_share_plus_path )
             return html.input(att=checkbox_attr)
 
         def ifs_to_row(file_spec):
