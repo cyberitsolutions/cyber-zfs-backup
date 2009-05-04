@@ -59,6 +59,9 @@ def filesize_exp(size):
         if size < s[0]:
             return "%0.1f%s" % ( float(size)/(s[0]/1024), s[1] )
 
+def value_span(expression, value):
+    return html.span(expression, att='value="%s"' % ( value ))
+
 # Given size in bytes, return suitable HTML expression.
 def filesize_html(size):
     return html.span(filesize_exp(size), att='value="%s"' % ( size ))
