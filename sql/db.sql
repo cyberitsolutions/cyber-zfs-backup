@@ -96,3 +96,16 @@ create table restore_files (
     foreign key ( share_id ) references shares ( id )
 );
 
+----------------------------------------------------------------------
+
+-- Really really *really* simple. Store the du_size for
+-- arbitrary paths in the filesystem.
+--
+-- There's a good chance this will need to be redesigned at
+-- some stage for performance, but we can leave that until
+-- we absolutely need it.
+create table filesystem_info (
+    path text primary key,
+    du_size bigint not null
+);
+
