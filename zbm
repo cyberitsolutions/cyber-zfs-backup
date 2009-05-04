@@ -147,7 +147,7 @@ def tr_filespec(rs, file_spec, revolver=None):
             f.display,
             filename_ext,
             time_exp,
-            age_exp]), att=tr_attr)
+            value_span(age_exp, time_exp)]), att=tr_attr)
 
 def can_access_parent(path):
     return not ( path == '/' or path == '' )
