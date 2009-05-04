@@ -333,9 +333,10 @@ class ZfsBackupManager:
             dir_box_html = dir_box(rs, share, chrooted_path)
         except chroot.BadChrootPath, e:
             error_message = html.p(html.span(str(e), att='class="error_message"'))
-
+        download_link = html.div(html.a("View Cart", att='href="/show"'), att='class="funcright"')
         return page.page("ZBM - Browse Share",
-            html.h1(pathname_dirlink(share, path))
+            download_link
+            + html.h1(pathname_dirlink(share, path), att='class="dirlink"')
             + error_message
             + dir_box_html)
 
