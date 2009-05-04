@@ -1,0 +1,51 @@
+#!/usr/bin/python
+
+import os
+import sys
+import db
+import browse
+
+######################################################################
+# Functions.
+
+def child_dirs(path):
+    """ Return a list containing all immediate child directories. """
+    cdirs = []
+    dir_contents = os.listdir(path)
+    for dc in dir_contents:
+        ap_dc = os.path.join(path, dc)
+        if os.path.isdir(ap_dc):
+            cdirs.append(ap_dc)
+    return cdirs
+
+def all_child_dirs(path):
+    """ Return a list of all subdirectories. """
+    acdirs = []
+    cds = child_dirs(path)
+    acdirs.extend(cds)
+    for c in cds:
+        acdirs.extend(all_child_dirs(c))
+    return acdirs
+
+######################################################################
+# Main.
+
+if len(sys.argv) < 2:
+    print "Usage: %s path" % ( sys.argv[0] )
+    sys.exit(1)
+
+# Need to connect before using the database.
+db.connect(None)
+
+path = os.path.abspath(sys.argv[1])
+
+# Get *all* the child directories...
+acd = all_child_dirs(path)
+
+# ...and include the supplied directory.
+acd.insert(0, path)
+
+for dir in acd:
+    browse.get_disk_usage(dir)
+    #print dir
+
