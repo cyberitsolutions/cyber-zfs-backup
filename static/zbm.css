@@ -149,3 +149,15 @@ a:hover {
     background-color: #ddddff;
 }
 
+/* A container for bits of right-aligned function links. */
+div.funcright {
+    right:5%;
+    background-color: #eeeeee;
+    position:fixed;
+    margin:4px;
+    padding:6px;
+    font-weight:bold;
+    border:1px solid #8a8a8a;
+    font-size:1.1em;
+}
+
