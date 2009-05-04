@@ -64,7 +64,7 @@ def value_span(expression, value):
 
 # Given size in bytes, return suitable HTML expression.
 def filesize_html(size):
-    return html.span(filesize_exp(size), att='value="%s"' % ( size ))
+    return value_span(filesize_exp(size), size)
 
 def split_path(pathname):
     if pathname == '/':
