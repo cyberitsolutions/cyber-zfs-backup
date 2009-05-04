@@ -76,7 +76,7 @@ def split_path(pathname):
     return sp
 
 
-def pathname_dirlink(share, pathname, highlight_share=False):
+def pathname_dirlink(share, pathname, highlight_share=False, show_all_shares_link=True):
     """
     Takes a path string and return a string where each directory
     name is a link to that directory, eg.:
@@ -88,17 +88,20 @@ def pathname_dirlink(share, pathname, highlight_share=False):
     Note that there is no validation that it's a real path.
     """
     escaped_share = cgi.escape(share, quote=True)
+    all_shares_link = ""
+    if show_all_shares_link:
+        all_shares_link = html.a("shares/", att='class="dirlink" href="/browse"')
     if pathname == '/':
         share_link = html.a(escaped_share+"/", att='id="share_name" name="%s" class="dirlink" href="/browse?share=%s&amp;path=/"' % ( escaped_share, escaped_share ))
         if highlight_share:
-            return html.b(share_link)
-        return share_link
+            return all_shares_link + html.b(share_link)
+        return all_shares_link + share_link
 
     (basepath, basename) = os.path.split(pathname)
     name_html = html.a(basename + "/", att='class="dirlink" href="/browse?share=%s&amp;path=%s"' % ( escaped_share, cgi.escape(pathname, quote=True) ))
     if basepath == '':
         return name_html
-    return pathname_dirlink(share, basepath, highlight_share=highlight_share) + name_html
+    return pathname_dirlink(share, basepath, highlight_share=highlight_share, show_all_shares_link=show_all_shares_link) + name_html
 
 def get_extension(filename):
     filename_ext = ''
