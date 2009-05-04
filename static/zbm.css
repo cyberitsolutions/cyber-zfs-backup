@@ -17,6 +17,11 @@ h1 {
     margin-bottom: 10px;
 }
 
+h1.dirlink {
+    margin-left: 10%;
+    width: 80%;
+}
+
 /*
 a:link {
     color: #004026;
