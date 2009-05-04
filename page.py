@@ -18,7 +18,7 @@ def header(content=None):
             content = ''
         else:
             content = "%s (%s) of %s" % ( html.a(status[0], att='href="/user"'), status[1], status[3] )
-    menu_bar = string.join([html.a("Status", att='href="/show"'), html.a("Browse", att='href="/browse"')], " | ")
+    menu_bar = string.join([html.a("Browse Shares", att='href="/browse"'), html.a("View Cart", att='href="/show"')], " | ")
     return html.div(html.span(content + html.nbsp(3) + logout_link + html.nbsp(), att='class="logout"') + html.nbsp() + menu_bar, att='class="header"')
 
 def footer(content="ZBM"):
