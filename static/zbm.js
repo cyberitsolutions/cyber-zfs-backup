@@ -49,7 +49,7 @@ function setup_browsedir_sort() {
             3: { sorter: "text" },
             4: { sorter: "text" },
             5: { sorter: "isoDate" },
-            6: { sorter: false }
+            6: { sorter: "isoDate" }
         },
     });
     table_browsedir.bind("sortEnd", function () { table_odd_even(table_browsedir); });
