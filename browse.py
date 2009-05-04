@@ -143,6 +143,7 @@ class FileSpec:
             self.display = html.a(self.name, att='title="%s"' % ( cgi.escape(os.readlink(self.real_path), quote=True) ))
         elif self.type == 'dir':
             self.display = html.a(self.name, att='href="/browse?share=%s&amp;path=%s"' % ( cgi.escape(self.share, quote=True), cgi.escape(self.path, quote=True) ))
+            self.size = self.acquire_disk_usage()
 
     def acquire_disk_usage(self):
         """ This can be expensive, so is not done by default. """
