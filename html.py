@@ -80,6 +80,9 @@ def ul(data='', att=''): return tag('ul', data, att)
 def ol(data='', att=''): return tag('ol', data, att)
 def li(data='', att=''): return tag('li', data, att)
 
+def dl(data='', att=''): return tag('dl', data, att)
+def dt(data='', att=''): return tag('dt', data, att)
+
 # Forms.
 def form(data='', att=''): return tag('form', data, att)
 def input(data='', att=''): return tag('input', data, att)
