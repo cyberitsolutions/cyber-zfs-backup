@@ -9,6 +9,9 @@ import subprocess as sp
 import string
 import re
 
+# Needed for the disk-usage-info caching.
+import db
+
 import html
 import cgi
 import chroot
@@ -29,13 +32,29 @@ class InaccessiblePathError(Exception):
 # Yay! Awesome. This will do fine.
 # Perhaps a tad sluggish on huge dirs, but more than
 # good enough for the time being.
-def get_disk_usage(path):
+def really_get_disk_usage(path):
     """ Returns the path's disk usage in bytes.
 
         Always recursive for directories, use with caution. """
     # Note: Assumes du(1) is in path (usually a safe assumption).
     output = sp.Popen(["du", '-sb', path], stdout=sp.PIPE).communicate()[0]
     return int(output.split('\t')[0])
+
+# Note: The contents of the supplied path are assumed to never ever
+# change. Unless they're completely removed. This will be true for a
+# ZFS snapshot, which is the use case normally expected.
+def get_disk_usage(path):
+    """ Checks to see if the path has an available du_size cached
+        in our database - otherwise manually extracts it via
+        really_get_disk_usage, stores result in database and returns. """
+    row = db.get1("select du_size from filesystem_info where path = %(path)s", vars())
+    db.commit()
+    if row is None:
+        du_size = really_get_disk_usage(path)
+        db.do("insert into filesystem_info ( path, du_size ) values ( %(path)s, %(du_size)s )", vars())
+        db.commit()
+        return du_size
+    return int(row[0])
 
 def getlsize(path):
     return os.lstat(path)[6]
