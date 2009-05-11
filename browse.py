@@ -146,7 +146,6 @@ class FileSpec:
             ops1 = os.path.split(self.path)[1]
             ops2 = os.path.split(ops1)[1]
             if ops2 == "":
-                #plog("NOT acquiring disk usage for share %s, path [%s]." % ( self.share, self.path ))
                 pass
             else:
                 self.size = self.acquire_disk_usage()
