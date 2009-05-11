@@ -91,7 +91,6 @@ def create_zip_restore_file(rs):
     for spp in rs.include_set:
         fs = rs.include_set[spp]
         archive_path = os.path.join(restore_dirname, browse.share_plus_path_to_archive_path(spp))
-        debug.plog("Attempting to add file/dir %s as archive path %s" % ( fs.real_path, archive_path ))
         if fs.type == 'dir':
             zip_directory(zf, fs.real_path, archive_path)
         else:
@@ -119,7 +118,6 @@ def create_tar_restore_file(rs):
     for spp in rs.include_set:
         fs = rs.include_set[spp]
         archive_path = os.path.join(restore_dirname, browse.share_plus_path_to_archive_path(spp))
-        debug.plog("Attempting to add file/dir %s as archive path %s" % ( fs.real_path, archive_path ))
         tf.add(fs.real_path, archive_path)
 
     tf.close()
@@ -193,7 +191,6 @@ class RestoreSpec:
             # Grab the id.
             restore_id = int(row[0])
 
-        debug.plog("Setting restore_id to %s..." % ( restore_id ))
         self.restore_id = restore_id
 
         # Initialise.
@@ -203,7 +200,6 @@ class RestoreSpec:
         self.update_from_db()
 
     def update_from_db(self):
-        debug.plog("Current self.restore_id is %s of type %s." % ( self.restore_id, str(type(self.restore_id)) ))
         restore_id = self.restore_id
         rows = db.get("select s.name, file_path, du_size from restore_files r, shares s where r.share_id = s.id and r.restore_id = %(restore_id)s", vars())
         db.commit()
@@ -285,7 +281,6 @@ class RestoreSpec:
     def remove(self, file_spec, do_commit=True):
         # FIXME: Should check that the restore_id is active
         # before doing anything.
-        debug.plog("Trying to remove %s from include_set %s..." % ( file_spec.share_plus_path, self.include_set ))
         # Can only remove paths that are directly included.
         if not file_spec.share_plus_path in self.include_set:
             raise BadInclude("File %s is not directly included in the restore spec." % ( file_spec.share_plus_path ))
