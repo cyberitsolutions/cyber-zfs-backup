@@ -32,11 +32,27 @@ def get_current_restore_id():
         return None
     return int(row[0])
 
+def get_previous_restore_id():
+    ( username, _, company_name, _ ) = auth.login_status()
+    row = db.get1("select max(id) from restores where not active and username = %(username)s and company_name = %(company_name)s", vars())
+    db.commit()
+    if row is None:
+        return None
+    return int(row[0])
+
 def cancel_current_restore():
     current_restore_id = get_current_restore_id()
     db.do("update restores set active = false where id = %(current_restore_id)s", vars())
     db.commit()
 
+def retrieve_previous_restore():
+    previous_restore_id = get_previous_restore_id()
+    current_restore_id = get_current_restore_id()
+    if current_restore_id is not None:
+        db.do("delete from restore_files where restore_id = %(current_restore_id)s", vars())
+        db.do("delete from restores where id = %(current_restore_id)s", vars())
+    db.do("update restores set active = true where id = %(previous_restore_id)s", vars())
+    db.commit()
 
 def zip_directory(zip_archive, path, archive_path):
     """ Handles zipping up a directory. """
