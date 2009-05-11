@@ -11,6 +11,8 @@ import md5
 import os
 import string
 
+import zbm_cfg as cfg
+
 import html
 import page
 
@@ -77,16 +79,18 @@ def check_auth(*args, **kwargs):
     get_params = urllib.quote(cherrypy.request.request_line.split()[1])
     if conditions is not None:
         username = cherrypy.session.get(USER_NAME)
+        # We seem to need to do this in preparation for the redirect.
+        cherrypy.request.base = cfg.BACKUP_BASE_URL
         if username:
             cherrypy.request.login = username
             for condition in conditions:
                 # A condition is just a callable that returns True or False.
                 if not condition():
                     # Send old page as from_page parameter.
-                    raise cherrypy.HTTPRedirect("/auth/login?from_page=%s" % get_params)
+                    raise cherrypy.HTTPRedirect(cfg.BACKUP_BASE_PATH + "/auth/login?from_page=%s" % get_params)
         else:
             # Send old page as from_page parameter
-            raise cherrypy.HTTPRedirect("/auth/login?from_page=%s" % get_params)
+            raise cherrypy.HTTPRedirect(cfg.BACKUP_BASE_PATH + "/auth/login?from_page=%s" % get_params)
 
 cherrypy.tools.auth = cherrypy.Tool('before_handler', check_auth)
 
@@ -189,7 +193,10 @@ class AuthController(object):
             sess[COMPANY_NAME] = user['company_name']
             sess[COMPANY_FULLNAME] = user['company_fullname']
             self.on_login(username)
-            raise cherrypy.HTTPRedirect(from_page or "/")
+
+            # We assume we're always using https.
+            cherrypy.request.base = cfg.BACKUP_BASE_URL
+            raise cherrypy.HTTPRedirect(from_page or cfg.BACKUP_BASE_PATH)
 
     @cherrypy.expose
     def logout(self, from_page="/"):
@@ -202,5 +209,6 @@ class AuthController(object):
         if username:
             cherrypy.request.login = None
             self.on_logout(username)
-        raise cherrypy.HTTPRedirect(from_page or "/")
+        cherrypy.request.base = cfg.BACKUP_BASE_URL
+        raise cherrypy.HTTPRedirect(from_page or cfg.BACKUP_BASE_PATH)
 
