@@ -384,7 +384,7 @@ class ZfsBackupManager:
                             html.th("Old Password:") + html.td(html.input(att='type="password" name="old_password"')),
                             html.th("New Password:") + html.td(html.input(att='type="password" name="new_password1"')),
                             html.th("New Password (again):") + html.td(html.input(att='type="password" name="new_password2"')),
-                            html.td(html.input(att='type="submit" value="Login"'), att='colspan="2"')
+                            html.td(html.input(att='type="submit" value="Change Password"'), att='colspan="2"')
                         ]
                     )
                 ),
