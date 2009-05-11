@@ -315,7 +315,7 @@ class ZfsBackupManager:
         return page.page("ZBM - Cart",
             html.h1("Cart")
             + message
-            + html.p("Running total size is %s." % ( html.span(filesize_exp(rs.disk_usage_running_total), att='class="running_total_size"') ))
+            + running_total_size 
             + restore_display 
             )
 
