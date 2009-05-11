@@ -110,7 +110,7 @@ function file_change() {
             $(".running_total_size").html(data[1][2]);
         }
     }
-    $.getJSON("/json", {"action":action, "share":share, "path":path}, action_complete);
+    $.getJSON("/backup/json", {"action":action, "share":share, "path":path}, action_complete);
     update_select_all();
 }
 
