@@ -93,15 +93,15 @@ def pathname_dirlink(share, pathname, highlight_share=False, show_all_shares_lin
     escaped_share = cgi.escape(share, quote=True)
     all_shares_link = ""
     if show_all_shares_link:
-        all_shares_link = html.a("shares/", att='class="dirlink" href="/browse"')
+        all_shares_link = html.a("shares/", att='class="dirlink" href="/backup/browse"')
     if pathname == '/':
-        share_link = html.a(escaped_share+"/", att='id="share_name" name="%s" class="dirlink" href="/browse?share=%s&amp;path=/"' % ( escaped_share, escaped_share ))
+        share_link = html.a(escaped_share+"/", att='id="share_name" name="%s" class="dirlink" href="/backup/browse?share=%s&amp;path=/"' % ( escaped_share, escaped_share ))
         if highlight_share:
             return all_shares_link + html.b(share_link)
         return all_shares_link + share_link
 
     (basepath, basename) = os.path.split(pathname)
-    name_html = html.a(basename + "/", att='class="dirlink" href="/browse?share=%s&amp;path=%s"' % ( escaped_share, cgi.escape(pathname, quote=True) ))
+    name_html = html.a(basename + "/", att='class="dirlink" href="/backup/browse?share=%s&amp;path=%s"' % ( escaped_share, cgi.escape(pathname, quote=True) ))
     if basepath == '':
         return name_html
     return pathname_dirlink(share, basepath, highlight_share=highlight_share, show_all_shares_link=show_all_shares_link) + name_html
@@ -283,7 +283,7 @@ class ZfsBackupManager:
                                 html.input(att='name="create_zipfile" type="submit" value="Create Zipfile" title="Create a restore zipfile."')
                             ]))),
                     att='class="borderless restore_action"'),
-                att='name="restore" method="post" action="/action"')
+                att='name="restore" method="post" action="/backup/action"')
 
             # Sort them for a more orderly display.
             included_filespecs.sort(lambda a, b: cmp(a.share_plus_path, b.share_plus_path))
@@ -317,7 +317,7 @@ class ZfsBackupManager:
         if share is None:
             # We must return a list of available shares.
             available_shares = [ s[0] for s in db.get("select name from shares where company_name = %(company_name)s", vars()) ]
-            links = [ html.a(s, att='href="/browse?share=%s"' % ( cgi.escape(s, quote=True) )) for s in available_shares ]
+            links = [ html.a(s, att='href="/backup/browse?share=%s"' % ( cgi.escape(s, quote=True) )) for s in available_shares ]
 
             return page.page("ZBM - Select Share",
                 html.h1("Select Share")
@@ -336,7 +336,7 @@ class ZfsBackupManager:
             dir_box_html = dir_box(rs, share, chrooted_path)
         except chroot.BadChrootPath, e:
             error_message = html.p(html.span(str(e), att='class="error_message"'))
-        download_link = html.div(html.a("View Cart", att='href="/show"'), att='class="funcright"')
+        download_link = html.div(html.a("View Cart", att='href="/backup/show"'), att='class="funcright"')
         return page.page("ZBM - Browse Share",
             download_link
             + html.h1(pathname_dirlink(share, path), att='class="dirlink"')
@@ -389,7 +389,7 @@ class ZfsBackupManager:
                     )
                 ),
                 att='class="borderless"'),
-            att='name="user" method="post" action="/user"'
+            att='name="user" method="post" action="/backup/user"'
         ) + html.script('document.getElementsByName("old_password")[0].focus();', att='language="javascript"')
 
         error_message = ""

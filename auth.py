@@ -157,7 +157,7 @@ class AuthController(object):
     def on_logout(self, username):
         """Called on logout"""
 
-    def get_loginform(self, username, msg="Enter login information.", from_page="/"):
+    def get_loginform(self, username, msg="Enter login information.", from_page="/backup"):
         return page.mini_page("ZBM - Login",
             html.h1("Login")
             + html.form(
@@ -174,12 +174,12 @@ class AuthController(object):
                         )
                     ),
                     att='class="borderless"'),
-                att='name="login" method="post" action="/auth/login"')
+                att='name="login" method="post" action="/backup/auth/login"')
             + html.script('document.getElementsByName("username")[0].focus();', att='language="javascript"'))
 
 
     @cherrypy.expose
-    def login(self, username=None, password=None, from_page="/"):
+    def login(self, username=None, password=None, from_page="/backup"):
         if username is None or password is None:
             return self.get_loginform("", from_page=from_page)
 
@@ -199,7 +199,7 @@ class AuthController(object):
             raise cherrypy.HTTPRedirect(from_page or cfg.BACKUP_BASE_PATH)
 
     @cherrypy.expose
-    def logout(self, from_page="/"):
+    def logout(self, from_page="/backup"):
         sess = cherrypy.session
         username = sess.get(USER_NAME, None)
         sess[USER_NAME] = None

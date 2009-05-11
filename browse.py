@@ -142,7 +142,7 @@ class FileSpec:
         if self.type == 'link':
             self.display = html.a(self.name, att='title="%s"' % ( cgi.escape(os.readlink(self.real_path), quote=True) ))
         elif self.type == 'dir':
-            self.display = html.a(self.name, att='href="/browse?share=%s&amp;path=%s"' % ( cgi.escape(self.share, quote=True), cgi.escape(self.path, quote=True) ))
+            self.display = html.a(self.name, att='href="/backup/browse?share=%s&amp;path=%s"' % ( cgi.escape(self.share, quote=True), cgi.escape(self.path, quote=True) ))
             ops1 = os.path.split(self.path)[1]
             ops2 = os.path.split(ops1)[1]
             if ops2 == "":
