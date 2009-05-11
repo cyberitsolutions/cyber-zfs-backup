@@ -164,6 +164,24 @@ class FileSpec:
         pdir = self.chrooted_path.parent()
         return FileSpec(pdir, self.share, name=name)
 
+def get_zfs_filesystem(realpath):
+    """ Returns a ZFS filesystem name from a real path to that filesystem. """
+    # Fairly boring really, just removes the leading / character
+    # (and the trailing /.zfs/snapshot).
+    return re.sub('/.zfs/snapshot$', '', realpath[1:])
+
+def get_snapshot_timestamps(filesystem):
+    """ For a ZFS filesystem, return a dict mapping snapshot name to datetime. """
+    # zfs get -p -H -r -o name,value creation tank/hosted-backup/backups/ron/fabre.id.au:home
+    output = sp.Popen(["zfs", "get", "-p", "-H", "-r", "-o", "name,value", "creation", filesystem], stdout=sp.PIPE).communicate()[0].split('\n')
+    output = output[1:]
+    output = output[:len(output)-1]
+    d = {}
+    for o in output:
+        ( snap_name, sse ) = re.split(r'\t+', o)
+        ( filesystem_name, snapshot_name ) = snap_name.split('@')
+        d[snapshot_name] = int(sse)
+    return d
 
 # os.path.islink
 # os.path.isdir
@@ -188,6 +206,12 @@ def get_dir_contents(chrooted_path, share, sort_by="name", include_parent=True):
             parent_dir = FileSpec(pdir, share, name="Up to higher level directory")
             contents.insert(0, parent_dir)
         else:
+            # By convention, this is a directory of snapshots.
+            # So use the ZFS snapshot creation times from zfs.
+            zfs_fs = get_zfs_filesystem(real_dir)
+            st = get_snapshot_timestamps(zfs_fs)
+            for c in contents:
+                c.mtime = st[c.name]
             contents.insert(0, None)
 
     return contents
