@@ -9,6 +9,8 @@ import subprocess as sp
 import string
 import re
 
+import zbm_cfg as cfg
+
 # Needed for the disk-usage-info caching.
 import db
 
@@ -37,7 +39,10 @@ def really_get_disk_usage(path):
 
         Always recursive for directories, use with caution. """
     # Note: Assumes du(1) is in path (usually a safe assumption).
-    output = sp.Popen(["du", '-sb', path], stdout=sp.PIPE).communicate()[0]
+    # Update: No, apparently it's not as safe an assumption as I'd
+    # thought (or at least that the *correct* GNU-style du being first
+    # in the PATH).
+    output = sp.Popen([cfg.GNU_DU_PATH, '-sb', path], stdout=sp.PIPE).communicate()[0]
     return int(output.split('\t')[0])
 
 # Note: The contents of the supplied path are assumed to never ever
