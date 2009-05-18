@@ -368,7 +368,7 @@ class ZfsBackupManager:
         company_restore_dir = os.path.join(cfg.RESTORE_BASE_DIR, company_name)
         contents = os.listdir(company_restore_dir)
         contents.sort()
-        return html.ul(html.li([ html.a(filename, att='href="/backup/download?file=%s"' % ( cgi.escape(filename, quote=True))) for filename in contents ]))
+        return html.ul(html.li([ html.a(filename, att='href="/backup/download?file=%s"' % ( cgi.escape(filename, quote=True))) + html.nbsp() + "(" + filesize_exp(os.lstat(os.path.join(cfg.RESTORE_BASE_DIR, company_name, filename))[6]) + ")" for filename in contents ]))
 
     @expose
     @require()
