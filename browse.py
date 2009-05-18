@@ -88,17 +88,13 @@ def update_toplevel_path_usage_size(path):
 # Note: The contents of the supplied path are assumed to never ever
 # change. Unless they're completely removed. This will be true for a
 # ZFS snapshot, which is the use case normally expected.
-def get_disk_usage(path):
-    """ Checks to see if the path has an available du_size cached
-        in our database - otherwise manually extracts it via
-        really_get_disk_usage, stores result in database and returns. """
-    row = db.get1("select du_size from filesystem_info where path = %(path)s", vars())
+def get_apparent_size(path):
+    """ Checks to see if the path has an available apparent_size cached
+        in our database - otherwise returns zero. """
+    row = db.get1("select apparent_size from filesystem_info where path = %(path)s", vars())
     db.commit()
     if row is None:
-        du_size = really_get_disk_usage(path)
-        db.do("insert into filesystem_info ( path, du_size ) values ( %(path)s, %(du_size)s )", vars())
-        db.commit()
-        return du_size
+        return 0
     return int(row[0])
 
 def getlsize(path):
