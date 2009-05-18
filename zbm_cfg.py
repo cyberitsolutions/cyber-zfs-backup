@@ -48,3 +48,29 @@ BACKUP_BASE_URL_PATH = BACKUP_BASE_URL + BACKUP_BASE_PATH
 # os.path.join(BACKUP_BASE_DIR, company_name, share_name, SNAPSHOT_DIR)
 SNAPSHOT_DIR = '.zfs/snapshot'
 
+# SMTP server for use by ZBM in sending email.
+SMTP_SERVER = 'localhost'
+
+# The official Cybersource email address(es) to which ZBM may need to
+# send particular types of notification messages.
+SUPPORT_EMAIL_ADDRESS = 'support@cybersource.com.au'
+ACCOUNTS_EMAIL_ADDRESS = 'accounts@cybersource.com.au'
+
+# The official Cybersource email address to which ZBM will send a copy
+# of *every* download-notification email sent to a customer.
+NOTIFY_CC_EMAIL_ADDRESS = 'steve@cybersource.com.au'
+
+# Email templates.
+#
+# There's probably a better place to put these, but I'll
+# put them here for the time being.
+
+USER_FILE_DOWNLOAD_TEMPLATE = """
+"""
+
+COMPANY_FILE_DOWNLOAD_TEMPLATE = """
+"""
+
+CYBERSOURCE_FILE_DOWNLOAD_TEMPLATE = """
+"""
+
