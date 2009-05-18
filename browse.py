@@ -61,37 +61,19 @@ def update_or_insert_filesystem_info_apparent_size(path, apparent_size):
 def update_toplevel_path_apparent_size(path):
     """ Manually extracts du apparent-size of path and all
         subdirectories in database. """
-    escaped_path = re.sub("'", "''", re.sub('%', "\\\\%", path))
-    # This is a bit dicey, but let's see how well it works.
-    rows = db.get("select path from filesystem_info where path like '%s'" % ( escaped_path + "%" ))
-    got_usage = sets.Set()
-    for r in rows:
-        got_usage.add(r[0])
-
     lines = sp.Popen([cfg.GNU_DU_PATH, '--apparent-size', '--block-size=1', path], stdout=sp.PIPE).communicate()[0].split('\n')
     # The last one is always empty, so get rid of it.
     lines.pop()
     for line in lines:
         if line is not None:
-            ( contents_size_str, du_path ) = line.split('\t', 1)
-            if du_path in got_usage:
-                # Ignore.
-                pass
-            else:
-                contents_size = int(contents_size_str)
-                update_or_insert_filesystem_info_contents_size(path, contents_size)
+            ( du_size_str, du_path ) = line.split('\t', 1)
+            apparent_size = int(du_size_str)
+            update_or_insert_filesystem_info_apparent_size(du_path, apparent_size)
     db.commit()
 
-def update_toplevel_path_disk_usage(path):
+def update_toplevel_path_usage_size(path):
     """ Manually extracts du disk-usage-size of path and all
         subdirectories in database. """
-    escaped_path = re.sub("'", "''", re.sub('%', "\\\\%", path))
-    # This is a bit dicey, but let's see how well it works.
-    rows = db.get("select path from filesystem_info where path like '%s'" % ( escaped_path + "%" ))
-    got_usage = sets.Set()
-    for r in rows:
-        got_usage.add(r[0])
-
     # --apparent-size --block-size=1
     lines = sp.Popen([cfg.GNU_DU_PATH, '--block-size=1', path], stdout=sp.PIPE).communicate()[0].split('\n')
     # The last one is always empty, so get rid of it.
@@ -99,12 +81,8 @@ def update_toplevel_path_disk_usage(path):
     for line in lines:
         if line is not None:
             ( du_size_str, du_path ) = line.split('\t', 1)
-            if du_path in got_usage:
-                # Ignore.
-                pass
-            else:
-                du_size = int(du_size_str)
-                db.do("insert into filesystem_info ( path, du_size ) values ( %(du_path)s, %(du_size)s )", vars())
+            usage_size = int(du_size_str)
+            update_or_insert_filesystem_info_usage_size(du_path, usage_size)
     db.commit()
 
 # Note: The contents of the supplied path are assumed to never ever
