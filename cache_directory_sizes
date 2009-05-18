@@ -17,5 +17,6 @@ db.connect(None)
 
 path = os.path.abspath(sys.argv[1])
 
-browse.update_toplevel_path_disk_usage(path)
+browse.update_toplevel_path_apparent_size(path)
+browse.update_toplevel_path_usage_size(path)
 
