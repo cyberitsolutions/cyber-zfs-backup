@@ -197,9 +197,10 @@ class FileSpec:
     # Refer to the argument Pete had with Ron and Steve in the tearoom
     # if you want to know why we're doing that.
     def acquire_disk_usage(self):
-        """ This can be expensive, so is not done by default. """
+        """ This is only ever acquired from the database, so should be
+            (relatively) cheap. """
         if self.disk_usage is None:
-            self.disk_usage = get_disk_usage(self.real_path)
+            self.disk_usage = get_apparent_size(self.real_path)
         return self.disk_usage
 
     def get_parent(self, name=False):
