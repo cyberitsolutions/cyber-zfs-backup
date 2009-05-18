@@ -35,7 +35,7 @@ $rsync_target_dir = "/$target_fs";
 # $cmd_zfs_create = qq(zfs create -p $target_fs);
 $cmd_rsync = qq(rsync --stats -e "ssh -i $keyfile" --inplace --numeric-ids --delete-after -aP $rsync_source/. $rsync_target_dir/. > $rsync_target_dir.$backup_stamp.out 2> $rsync_target_dir.$backup_stamp.err);
 $cmd_zfs_snapshot = qq(zfs snapshot $target_fs\@$backup_stamp);
-$cmd_cache_disk_usage = qq(env LD_LIBRARY_PATH=/usr/postgres/8.2/lib /tank/hosted-backup/bin/cache_disk_usage $rsync_target_dir/.zfs/snapshot/$backup_stamp);
+$cmd_cache_disk_usage = qq(env LD_LIBRARY_PATH=/usr/postgres/8.2/lib /tank/hosted-backup/bin/cache_directory_sizes $rsync_target_dir/.zfs/snapshot/$backup_stamp);
 
 print "syncing $client from $rsync_source at $backup_stamp\n";
 # don't create the filesystem - we want an error if it's not there yet.
