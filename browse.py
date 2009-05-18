@@ -46,17 +46,17 @@ def really_get_disk_usage(path):
     output = sp.Popen([cfg.GNU_DU_PATH, '-sb', path], stdout=sp.PIPE).communicate()[0]
     return int(output.split('\t')[0])
 
-def update_or_insert_filesystem_info_du_size(path, du_size):
+def update_or_insert_filesystem_info_usage_size(path, usage_size):
     if db.get1("select count(1) from filesystem_info where path = %(path)s", vars()) > 0:
-        db.do("update filesystem_info set du_size = %(du_size)s where path = %(path)s", vars())
+        db.do("update filesystem_info set usage_size = %(usage_size)s where path = %(path)s", vars())
     else:
-        db.do("insert into filesystem_info ( path, du_size ) values ( %(path)s, %(du_size)s )", vars())
+        db.do("insert into filesystem_info ( path, usage_size ) values ( %(path)s, %(usage_size)s )", vars())
 
-def update_or_insert_filesystem_info_contents_size(path, contents_size):
+def update_or_insert_filesystem_info_apparent_size(path, apparent_size):
     if db.get1("select count(1) from filesystem_info where path = %(path)s", vars()) > 0:
-        db.do("update filesystem_info set contents_size = %(contents_size)s where path = %(path)s", vars())
+        db.do("update filesystem_info set apparent_size = %(apparent_size)s where path = %(path)s", vars())
     else:
-        db.do("insert into filesystem_info ( path, contents_size ) values ( %(path)s, %(contents_size)s )", vars())
+        db.do("insert into filesystem_info ( path, apparent_size ) values ( %(path)s, %(apparent_size)s )", vars())
 
 def update_toplevel_path_apparent_size(path):
     """ Manually extracts du apparent-size of path and all
