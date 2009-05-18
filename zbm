@@ -392,6 +392,7 @@ class ZfsBackupManager:
             company_email_address = cea[0]
 
         download_file_path = os.path.join(cfg.RESTORE_BASE_DIR, company_name, file)
+        download_file_basename = os.path.basename(download_file_path)
         download_file_size_expression = filesize_exp(os.lstat(download_file_path)[6])
 
         content_vars = {
@@ -405,7 +406,7 @@ class ZfsBackupManager:
         # Okay, now really send the email.
         zbm_email.send_email(cfg.FROM_EMAIL_ADDRESS,
                 [user_email_address, company_email_address],
-                subject,
+                "Datasafe/R download: %s" % ( download_file_basename ),
                 cfg.COMPANY_FILE_DOWNLOAD_TEMPLATE % content_vars,
                 actual_addressees=[user_email_address, company_email_address, cfg.NOTIFY_CC_EMAIL_ADDRESS])
 
