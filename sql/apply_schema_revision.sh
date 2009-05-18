@@ -63,7 +63,6 @@ fi
 # Okay, we can apply the revision SQL file. Rock and roll.
 
 ( \
-  echo "set autocommit=0;"; \
   echo "start transaction;"; \
   cat "$REVISION_SQL_FILENAME"; \
   echo "insert into db_revision ( revision_number, filename, applied_datetime ) values ( $revno, '$rev_basename', now() );";
