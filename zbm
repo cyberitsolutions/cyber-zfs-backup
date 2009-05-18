@@ -24,6 +24,7 @@ import db
 
 # ZBM config module.
 import zbm_cfg as cfg
+import zbm_email
 
 # The authentication module.
 from auth import AuthController, require, member_of, name_is
@@ -315,6 +316,7 @@ class ZfsBackupManager:
         return page.page("Datasafe/R - Cart",
             html.h1("Cart")
             + message
+            + self.restore_dir_contents()
             + running_total_size 
             + restore_display 
             )
@@ -358,6 +360,58 @@ class ZfsBackupManager:
 
     static = tools.staticdir.handler(section="/static",
             dir=os.path.join(local_dir, "static"))
+
+    # Helper for showing the contents of the restore directory.
+    def restore_dir_contents(self):
+        """ Returns restore directory contents as an unordered list. """
+        company_name = cherrypy.session.get(auth.COMPANY_NAME)
+        company_restore_dir = os.path.join(cfg.RESTORE_BASE_DIR, company_name)
+        contents = os.listdir(company_restore_dir)
+        contents.sort()
+        return html.ul(html.li([ html.a(filename, att='href="/backup/download?file=%s"' % ( cgi.escape(filename, quote=True))) for filename in contents ]))
+
+    @expose
+    @require()
+    def download(self, file):
+        """ Sends an email and redirects. """
+        ( username, full_name, company_name, _ ) = auth.login_status()
+
+        download_url = cfg.RESTORE_BASE_PATH + '/' + company_name + '/' + file
+
+        # Send the email. Quickly now!
+        # We need to send this to the user and the company.
+        # And also an effective-BCC to NOTIFY_CC_EMAIL_ADDRESS.
+        user_email_address = None
+        uea = db.get1("select email from users where username = %(username)s", vars())
+        if uea is not None:
+            user_email_address = uea[0]
+        company_email_address = None
+        cea = db.get1("select email from companies where name = %(company_name)s", vars())
+        db.commit()
+        if cea is not None:
+            company_email_address = cea[0]
+
+        download_file_path = os.path.join(cfg.RESTORE_BASE_DIR, company_name, file)
+        download_file_size_expression = filesize_exp(os.lstat(download_file_path)[6])
+
+        content_vars = {
+            'human_readable_datetime' : str(datetime.datetime.now()),
+            'download_url' : download_url,
+            'username' : username,
+            'full_name' : full_name,
+            'download_file_size' : download_file_size_expression
+        }
+
+        # Okay, now really send the email.
+        zbm_email.send_email(cfg.FROM_EMAIL_ADDRESS,
+                [user_email_address, company_email_address],
+                subject,
+                cfg.COMPANY_FILE_DOWNLOAD_TEMPLATE % content_vars,
+                actual_addressees=[user_email_address, company_email_address, cfg.NOTIFY_CC_EMAIL_ADDRESS])
+
+        # Raise the redirect.
+        cherrypy.request.base = cfg.RESTORE_BASE_URL
+        raise cherrypy.HTTPRedirect(download_url)
 
     @expose
     @require()
