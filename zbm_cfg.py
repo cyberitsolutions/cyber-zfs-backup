@@ -72,7 +72,8 @@ Cybersource Hosted Backup Service
 
 %(human_readable_datetime)s
 
-User %(username)s (%(full_name)s) is downloading the following restore file:
+User %(username)s (%(full_name)s) is downloading the following restore file,
+which is %(download_file_size)s in size:
 
   %(download_url)s
 
