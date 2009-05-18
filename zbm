@@ -426,14 +426,14 @@ class ZfsBackupManager:
         if 'create_tarball' in kwargs:
             ( result, partname ) = restore_spec.create_restore_file(rs, "tar")
             if result:
-                message = "Successfully created tarball: %s" % ( html.a(partname, att='href="%s/%s"' % ( cfg.RESTORE_BASE_URL, cgi.escape(partname, quote=True) )) )
+                message = "Successfully created tarball: %s" % ( html.a(partname, att='href="%s/%s"' % ( cfg.RESTORE_BASE_URL_PATH, cgi.escape(partname, quote=True) )) )
             else:
                 message = "Failed to create tarball: %s" % ( partname )
             return self.show(message=message)
         if 'create_zipfile' in kwargs:
             ( result, partname ) = restore_spec.create_restore_file(rs, "zip")
             if result:
-                message = "Successfully created zipfile: %s" % ( html.a(partname, att='href="%s/%s"' % ( cfg.RESTORE_BASE_URL, cgi.escape(partname, quote=True) )) )
+                message = "Successfully created zipfile: %s" % ( html.a(partname, att='href="%s/%s"' % ( cfg.RESTORE_BASE_URL_PATH, cgi.escape(partname, quote=True) )) )
             else:
                 message = "Failed to create zipfile: %s" % ( partname )
             return self.show(message=message)

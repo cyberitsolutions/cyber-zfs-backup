@@ -36,7 +36,9 @@ RESTORE_BASE_DIR = '/tank/hosted-backup/restores'
 # below will give the company-specific restore URL. Further appending
 # a / plus restore tarball/zipfile name (ie. restore-file) will make
 # a downloadable URL.
-RESTORE_BASE_URL = "https://cybersource.com.au/restore"
+RESTORE_BASE_PATH = "/restore"
+RESTORE_BASE_URL = "https://cybersource.com.au"
+RESTORE_BASE_URL_PATH = RESTORE_BASE_URL + RESTORE_BASE_PATH
 
 # Backup base URL.
 BACKUP_BASE_PATH = "/backup"
