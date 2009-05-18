@@ -2,6 +2,10 @@
 
 import os
 
+# The explicit absolute path to a GNU du(1).
+# Specifically we require one that accepts -b and -s flags.
+GNU_DU_PATH = '/usr/gnu/bin/du'
+
 BACKUP_BASE_DIR = '/tank/hosted-backup/backups'
 #BACKUP_BASE_DIR = os.path.join(os.path.abspath('.'), "test/backup")
 
