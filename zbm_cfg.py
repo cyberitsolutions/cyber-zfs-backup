@@ -55,24 +55,42 @@ SMTP_SERVER = 'localhost'
 
 # The official Cybersource email address(es) to which ZBM may need to
 # send particular types of notification messages.
+FROM_EMAIL_ADDRESS = 'Hosted Backups <hosted-backups@cybersource.com.au>'
 SUPPORT_EMAIL_ADDRESS = 'support@cybersource.com.au'
 ACCOUNTS_EMAIL_ADDRESS = 'accounts@cybersource.com.au'
 
 # The official Cybersource email address to which ZBM will send a copy
 # of *every* download-notification email sent to a customer.
-NOTIFY_CC_EMAIL_ADDRESS = 'steve@cybersource.com.au'
+NOTIFY_CC_EMAIL_ADDRESS = 'hosted-backups@cybersource.com.au'
 
 # Email templates.
 #
 # There's probably a better place to put these, but I'll
 # put them here for the time being.
-
-USER_FILE_DOWNLOAD_TEMPLATE = """
-"""
-
 COMPANY_FILE_DOWNLOAD_TEMPLATE = """
+Cybersource Hosted Backup Service
+
+%(human_readable_datetime)s
+
+User %(username)s (%(full_name)s) is downloading the following restore file:
+
+  %(download_url)s
+
+This link will remain valid for 48 hours.
+
+This is not a bill for payment. You will be invoiced for this download
+after the end of the month.
+
+Thank you for using the Cybersource Hosted Backup service.
+
+Regards,
+
+Cybersource Pty Ltd
+Email: info@cybersource.com.au
+Phone: +61 3 9428 6922
+Fax:   +61 3 9428 6944
 """
 
-CYBERSOURCE_FILE_DOWNLOAD_TEMPLATE = """
+CYBERSOURCE_ACCOUNTS_DOWNLOAD_TEMPLATE = """
 """
 
