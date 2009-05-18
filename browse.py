@@ -191,6 +191,11 @@ class FileSpec:
             else:
                 self.size = self.acquire_disk_usage()
 
+    # Note: This actually returns the cached *apparent* size, which is
+    # quite different to the disk usage.
+    #
+    # Refer to the argument Pete had with Ron and Steve in the tearoom
+    # if you want to know why we're doing that.
     def acquire_disk_usage(self):
         """ This can be expensive, so is not done by default. """
         if self.disk_usage is None:
