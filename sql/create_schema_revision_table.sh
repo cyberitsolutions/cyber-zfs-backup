@@ -5,5 +5,5 @@
 
 # Create the revision table.
 psql --username $DBUSER --host $DBHOST --port $DBPORT --dbname $DBNAME \
-  --command "create table db_revision ( revision_number integer primary key, filename text not null, applied_datetime datetime not null )"
+  --command "create table db_revision ( revision_number integer primary key, filename text not null, applied_datetime timestamp not null )"
 
