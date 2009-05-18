@@ -21,7 +21,7 @@ def header(content=None):
     menu_bar = string.join([html.a("Browse Shares", att='href="/backup/browse"'), html.a("View Cart", att='href="/backup/show"')], " | ")
     return html.div(html.span(content + html.nbsp(3) + logout_link + html.nbsp(), att='class="logout"') + html.nbsp() + menu_bar, att='class="header"')
 
-def footer(content="ZBM"):
+def footer(content="Datasafe/R"):
     return html.div(content, att='class="footer"')
 
 css_links = html.link(att='type="text/css" rel="stylesheet" href="/backup/static/zbm.css"') \
