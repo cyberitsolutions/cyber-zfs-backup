@@ -6,6 +6,7 @@ import time
 from os.path import join
 import subprocess as sp
 
+import sets
 import string
 import re
 
@@ -44,6 +45,31 @@ def really_get_disk_usage(path):
     # in the PATH).
     output = sp.Popen([cfg.GNU_DU_PATH, '-sb', path], stdout=sp.PIPE).communicate()[0]
     return int(output.split('\t')[0])
+
+def update_toplevel_path_disk_usage(path):
+    """ Checks to see if the path has an available du_size cached
+        in our database - otherwise manually extracts it and
+        updates result in database. """
+    escaped_path = re.sub("'", "''", re.sub('%', "\\\\%", path))
+    # This is a bit dicey, but let's see how well it works.
+    rows = db.get("select path from filesystem_info where path like '%s'" % ( escaped_path + "%" ))
+    got_usage = sets.Set()
+    for r in rows:
+        got_usage.add(r[0])
+
+    lines = sp.Popen([cfg.GNU_DU_PATH, '-b', path], stdout=sp.PIPE).communicate()[0].split('\n')
+    # The last one is always empty, so get rid of it.
+    lines.pop()
+    for line in lines:
+        if line is not None:
+            ( du_size_str, du_path ) = line.split('\t', 1)
+            if du_path in got_usage:
+                # Ignore.
+                pass
+            else:
+                du_size = int(du_size_str)
+                db.do("insert into filesystem_info ( path, du_size ) values ( %(du_path)s, %(du_size)s )", vars())
+    db.commit()
 
 # Note: The contents of the supplied path are assumed to never ever
 # change. Unless they're completely removed. This will be true for a
