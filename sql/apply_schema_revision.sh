@@ -23,8 +23,9 @@
 # Get current revision of DB.
 function get_current_revision {
   echo "select coalesce(max(revision_number), 0) from db_revision;" | \
-    psql --username "$DBUSER" --host "$DBHOST" --port "$DBPORT" --dbname "$DBNAME" \
-    tail -n 1
+    psql -A --username "$DBUSER" --host "$DBHOST" --port "$DBPORT" --dbname "$DBNAME" | \
+    tail -n +2 | \
+    head -n 1
 }
 
 ######################################################################
