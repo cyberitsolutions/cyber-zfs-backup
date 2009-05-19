@@ -211,6 +211,10 @@ def make_file_spec(company_name, share_name, path):
     mychroot = chroot.Chroot(sp)
     return browse.FileSpec(mychroot.chrooted_path(path), share_name)
 
+def make_file_download_link(filename):
+    """ Return a (redirecting) download link for a restore file. """
+    return html.a(filename, att='href="/backup/download?file=%s"' % ( cgi.escape(filename, quote=True)))
+
 
 class ZfsBackupManager:
     auth = AuthController()
@@ -368,7 +372,7 @@ class ZfsBackupManager:
         company_restore_dir = os.path.join(cfg.RESTORE_BASE_DIR, company_name)
         contents = os.listdir(company_restore_dir)
         contents.sort()
-        return html.ul(html.li([ html.a(filename, att='href="/backup/download?file=%s"' % ( cgi.escape(filename, quote=True))) + html.nbsp() + "(" + filesize_exp(os.lstat(os.path.join(cfg.RESTORE_BASE_DIR, company_name, filename))[6]) + ")" for filename in contents ]))
+        return html.ul(html.li([ make_file_download_link(filename) + html.nbsp() + "(" + filesize_exp(os.lstat(os.path.join(cfg.RESTORE_BASE_DIR, company_name, filename))[6]) + ")" for filename in contents ]))
 
     @expose
     @require()
@@ -427,14 +431,14 @@ class ZfsBackupManager:
         if 'create_tarball' in kwargs:
             ( result, partname ) = restore_spec.create_restore_file(rs, "tar")
             if result:
-                message = "Successfully created tarball: %s" % ( html.a(partname, att='href="%s/%s"' % ( cfg.RESTORE_BASE_URL_PATH, cgi.escape(partname, quote=True) )) )
+                message = "Successfully created tarball: %s" % ( make_file_download_link(partname) )
             else:
                 message = "Failed to create tarball: %s" % ( partname )
             return self.show(message=message)
         if 'create_zipfile' in kwargs:
             ( result, partname ) = restore_spec.create_restore_file(rs, "zip")
             if result:
-                message = "Successfully created zipfile: %s" % ( html.a(partname, att='href="%s/%s"' % ( cfg.RESTORE_BASE_URL_PATH, cgi.escape(partname, quote=True) )) )
+                message = "Successfully created zipfile: %s" % ( make_file_download_link(partname) )
             else:
                 message = "Failed to create zipfile: %s" % ( partname )
             return self.show(message=message)
