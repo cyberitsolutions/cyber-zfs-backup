@@ -69,7 +69,7 @@ def update_toplevel_path_apparent_size(path):
             ( du_size_str, du_path ) = line.split('\t', 1)
             apparent_size = int(du_size_str)
             update_or_insert_filesystem_info_apparent_size(du_path, apparent_size)
-    db.commit()
+            db.commit()
 
 def update_toplevel_path_usage_size(path):
     """ Manually extracts du disk-usage-size of path and all
@@ -83,7 +83,7 @@ def update_toplevel_path_usage_size(path):
             ( du_size_str, du_path ) = line.split('\t', 1)
             usage_size = int(du_size_str)
             update_or_insert_filesystem_info_usage_size(du_path, usage_size)
-    db.commit()
+            db.commit()
 
 # Note: The contents of the supplied path are assumed to never ever
 # change. Unless they're completely removed. This will be true for a
