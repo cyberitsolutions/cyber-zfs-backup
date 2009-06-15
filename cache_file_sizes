@@ -1,0 +1,53 @@
+#!/usr/bin/python
+
+import os
+import sys
+import db
+import browse
+
+######################################################################
+# Functions.
+
+def make_size_cacher(db):
+    def get_directory_contents_size(path):
+        """ Return the size (in bytes) of this directory and its contents. """
+        # Get the immediate contents.
+        dir_contents = os.listdir(path)
+
+        size = os.lstat(path)[6]
+        for dc in dir_contents:
+            ap_dc = os.path.join(path, dc)
+            if os.path.isdir(ap_dc):
+                # Recursive.
+                ap_dc_size = get_directory_contents_size(ap_dc)
+                # Note: We *assume* that the relevant filesystem_info
+                # record is already in place.
+                #db.do("update filesystem_info set contents_size = %(ap_dc_size)s where path = %(ap_dc)s", vars())
+                print "SIZE %d for directory: %s" % ( ap_dc_size, ap_dc )
+                size += ap_dc_size
+            else:
+                # Just the filesize, ma'am.
+                size += os.lstat(ap_dc)[6]
+
+        return size
+
+    return get_directory_contents_size
+
+
+######################################################################
+# Main.
+
+if len(sys.argv) < 2:
+    print "Usage: %s path" % ( sys.argv[0] )
+    sys.exit(1)
+
+# Need to connect before using the database.
+db.connect(None)
+
+path = os.path.abspath(sys.argv[1])
+
+dcs = make_size_cacher(db)
+
+final_size = dcs(path)
+print "FINAL SIZE %d for directory: %s" % ( final_size, path )
+
