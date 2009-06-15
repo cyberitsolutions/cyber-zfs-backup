@@ -1,8 +1,6 @@
 #!/usr/bin/perl -w
 #
 # backup a single share
-#
-# usage: backup-share.pl config
 
 $hosted_backup_root_fs = "tank/hosted-backup";
 $hosted_backup_backups_fs = "$hosted_backup_root_fs/backups";

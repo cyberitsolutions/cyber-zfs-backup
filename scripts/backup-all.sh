@@ -7,4 +7,8 @@ for conf in $(cd config && grep -l -- '-----BEGIN RSA PRIVATE KEY-----' *)
 do
   ./bin/backup-share.pl $conf >> z-backup-all.out 2>> z-backup-all.err
 done
+for legacy_conf in $(cd config-legacy && ls -1)
+do
+  ./bin/backup-share-legacy.pl "$legacy_conf" >> z-backup-all-legacy.out 2>> z-backup-all-legacy.err
+done
 mv backups/*/*.{out,err} logs
