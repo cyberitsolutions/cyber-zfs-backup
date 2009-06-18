@@ -2,9 +2,7 @@
 
 # set field seperator to a single newline (so remove the default tab and
 # space char seperators which mess up the loops below)
-# XXX this is retarded - WTF, bash? why for not IFS="\n" work?
-IFS="
-"
+IFS=$'\n'
 
 cd /tank/hosted-backup
 rm -f z-backup-all{,-legacy}.{out,err}
