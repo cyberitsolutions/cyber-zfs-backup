@@ -23,17 +23,18 @@ usage() unless $source_userhost =~ /^[a-z]+@[.a-z0-9-]+$/;
 usage() unless length($source_path_colon) > 0;
 ($source_path = ":$source_path_colon") =~ y#:#/#;
 
-$keyfile = "$hosted_backup_config_dir/$ARGV[0]";
-die "keyfile not found: $keyfile" unless -f $keyfile;
+$authfile = "$hosted_backup_config_dir/$ARGV[0]";
+die "authfile not found: $authfile" unless -f $authfile;
 
 $rsync_source = "$source_userhost:$source_path";
+$rsync_transport_auth = "-e 'ssh -i $authfile'";
 $target_fs = "$hosted_backup_backups_fs/$client/$source_host:$source_path_colon";
 $rsync_target_dir = "/$target_fs";
 
 # $cmd_zfs_create = qq(zfs create -p $target_fs);
-$cmd_rsync = qq(rsync --stats -e "ssh -i $keyfile" --inplace --numeric-ids --delete-after -aP $rsync_source/. $rsync_target_dir/. > $rsync_target_dir.$backup_stamp.out 2> $rsync_target_dir.$backup_stamp.err);
-$cmd_zfs_snapshot = qq(zfs snapshot $target_fs\@$backup_stamp);
-$cmd_cache_disk_usage = qq(env LD_LIBRARY_PATH=/usr/postgres/8.2/lib /tank/hosted-backup/bin/cache_directory_sizes $rsync_target_dir/.zfs/snapshot/$backup_stamp);
+$cmd_rsync = qq(rsync --stats $rsync_transport_auth --inplace --numeric-ids --delete-after -aP '$rsync_source/.' '$rsync_target_dir/.' > '$rsync_target_dir.$backup_stamp.out' 2> '$rsync_target_dir.$backup_stamp.err');
+$cmd_zfs_snapshot = qq(zfs snapshot '$target_fs\@$backup_stamp');
+$cmd_cache_disk_usage = qq(env LD_LIBRARY_PATH=/usr/postgres/8.2/lib /tank/hosted-backup/bin/cache_directory_sizes '$rsync_target_dir/.zfs/snapshot/$backup_stamp');
 
 print "syncing $client from $rsync_source at $backup_stamp\n";
 # don't create the filesystem - we want an error if it's not there yet.
