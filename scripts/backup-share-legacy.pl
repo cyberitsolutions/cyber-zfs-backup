@@ -5,6 +5,7 @@
 $hosted_backup_root_fs = "tank/hosted-backup";
 $hosted_backup_backups_fs = "$hosted_backup_root_fs/backups";
 $hosted_backup_config_dir = "/$hosted_backup_root_fs/config-legacy";
+$hosted_backup_config_hack_dir = "/$hosted_backup_root_fs/config-ugly-hacks";
 
 # screw you, Perl...
 chomp ($backup_stamp = qx/date -u +%Y-%m-%dT%H:%M:%SZ/);
@@ -26,13 +27,21 @@ usage() unless length($source_path_colon) > 0;
 $authfile = "$hosted_backup_config_dir/$ARGV[0]";
 die "authfile not found: $authfile" unless -f $authfile;
 
+$config_hack_file = "$hosted_backup_config_hack_dir/$ARGV[0]";
+$config_hack = '';
+if ( -T $config_hack_file ) {
+  open(CONFIG_HACK_FILE, $config_hack_file) || die "couldn't read config hack file:";
+  $config_hack = join(" ", map {s/\s*(#.*)?\s*$//; $_} <CONFIG_HACK_FILE>);
+  close CONFIG_HACK_FILE;
+}
+
 $rsync_source = "rsync://$source_userhost$source_path";
 $rsync_transport_auth = "--password-file='$authfile'";
 $target_fs = "$hosted_backup_backups_fs/$client/$source_host:$source_path_colon";
 $rsync_target_dir = "/$target_fs";
 
 # $cmd_zfs_create = qq(zfs create -p $target_fs);
-$cmd_rsync = qq(rsync --stats $rsync_transport_auth --inplace --numeric-ids --delete-after -aP '$rsync_source/.' '$rsync_target_dir/.' > '$rsync_target_dir.$backup_stamp.out' 2> '$rsync_target_dir.$backup_stamp.err');
+$cmd_rsync = qq(rsync --stats $rsync_transport_auth $config_hack --inplace --numeric-ids --delete-after --delete-excluded -aP '$rsync_source/.' '$rsync_target_dir/.' > '$rsync_target_dir.$backup_stamp.out' 2> '$rsync_target_dir.$backup_stamp.err');
 $cmd_zfs_snapshot = qq(zfs snapshot '$target_fs\@$backup_stamp');
 $cmd_cache_disk_usage = qq(env LD_LIBRARY_PATH=/usr/postgres/8.2/lib /tank/hosted-backup/bin/cache_directory_sizes '$rsync_target_dir/.zfs/snapshot/$backup_stamp');
 
