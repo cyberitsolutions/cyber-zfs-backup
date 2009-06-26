@@ -7,6 +7,8 @@ $hosted_backup_backups_fs = "$hosted_backup_root_fs/backups";
 $hosted_backup_config_dir = "/$hosted_backup_root_fs/config-legacy";
 $hosted_backup_config_hack_dir = "/$hosted_backup_root_fs/config-ugly-hacks";
 
+$rsync_standard_args = "-aP --stats --inplace --numeric-ids --delete-after --delete-excluded";
+
 # screw you, Perl...
 chomp ($backup_stamp = qx/date -u +%Y-%m-%dT%H:%M:%SZ/);
 
@@ -41,7 +43,7 @@ $target_fs = "$hosted_backup_backups_fs/$client/$source_host:$source_path_colon"
 $rsync_target_dir = "/$target_fs";
 
 # $cmd_zfs_create = qq(zfs create -p $target_fs);
-$cmd_rsync = qq(rsync --stats $rsync_transport_auth $config_hack --inplace --numeric-ids --delete-after --delete-excluded -aP '$rsync_source/.' '$rsync_target_dir/.' > '$rsync_target_dir.$backup_stamp.out' 2> '$rsync_target_dir.$backup_stamp.err');
+$cmd_rsync = qq(rsync $rsync_standard_args $rsync_transport_auth $config_hack '$rsync_source/.' '$rsync_target_dir/.' > '$rsync_target_dir.$backup_stamp.out' 2> '$rsync_target_dir.$backup_stamp.err');
 $cmd_zfs_snapshot = qq(zfs snapshot '$target_fs\@$backup_stamp');
 $cmd_cache_disk_usage = qq(env LD_LIBRARY_PATH=/usr/postgres/8.2/lib /tank/hosted-backup/bin/cache_directory_sizes '$rsync_target_dir/.zfs/snapshot/$backup_stamp');
 
