@@ -81,6 +81,7 @@ def create_zip_restore_file(rs):
     restore_dirname = "restore_%d_%s" % ( rs.restore_id, now.strftime("%Y%m%d%H%M") )
     restore_basename = restore_dirname + ".zip"
     # This is the partial-path we return from this function.
+    # Update: No, we're now just returning restore_basename.
     restore_company_basename = os.path.join(rs.company_name, restore_basename)
     restore_filename = os.path.join(zbm_cfg.RESTORE_BASE_DIR, restore_company_basename)
 
@@ -99,7 +100,7 @@ def create_zip_restore_file(rs):
     zf.close()
     os.chmod(restore_filename, 0644)
 
-    return ( True, restore_company_basename )
+    return ( True, restore_basename )
 
 def create_tar_restore_file(rs):
     """ Create a tar restore file.
@@ -108,6 +109,7 @@ def create_tar_restore_file(rs):
     restore_dirname = "restore_%d_%s" % ( rs.restore_id, now.strftime("%Y%m%d%H%M") )
     restore_basename = restore_dirname + ".tar.gz"
     # This is the partial-path we return from this function.
+    # Update: No, we're now just returning restore_basename.
     restore_company_basename = os.path.join(rs.company_name, restore_basename)
     restore_filename = os.path.join(zbm_cfg.RESTORE_BASE_DIR, restore_company_basename)
 
@@ -123,7 +125,7 @@ def create_tar_restore_file(rs):
     tf.close()
     os.chmod(restore_filename, 0644)
 
-    return ( True, restore_company_basename )
+    return ( True, restore_basename )
 
 def create_restore_file(rs, restore_type):
     """ Create a restore file (zip or tar) from a restore spec.
