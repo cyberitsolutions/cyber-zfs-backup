@@ -1,0 +1,220 @@
+#!/usr/bin/python
+
+import os
+import re
+import sys
+import string
+import psycopg2
+import subprocess as sp
+
+import pprint
+
+# Ripped off from core ZBM.
+# File size stuff.
+file_size_class = [
+    (1024, 'B'),
+    (1024**2, 'KB'),
+    (1024**3, 'MB'),
+    (1024**4, 'GB'),
+    (1024**5, 'TB')
+]
+
+def filesize_exp(size):
+    s = file_size_class[0]
+    if size < s[0]:
+        return str(size)
+
+    s = file_size_class[-1]
+    if not size < s[0]:
+        return "%0.1f%s" % ( float(size)/(s[0]/1024), s[1] )
+
+    for s in file_size_class[1:]:
+        if size < s[0]:
+            return "%0.1f%s" % ( float(size)/(s[0]/1024), s[1] )
+
+# Very simple ZBM-connection database wrapper class.
+class DB_Wrapper:
+    def __init__(self):
+        # Create a connection and store it in the current thread.
+        # No, we don't use the thread_index var.
+        self.DB = psycopg2.connect(database='zbm', host='localhost', user='zbm', password='zbm')
+
+    def commit(self):
+        self.DB.commit()
+
+    def rollback(self):
+        self.DB.rollback()
+
+    # Just execute, ignore the result.
+    def do(self, sql, vars=None):
+        # Get cursor.
+        c = self.DB.cursor()
+        c.execute(sql, vars=vars)
+        # Close cursor.
+        c.close()
+
+    # Return a list of results.
+    def get(self, sql, vars=None):
+        # Get cursor.
+        c = self.DB.cursor()
+        c.execute(sql, vars=vars)
+        result = c.fetchall()
+        # Close cursor.
+        c.close()
+        return result
+
+    # Return a single result.
+    def get1(self, sql, vars=None):
+        # Get cursor.
+        c = self.DB.cursor()
+        c.execute(sql, vars=vars)
+        result = c.fetchone()
+        # Close cursor.
+        c.close()
+        return result
+
+def adjust(value, width, code):
+    """ Returns a string left/right/centre-adjusted by given width. """
+    if type(value) == type(0.1):
+        value = "%0.2f" % ( value )
+    else:
+        value = str(value)
+    value = str(value)[:width]
+    value = value.split('\n')[0]
+    c = code[0].lower()
+
+    rv = ""
+    if c == 'r':
+        rv = value.rjust(width)
+    elif c == 'c':
+        rv = value.center(width)
+    else:
+        # Default is left-justify.
+        rv = value.ljust(width)
+    return rv
+
+
+class TabularOutput:
+    """ Simple handler for tabular data output. """
+
+    def __init__(self, spec):
+        """ Uses spec to create definition for tabular output. """
+        self.number = len(spec)
+        # Array of  (column_header, width, alignment) tuples,
+        # eg. ('name', 10, 'r')
+        self.spec = spec
+
+    def header(self):
+        hdrs = [ adjust(s[0].upper(), s[1], s[2]) for s in self.spec ]
+        return string.join(hdrs, '  ').rstrip()
+
+    def row(self, row):
+        cells = [ adjust(rs[0], rs[1][1], rs[1][2]) for rs in zip(row, self.spec) ]
+        return string.join(cells, '  ').rstrip()
+
+
+
+######################################################################
+# Main.
+
+zfs_lines = sp.Popen(["zfs", 'list', '-H', '-o', 'name,compressratio,used,usedbysnapshots'], stdout=sp.PIPE).communicate()[0].split('\n')
+zfs_data = {}
+
+thbr = re.compile('^tank.hosted-backup.backups')
+zfs_cols = [ z.split('\t') for z in zfs_lines if z is not None and thbr.search(z) ]
+
+zfs_companies = {}
+
+for zc in zfs_cols:
+    zn = zc[0].split('/')
+    if len(zn) == 4:
+        zfs_companies[zn[3]] = { 'ratio':zc[1], 'used':zc[2], 'snapused':zc[3], 'shares':{} }
+    if len(zn) == 5:
+        cs = zfs_companies[zn[3]]['shares']
+        cs[zn[4]] = { 'ratio':zc[1], 'used':zc[2], 'snapused':zc[3] }
+
+# Now work out the extra data for every share.
+#
+# Uncompressed size of latest snapshot and number of snapshots is what
+# we're looking for.
+
+DB = DB_Wrapper()
+
+for zcn in zfs_companies.keys():
+    zc_shares = zfs_companies[zcn]['shares']
+    for zsn in zc_shares.keys():
+        share_path = "/tank/hosted-backup/backups/%s/%s" % ( zcn, zsn )
+        share_snap_path = share_path + "/.zfs/snapshot"
+        share_snapshots = os.listdir(share_snap_path)
+        share_snapshots.sort()
+        if len(share_snapshots) == 0:
+            #print "WARNING: Ignoring, no snapshots for share %s" % ( share_snap_path )
+            del zc_shares[zsn]
+            continue
+        latest_snap = share_snapshots[-1]
+        full_latest_snap = os.path.join(share_snap_path, latest_snap)
+        #print "Looking at: %s" % ( full_latest_snap )
+        rec = DB.get1("select apparent_size from filesystem_info where path = %(path)s", {'path':full_latest_snap})
+        if rec is None:
+            #print "WARNING: Ignoring %s" % ( full_latest_snap )
+            del zc_shares[zsn]
+            continue
+        apparent_size = rec[0]
+        zc_shares[zsn]['apparent_size'] = apparent_size
+        zc_shares[zsn]['num_snapshots'] = len(share_snapshots)
+
+#pp = pprint.PrettyPrinter(indent=3)
+#pp.pprint(zfs_companies)
+
+# Okay, now output the data in a readable format.
+#'taralye': {  'ratio': '1.15x',
+#                 'shares': {  'mail.taralye.vic.edu.au:c:cygwin': {  'apparent_size': 190310003L,
+#                                                                     'num_snapshots': 59,
+#                                                                     'ratio': '4.73x',
+#                                                                     'snapused': '31.7M',
+#                                                                     'used': '64.8M'},
+#                              'mail.taralye.vic.edu.au:d': {  'apparent_size': 9613621707L,
+#                                                              'num_snapshots': 59,
+#                                                              'ratio': '1.15x',
+#                                                              'snapused': '51.7G',
+#                                                              'used': '57.4G'},
+#                              'mail.taralye.vic.edu.au:s:Taralye': {  'apparent_size': 21210098768L,
+#                                                                      'num_snapshots': 58,
+#                                                                      'ratio': '1.14x',
+#                                                                      'snapused': '1.29G',
+#                                                                      'used': '19.0G'}},
+#                 'snapused': '0',
+#                 'used': '76.4G'}}
+
+COMPANY_TABO = TabularOutput([('Name', 15, 'l'), ('Total Space', 11, 'r'), ('No. Shares', 10, 'r')])
+SHARE_TABO = TabularOutput([('Company', 15, 'l'), ('Share', 36, 'l'), ('Size', 11, 'r'), ('No. Snaps', 9, 'r'), ('Ratio', 6, 'r'), ('Total Space', 11, 'r'), ('Snapshot Space', 14, 'r')])
+
+zc_names = zfs_companies.keys()
+zc_names.sort()
+
+print "==================="
+print "==== Companies ===="
+print "===================\n"
+print COMPANY_TABO.header()
+for zcn in zc_names:
+    zc = zfs_companies[zcn]
+    print COMPANY_TABO.row([ zcn, zc['used'], len(zc['shares']) ])
+
+print "\n"
+print "==================="
+print "====  Shares   ===="
+print "===================\n"
+
+print SHARE_TABO.header()
+for zcn in zc_names:
+    zs = zfs_companies[zcn]['shares']
+    zc_share_names = zs.keys()
+    zc_share_names.sort()
+
+    for zcsn in zc_share_names:
+        s = zs[zcsn]
+        for k in ['apparent_size', 'num_snapshots']:
+            if not k in s:
+                continue
+        print SHARE_TABO.row([ zcn, zcsn, filesize_exp(s['apparent_size']), s['num_snapshots'], s['ratio'], s['used'], s['snapused'] ]) 
+
