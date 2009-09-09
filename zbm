@@ -226,7 +226,7 @@ class ZfsBackupManager:
     @expose
     @require()
     def index(self):
-        return self.show()
+        return self.browse()
 
     @expose
     @require()
