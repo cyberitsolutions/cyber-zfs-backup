@@ -55,7 +55,7 @@ $rsync_target_dir = "/$target_fs";
 $cmd_rsync = qq(rsync $rsync_standard_args $rsync_transport_auth $config_hack '$rsync_source/.' '$rsync_target_dir/.' > '$rsync_target_dir.$backup_stamp.out' 2> '$rsync_target_dir.$backup_stamp.err');
 $cmd_zfs_snapshot = qq(zfs snapshot '$target_fs\@$backup_stamp');
 $cmd_cache_disk_usage = qq(env LD_LIBRARY_PATH=/usr/postgres/8.2/lib /tank/hosted-backup/bin/cache_directory_sizes '$rsync_target_dir/.zfs/snapshot/$backup_stamp');
-$cmd_email_notification = qq((tail -20 $rsync_target_dir.$backup_stamp.out | perl -ne '\$go += /^Number/; print if \$go'; echo; cat $rsync_target_dir.$backup_stamp.err) | /usr/bin/mailx -s 'backup log $ARGV[0]' $recipients);
+$cmd_email_notification = qq((tail -20 "$rsync_target_dir.$backup_stamp.out" | perl -ne '\$go += /^Number/; print if \$go'; echo; cat "$rsync_target_dir.$backup_stamp.err") | /usr/bin/mailx -s 'backup log $ARGV[0]' $recipients);
 
 print "syncing $client from $rsync_source at $backup_stamp\n";
 # don't create the filesystem - we want an error if it's not there yet.
