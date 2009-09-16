@@ -231,6 +231,7 @@ class ZfsBackupManager:
     @expose
     @require()
     def show(self, restore_id=None, message=None):
+        """ Show cart contents. """
         ( username, _, company_name, _ ) = auth.login_status()
 
         rs = None
@@ -294,18 +295,7 @@ class ZfsBackupManager:
             restore_path_rows = string.join([ ifs_to_row(ifs) for ifs in included_filespecs ])
             restore_display = form + html.table(ifs_header + html.tbody(restore_path_rows), att='style="margin-left:10px" class="tablesorter restore_display"')
         else:
-            form = html.form(
-                html.table(
-                    html.tbody(
-                        html.tr(
-                            html.td([
-                                html.input(att='name="retrieve_restore" type="submit" value="Return to previous cart" title="Go back to your previous set of restore files."'),
-                            ]))),
-                    att='class="borderless restore_action" style="text-align:left"'),
-                att='name="restore" method="post" action="/backup/action"')
-            if db.get1("select count(1) from restores where username = %(username)s and not active", vars()) == 0:
-                form = ""
-            restore_display = html.p("Your current cart is empty.") + form
+            restore_display = html.p("Your current cart is empty.")
 
         if message is None:
             message = ""
@@ -445,8 +435,39 @@ class ZfsBackupManager:
 
         return self.show()
 
+    # TODO: Rename to "user"
     @expose
     @require()
+    def userNew(self):
+        lstatus = auth.login_status()
+        company_name = cherrypy.session.get(auth.COMPANY_NAME)
+        username = lstatus[0]
+
+        view_link = html.a("Your shares", att='href="/backup/browse"')
+
+        # Yanked from browse()
+        available_shares = [ s[0] for s in db.get("select name from shares where company_name = %(company_name)s", vars()) ]
+
+        links = []
+        # Try to get the most recent snapshot
+        for share in available_shares:
+            snap_path = os.path.abspath(chroot.build_share_path(company_name, share))
+            last_snap = "%s/%s"% (snap_path, sorted(os.listdir(snap_path))[-1])
+            size = db.get("select apparent_size from filesystem_info where path='%s'" % last_snap.replace("'","''"))[0]
+            links.append("%s %s" % ( html.a(share, att='href="/backup/browse?share=%s"' % ( cgi.escape(share, quote=True) )), " (%s bytes)" % size ))
+            
+        #links = [ html.a(s, att='href="/backup/browse?share=%s"' % ( cgi.escape(s, quote=True) )) for s in available_shares ]
+
+        share_num = "You have %d shares."%len(links)
+        return page.page("Datasafe/R - Account " + username,
+            html.h1("User account - " + username)
+            + html.h2(view_link)
+            + share_num
+            + html.ul(html.li(links)))
+
+    @expose
+    @require()
+    # TODO: Rename to "password"
     def user(self, old_password=None, new_password1=None, new_password2=None):
         error_message = ""
         lstatus = auth.login_status()
@@ -561,7 +582,7 @@ class ZfsBackupManager:
 zbm_config = {
     'global' : {
         # Explicitly set this to False for deployed apps.
-        'engine.autoreload_on': False,
+        'engine.autoreload_on': True,
 
         'server.socket_host': '0.0.0.0',
         'server.socket_port': 8008,
