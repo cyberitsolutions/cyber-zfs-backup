@@ -294,18 +294,7 @@ class ZfsBackupManager:
             restore_path_rows = string.join([ ifs_to_row(ifs) for ifs in included_filespecs ])
             restore_display = form + html.table(ifs_header + html.tbody(restore_path_rows), att='style="margin-left:10px" class="tablesorter restore_display"')
         else:
-            form = html.form(
-                html.table(
-                    html.tbody(
-                        html.tr(
-                            html.td([
-                                html.input(att='name="retrieve_restore" type="submit" value="Return to previous cart" title="Go back to your previous set of restore files."'),
-                            ]))),
-                    att='class="borderless restore_action" style="text-align:left"'),
-                att='name="restore" method="post" action="/backup/action"')
-            if db.get1("select count(1) from restores where username = %(username)s and not active", vars()) == 0:
-                form = ""
-            restore_display = html.p("Your current cart is empty.") + form
+            restore_display = html.p("Your current cart is empty.")
 
         if message is None:
             message = ""
