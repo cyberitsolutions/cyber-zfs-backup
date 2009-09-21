@@ -9,12 +9,14 @@ rm -f z-backup-output.txt
 # config files containing RSA private keys for rsync+ssh clients
 for conf in $(cd config && grep -l -- '-----BEGIN RSA PRIVATE KEY-----' *)
 do
-  ./bin/backup-share.pl "$conf" 2>&1 >> z-backup-output.txt
+  ./bin/backup-share.pl "$conf" 2>&1 >> z-backup-output.txt &
 done
 for legacy_conf in $(cd config-legacy && ls -1)
 do
-  ./bin/backup-share-legacy.pl "$legacy_conf" 2>&1 >> z-backup-output.txt
+  ./bin/backup-share-legacy.pl "$legacy_conf" 2>&1 >> z-backup-output.txt &
 done
+
+wait
 
 (cat z-backup-output.txt; head -100 backups/*/*.err) | /usr/bin/mailx -s 'zhug backup logs' hosted-backups@cybersource.com.au
 
