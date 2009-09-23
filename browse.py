@@ -3,7 +3,7 @@ import sys
 import os
 import datetime
 import time
-from os.path import join
+from os.path import join, dirname
 import subprocess as sp
 
 import sets
@@ -47,16 +47,26 @@ def really_get_disk_usage(path):
     return int(output.split('\t')[0])
 
 def update_or_insert_filesystem_info_usage_size(path, usage_size):
+    ppath = dirname(path)
+    ppath_id = db.get1("select path_id from filesystem_info where path = %(ppath)s", vars())
+    if ppath_id:
+        ppath_id = ppath_id[0]
+
     if int(db.get1("select count(1) from filesystem_info where path = %(path)s", vars())[0]) > 0:
         db.do("update filesystem_info set usage_size = %(usage_size)s where path = %(path)s", vars())
     else:
-        db.do("insert into filesystem_info ( path, usage_size ) values ( %(path)s, %(usage_size)s )", vars())
+        db.do("insert into filesystem_info ( path, usage_size, ppath_id ) values ( %(path)s, %(usage_size)s, %(ppath_id)s )", vars())
 
 def update_or_insert_filesystem_info_apparent_size(path, apparent_size):
+    ppath = dirname(path)
+    ppath_id = db.get1("select path_id from filesystem_info where path = %(ppath)s", vars())
+    if ppath_id:
+        ppath_id = ppath_id[0]
+
     if int(db.get1("select count(1) from filesystem_info where path = %(path)s", vars())[0]) > 0:
         db.do("update filesystem_info set apparent_size = %(apparent_size)s where path = %(path)s", vars())
     else:
-        db.do("insert into filesystem_info ( path, apparent_size ) values ( %(path)s, %(apparent_size)s )", vars())
+        db.do("insert into filesystem_info ( path, apparent_size, ppath_id ) values ( %(path)s, %(apparent_size)s, %(ppath_id)s )", vars())
 
 def update_toplevel_path_apparent_size(path):
     """ Manually extracts du apparent-size of path and all
@@ -64,6 +74,8 @@ def update_toplevel_path_apparent_size(path):
     lines = sp.Popen([cfg.GNU_DU_PATH, '--apparent-size', '--block-size=1', path], stdout=sp.PIPE).communicate()[0].split('\n')
     # The last one is always empty, so get rid of it.
     lines.pop()
+    # Reverse the output to get shallow directories first
+    lines = lines.reverse()
     for line in lines:
         if line is not None:
             ( du_size_str, du_path ) = line.split('\t', 1)
@@ -78,6 +90,8 @@ def update_toplevel_path_usage_size(path):
     lines = sp.Popen([cfg.GNU_DU_PATH, '--block-size=1', path], stdout=sp.PIPE).communicate()[0].split('\n')
     # The last one is always empty, so get rid of it.
     lines.pop()
+    # Reverse the output to get shallow directories first
+    lines = lines.reverse()
     for line in lines:
         if line is not None:
             ( du_size_str, du_path ) = line.split('\t', 1)
