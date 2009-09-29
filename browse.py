@@ -3,7 +3,7 @@ import sys
 import os
 import datetime
 import time
-from os.path import join
+from os.path import join, dirname
 import subprocess as sp
 
 import sets
@@ -47,16 +47,26 @@ def really_get_disk_usage(path):
     return int(output.split('\t')[0])
 
 def update_or_insert_filesystem_info_usage_size(path, usage_size):
+    ppath = dirname(path)
+    ppath_id = db.get1("select path_id from filesystem_info where path = %(ppath)s", vars())
+    if ppath_id:
+        ppath_id = ppath_id[0]
+
     if int(db.get1("select count(1) from filesystem_info where path = %(path)s", vars())[0]) > 0:
         db.do("update filesystem_info set usage_size = %(usage_size)s where path = %(path)s", vars())
     else:
-        db.do("insert into filesystem_info ( path, usage_size ) values ( %(path)s, %(usage_size)s )", vars())
+        db.do("insert into filesystem_info ( path, usage_size, ppath_id ) values ( %(path)s, %(usage_size)s, %(ppath_id)s )", vars())
 
 def update_or_insert_filesystem_info_apparent_size(path, apparent_size):
+    ppath = dirname(path)
+    ppath_id = db.get1("select path_id from filesystem_info where path = %(ppath)s", vars())
+    if ppath_id:
+        ppath_id = ppath_id[0]
+
     if int(db.get1("select count(1) from filesystem_info where path = %(path)s", vars())[0]) > 0:
         db.do("update filesystem_info set apparent_size = %(apparent_size)s where path = %(path)s", vars())
     else:
-        db.do("insert into filesystem_info ( path, apparent_size ) values ( %(path)s, %(apparent_size)s )", vars())
+        db.do("insert into filesystem_info ( path, apparent_size, ppath_id ) values ( %(path)s, %(apparent_size)s, %(ppath_id)s )", vars())
 
 def update_toplevel_path_apparent_size(path):
     """ Manually extracts du apparent-size of path and all
@@ -64,6 +74,8 @@ def update_toplevel_path_apparent_size(path):
     lines = sp.Popen([cfg.GNU_DU_PATH, '--apparent-size', '--block-size=1', path], stdout=sp.PIPE).communicate()[0].split('\n')
     # The last one is always empty, so get rid of it.
     lines.pop()
+    # Reverse the output to get shallow directories first
+    lines = lines.reverse()
     for line in lines:
         if line is not None:
             ( du_size_str, du_path ) = line.split('\t', 1)
@@ -78,6 +90,8 @@ def update_toplevel_path_usage_size(path):
     lines = sp.Popen([cfg.GNU_DU_PATH, '--block-size=1', path], stdout=sp.PIPE).communicate()[0].split('\n')
     # The last one is always empty, so get rid of it.
     lines.pop()
+    # Reverse the output to get shallow directories first
+    lines = lines.reverse()
     for line in lines:
         if line is not None:
             ( du_size_str, du_path ) = line.split('\t', 1)
@@ -156,7 +170,7 @@ def share_plus_path_to_archive_path(share_plus_path):
     return os.path.join(share, path[1:])
 
 class FileSpec:
-    def __init__(self, chrooted_path, share, name=False, disk_usage=None):
+    def __init__(self, chrooted_path, share, name=False, disk_usage=None, apparent_size=None):
         self.chrooted_path = chrooted_path
         self.real_path = self.chrooted_path.real_path
         self.share = share
@@ -175,7 +189,10 @@ class FileSpec:
 
         # Extra file info.
         self.type = file_type(self.real_path)
-        self.size = getlsize(self.real_path)
+        if apparent_size is None:
+            self.size = getlsize(self.real_path)
+        else:
+            self.size = apparent_size
         # Not acquired by default, as it can be expensive.
         self.disk_usage = disk_usage
         self.mtime = getlmtime(self.real_path)
@@ -186,10 +203,6 @@ class FileSpec:
             self.display = html.a(self.name, att='href="/backup/browse?share=%s&amp;path=%s"' % ( cgi.escape(self.share, quote=True), cgi.escape(self.path, quote=True) ))
             ops1 = os.path.split(self.path)[1]
             ops2 = os.path.split(ops1)[1]
-            if ops2 == "":
-                pass
-            else:
-                self.size = self.acquire_disk_usage()
 
     # Note: This actually returns the cached *apparent* size, which is
     # quite different to the disk usage.
@@ -216,6 +229,12 @@ def get_zfs_filesystem(realpath):
     # (and the trailing /.zfs/snapshot).
     return re.sub('/.zfs/snapshot$', '', realpath[1:])
 
+def get_zfs_timestamp(filesystem):
+    # Check to see if we've been given real_path instead of zfs_filesystem
+    if filesystem[1] == '/':
+        filesystem = get_zfs_filesystem(filesystem)
+    output = sp.Popen(["zfs", "get", "-p", "-H", "-r", "-o", "name,value", "creation", filesystem], stdout=sp.PIPE).communicate()[0].split('\n')
+
 def get_snapshot_timestamps(filesystem):
     """ For a ZFS filesystem, return a dict mapping snapshot name to datetime. """
     # zfs get -p -H -r -o name,value creation tank/hosted-backup/backups/ron/fabre.id.au:home
@@ -234,31 +253,52 @@ def get_snapshot_timestamps(filesystem):
 # os.path.isfile
 def get_dir_contents(chrooted_path, share, sort_by="name", include_parent=True):
     real_dir = chrooted_path.real_path
-    if not os.path.isdir(real_dir):
-        raise InaccessiblePathError("%s is not an accessible directory." % ( chrooted_path.path ))
+    contents = []
 
-    dir_contents = []
-    try:
-        dir_contents = os.listdir(real_dir)
-    except OSError, e:
-        pass
-    contents = [ FileSpec(chrooted_path.child(fname), share) for fname in dir_contents ]
+    def get_files(real_dir):
+        files = []
+        # Retreive everything that's not a directory
+        file_list = filter(lambda f: not os.path.isdir(os.path.join(real_dir, f)), os.listdir(real_dir))
+        for f in file_list:
+            file_path = os.path.join(f)
+            files.append(FileSpec(chrooted_path.child(file_path), share))
+        return files
 
-    contents.sort(filespec_cmp[sort_by])
+    path_info = db.get1("select path_id,ppath_id,apparent_size from filesystem_info where path=%(real_dir)s", vars())
+    if not path_info:
+        # Snapshot parent directories are not stored in filesystem_info
+        # Note: really can't do an sql "like" selection here due to insanely large database
+        for path in db.get("select path,apparent_size from filesystem_info where ppath_id is null"):
+            path_name = path[0]
+            # TODO: Should try to shorten the comparison strings
+            if path_name.startswith(real_dir):
+                subpath = chrooted_path.child(path_name[len(real_dir):])
+                spec = FileSpec(subpath, share, apparent_size=path[1])
+                # Get the zfs creation time
+                spec.mtime = get_zfs_timestamp(subpath.real_path)
+                contents.append(spec)
 
-    if include_parent:
-        if chrooted_path.has_parent():
-            pdir = chrooted_path.parent()
-            parent_dir = FileSpec(pdir, share, name="Up to higher level directory")
-            contents.insert(0, parent_dir)
+        # TODO: Change this message to something more accurate
+        if len(contents) == 0:
+            raise InaccessiblePathError("%s is not an accessible directory." % ( chrooted_path.path ))
         else:
-            # By convention, this is a directory of snapshots.
-            # So use the ZFS snapshot creation times from zfs.
-            zfs_fs = get_zfs_filesystem(real_dir)
-            st = get_snapshot_timestamps(zfs_fs)
-            for c in contents:
-                c.mtime = st[c.name]
+            contents.extend(get_files(real_dir))
+            contents.sort(filespec_cmp[sort_by])
+            # No "Up to higher" link
             contents.insert(0, None)
+    else:
+        path_id = path_info[0]
+        ppath_id = path_info[1]
+        if include_parent:
+            # Check to see if parent path ID exists
+            contents.append(FileSpec(chrooted_path.parent(), share, name="Up to higher level directory"))
+    
+        for subdir in db.get("select path,apparent_size from filesystem_info where ppath_id=%d" % path_id):
+            subpath = os.path.join(chrooted_path.path, subdir[0][len(real_dir) + len(os.sep):])
+            chrooted_subpath = chrooted_path.child(subpath)
+            contents.append(FileSpec(chrooted_subpath, share, apparent_size=subdir[1]))
+        contents.extend(get_files(real_dir))
 
+        contents.sort(filespec_cmp[sort_by])
     return contents
 

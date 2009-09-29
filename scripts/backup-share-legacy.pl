@@ -8,7 +8,7 @@ $hosted_backup_config_dir = "/$hosted_backup_root_fs/config-legacy";
 $hosted_backup_config_hack_dir = "/$hosted_backup_root_fs/config-ugly-hacks";
 $hosted_backup_config_email_dir = "/$hosted_backup_root_fs/config-email-logs";
 
-$rsync_standard_args = "-aP --stats --inplace --numeric-ids --delete-after --delete-excluded";
+$rsync_standard_args = "-aP --stats --inplace --numeric-ids --delete-after --delete-excluded --compress";
 
 # screw you, Perl...
 chomp ($backup_stamp = qx/date -u +%Y-%m-%dT%H:%M:%SZ/);
@@ -30,13 +30,12 @@ usage() unless length($source_path_colon) > 0;
 $authfile = "$hosted_backup_config_dir/$ARGV[0]";
 die "authfile not found: $authfile" unless -f $authfile;
 
-#$email_notifications_file = "$hosted_backup_config_email_dir/$ARGV[0]";
-#open EMAIL_RECIPIENTS, $email_notifications_file;
-#$recipients = <EMAIL_RECIPIENTS>;
-#chomp $recipients;
-#close EMAIL_RECIPIENTS;
-#$recipients = "hosted-backups\@cybersource.com.au $recipients";
-$recipients = "hosted-backups\@cybersource.com.au russm\@cybersource.com.au";
+$email_notifications_file = "$hosted_backup_config_email_dir/$ARGV[0]";
+open EMAIL_RECIPIENTS, $email_notifications_file;
+$recipients = <EMAIL_RECIPIENTS>;
+chomp $recipients;
+close EMAIL_RECIPIENTS;
+$recipients = "russm\@cybersource.com.au hosted-backups\@cybersource.com.au $recipients";
 
 $config_hack_file = "$hosted_backup_config_hack_dir/$ARGV[0]";
 $config_hack = '';
@@ -55,13 +54,13 @@ $rsync_target_dir = "/$target_fs";
 $cmd_rsync = qq(rsync $rsync_standard_args $rsync_transport_auth $config_hack '$rsync_source/.' '$rsync_target_dir/.' > '$rsync_target_dir.$backup_stamp.out' 2> '$rsync_target_dir.$backup_stamp.err');
 $cmd_zfs_snapshot = qq(zfs snapshot '$target_fs\@$backup_stamp');
 $cmd_cache_disk_usage = qq(env LD_LIBRARY_PATH=/usr/postgres/8.2/lib /tank/hosted-backup/bin/cache_directory_sizes '$rsync_target_dir/.zfs/snapshot/$backup_stamp');
-$cmd_email_notification = qq((tail -20 "$rsync_target_dir.$backup_stamp.out" | perl -ne '\$go += /^Number/; print if \$go'; echo; cat "$rsync_target_dir.$backup_stamp.err") | /usr/bin/mailx -s 'backup log $ARGV[0]' $recipients);
+$cmd_email_notification = qq((cat /${hosted_backup_root_fs}/email-header.txt; tail -20 "$rsync_target_dir.$backup_stamp.out" | perl -ne '\$go += /^Number/; print if \$go'; echo; cat "$rsync_target_dir.$backup_stamp.err") | /usr/bin/mailx -s 'backup log $ARGV[0]' $recipients);
 
-print "syncing $client from $rsync_source at $backup_stamp\n";
+print "$client from $rsync_source starting $backup_stamp\n";
 # don't create the filesystem - we want an error if it's not there yet.
 # system $cmd_zfs_create;
 system $cmd_rsync;
 system $cmd_zfs_snapshot;
 system $cmd_email_notification;
 system $cmd_cache_disk_usage;
-print "done.\n";
+print "$client from $rsync_source done.\n";
