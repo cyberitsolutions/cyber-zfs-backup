@@ -463,7 +463,7 @@ class ZfsBackupManager:
                     checked = "checked"
                 else:
                     checked = ""
-                el += html.input(att='type="%s" name="%s|%s" %s value="true"' % (i_type, f_type, f_name, checked)
+                el += html.input(att='type="%s" name="%s|%s" %s value="true"' % (i_type, f_type, f_name, checked))
             else:
                 el = html.input(att='type="%s" name="%s|%s" value="%s"' % (i_type, f_type, f_name, f_value))
             return html.td(
