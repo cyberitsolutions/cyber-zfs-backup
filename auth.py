@@ -23,7 +23,7 @@ COMPANY_NAME = '_cp_company'
 COMPANY_FULLNAME = '_cp_company_full'
 
 def login_status():
-    """ Returns (username, fullname, company_name, company_fullname) if logged in or None if not. """
+    """ Returns (username, fullname, companyname) if logged in or None if not. """
     username = cherrypy.session.get(USER_NAME)
     if username is None:
         return None
@@ -31,12 +31,6 @@ def login_status():
     company_name = cherrypy.session.get(COMPANY_NAME)
     company_fullname = cherrypy.session.get(COMPANY_FULLNAME)
     return (username, fullname, company_name, company_fullname)
-
-def is_admin_user(username):
-    admin_user = db.get1("select admin from users where username='%s'"%username.replace("'","''"))
-
-    # If a non-admin tries to go to the admin page, redirect to the user page rather than cause a 403
-    return admin_user[0]
 
 def reset_password(username, password):
     hashed_password = md5.md5(password).hexdigest()

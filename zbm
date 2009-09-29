@@ -434,64 +434,8 @@ class ZfsBackupManager:
 
         return self.show()
 
-    def company_admin(self,company_name):
-        """Returns a table of users in the supplied company_name
-        company_name should be either a string (company_name) or a tuple (company_name,company_fullname)"""
-        company = (company_name,company_name) if isinstance(company_name, basestring) else company_name
-        if company_name[0] is None:
-            q = "company_name is null"
-        else:
-            q = "company_name='%s'" % company[0].replace("'","''")
-
-        users = db.get("select username, full_name, email, admin from users where %s" % q)
-
-        rows = ''
-        for u in users:
-            rows += html.tr( ''.join( [ html.td(field) for field in u ] ) )
-
-        table = html.table( html.tr( [
-            html.th("Username")
-            + html.th("Full name")
-            + html.th("Email")
-            + html.th("Admin")
-            ] ) + rows )
-        return table
-
-
     @expose
     @require()
-    def admin(self):
-        """Page to manage clients"""
-        # TODO: Tasks:
-        # * Create/delete a new customer (companies table)
-        # * Create/delete a new user (users table)
-        # * Create/delete a new share (shares table)
-        lstatus=auth.login_status()
-        username = lstatus[0]
-        company_name = lstatus[2]
-        company_fullname = lstatus[3]
-        if auth.is_admin_user(username):
-            if company_name:
-                tables = self.company_admin((company_name, company_fullname))
-            else:
-                tables = html.h2(html.i("Global admins")) + self.company_admin((None,"Admins"))
-                comps = db.get("select name,long_name from companies")
-                for c in comps:
-                    # Suppress the "Company:" qualifier for global admins
-                    tab_type = "Company: " if c[0] is not None else ""
-                    tables += html.h2("%s%s"%(tab_type, html.i(c[1]))) + self.company_admin(c)
-                company_fullname = html.i("Global")
-
-            return page.page("Datasafe/R - Admin",
-                html.h1("Admin (%s)" % company_fullname)
-                + tables)
-        else:
-            # If a non-admin tries to go to the admin page, redirect to the user page rather than cause a 403
-            raise cherrypy.HTTPRedirect("user")
-
-    @expose
-    @require()
-    # TODO: Rename to "password"
     def user(self, old_password=None, new_password1=None, new_password2=None):
         error_message = ""
         lstatus = auth.login_status()
