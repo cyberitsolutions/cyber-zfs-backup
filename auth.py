@@ -53,15 +53,20 @@ def check_credentials(username, password):
         Returns None on success or a string describing the error on failure. """
     # Adapt to your needs
     hashed_password = md5.md5(password).hexdigest()
-    row = db.get1("select u.full_name, c.name, c.long_name from users u, companies c where u.company_name = c.name and username = %(username)s and hashed_password = %(hashed_password)s", vars())
-    db.commit()
+    # users.company_name is null for global admins
+    row = db.get1("select u.full_name, u.company_name, c.long_name from users u left join companies c on u.company_name = c.name where username = %(username)s and hashed_password = %(hashed_password)s", vars())
+    #db.commit()
     if row is None:
         return ( "Incorrect username or password.", None )
+    if row[1]:
+        fullname = row[2]
+    else:
+        fullname = None
 
     return ( None, {
         'full_name':row[0],
         'company_name':row[1],
-        'company_fullname':row[2]
+        'company_fullname':fullname
     } )
     # An example implementation which uses an ORM could be:
     # u = User.get(username)
