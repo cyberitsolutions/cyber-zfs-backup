@@ -32,12 +32,8 @@ def login_status():
     company_fullname = cherrypy.session.get(COMPANY_FULLNAME)
     return (username, fullname, company_name, company_fullname)
 
-def is_admin_user(username, company=None):
-    if company is None:
-        q = "company_name is null"
-    else:
-        q = "company_name = '%s'" % company.replace("'","''")
-    admin_user = db.get1("select admin from users where username='%s' and %s" % ( username.replace("'","''"), q ))
+def is_admin_user(username):
+    admin_user = db.get1("select admin from users where username='%s'"%username.replace("'","''"))
 
     # If a non-admin tries to go to the admin page, redirect to the user page rather than cause a 403
     return admin_user[0]
