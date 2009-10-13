@@ -75,7 +75,7 @@ def update_toplevel_path_apparent_size(path):
     # The last one is always empty, so get rid of it.
     lines.pop()
     # Reverse the output to get shallow directories first
-    lines = lines.reverse()
+    lines.reverse()
     for line in lines:
         if line is not None:
             ( du_size_str, du_path ) = line.split('\t', 1)
@@ -91,7 +91,7 @@ def update_toplevel_path_usage_size(path):
     # The last one is always empty, so get rid of it.
     lines.pop()
     # Reverse the output to get shallow directories first
-    lines = lines.reverse()
+    lines.reverse()
     for line in lines:
         if line is not None:
             ( du_size_str, du_path ) = line.split('\t', 1)
