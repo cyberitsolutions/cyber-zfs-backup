@@ -133,6 +133,9 @@ for zc in zfs_cols:
         cs = zfs_companies[zn[3]]['shares']
         cs[zn[4]] = { 'ratio':zc[1], 'used':zc[2], 'snapused':zc[3] }
 
+#pp = pprint.PrettyPrinter(indent=3)
+#pp.pprint(zfs_companies)
+#sys.exit(0)
 # Now work out the extra data for every share.
 #
 # Uncompressed size of latest snapshot and number of snapshots is what
@@ -148,7 +151,7 @@ for zcn in zfs_companies.keys():
         share_snapshots = os.listdir(share_snap_path)
         share_snapshots.sort()
         if len(share_snapshots) == 0:
-            print "WARNING: Ignoring, no snapshots for share %s" % ( share_snap_path )
+            print >> sys.stderr, "WARNING: Ignoring, no snapshots for share %s" % ( share_snap_path )
             del zc_shares[zsn]
             continue
         latest_snap = share_snapshots[-1]
@@ -156,15 +159,16 @@ for zcn in zfs_companies.keys():
         #print "Looking at: %s" % ( full_latest_snap )
         rec = DB.get1("select apparent_size from filesystem_info where path = %(path)s", {'path':full_latest_snap})
         if rec is None:
-            print "WARNING: Ignoring, not in database: %s" % ( full_latest_snap )
+            print >> sys.stderr, "WARNING: Ignoring, not in database: %s" % ( full_latest_snap )
             del zc_shares[zsn]
             continue
         apparent_size = rec[0]
         zc_shares[zsn]['apparent_size'] = apparent_size
         zc_shares[zsn]['num_snapshots'] = len(share_snapshots)
 
-#pp = pprint.PrettyPrinter(indent=3)
+#print "================================="
 #pp.pprint(zfs_companies)
+#sys.exit(0)
 
 # Okay, now output the data in a readable format.
 #'taralye': {  'ratio': '1.15x',
