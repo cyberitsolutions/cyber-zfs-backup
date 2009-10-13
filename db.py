@@ -32,6 +32,24 @@ def get(sql, vars=None):
     c.close()
     return result
 
+# Returns a generator for a list of results.
+def getgen(sql, vars=None, chunk_size=1000):
+    # Get cursor.
+    c = cherrypy.thread_data.db.cursor()
+    c.execute(sql, vars=vars)
+
+    done = False
+    count = 0
+    while not done:
+        results = c.fetchmany(chunk_size)
+        count += len(results)
+        if len(results) == 0:
+            done = True
+        for res in results:
+            yield res
+    # Close cursor.
+    c.close()
+
 # Return a single result.
 def get1(sql, vars=None):
     # Get cursor.
