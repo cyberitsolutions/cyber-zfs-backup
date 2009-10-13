@@ -266,39 +266,29 @@ def get_dir_contents(chrooted_path, share, sort_by="name", include_parent=True):
 
     path_info = db.get1("select path_id,ppath_id,apparent_size from filesystem_info where path=%(real_dir)s", vars())
     if not path_info:
-        # Snapshot parent directories are not stored in filesystem_info
-        # Note: really can't do an sql "like" selection here due to insanely large database
-        for path in db.get("select path,apparent_size from filesystem_info where ppath_id is null"):
-            path_name = path[0]
-            # TODO: Should try to shorten the comparison strings
-            if path_name.startswith(real_dir):
-                subpath = chrooted_path.child(path_name[len(real_dir):])
-                spec = FileSpec(subpath, share, apparent_size=path[1])
-                # Get the zfs creation time
-                spec.mtime = get_zfs_timestamp(subpath.real_path)
-                contents.append(spec)
-
-        # TODO: Change this message to something more accurate
-        if len(contents) == 0:
-            raise InaccessiblePathError("%s is not an accessible directory." % ( chrooted_path.path ))
-        else:
-            contents.extend(get_files(real_dir))
-            contents.sort(filespec_cmp[sort_by])
-            # No "Up to higher" link
-            contents.insert(0, None)
-    else:
+        raise InaccessiblePathError("%s is not an accessible directory." % ( chrooted_path.path ))
+    if True:
         path_id = path_info[0]
         ppath_id = path_info[1]
-        if include_parent:
+        if include_parent and not ppath_id is None:
             # Check to see if parent path ID exists
             contents.append(FileSpec(chrooted_path.parent(), share, name="Up to higher level directory"))
-    
+
+        zd = None
+        if ppath_id is None:
+            zd = get_snapshot_timestamps(get_zfs_filesystem(real_dir))
         for subdir in db.get("select path,apparent_size from filesystem_info where ppath_id=%d" % path_id):
             subpath = os.path.join(chrooted_path.path, subdir[0][len(real_dir) + len(os.sep):])
             chrooted_subpath = chrooted_path.child(subpath)
-            contents.append(FileSpec(chrooted_subpath, share, apparent_size=subdir[1]))
+            spec = FileSpec(chrooted_subpath, share, apparent_size=subdir[1])
+            if ppath_id is None and chrooted_subpath.basename in zd:
+                spec.mtime = zd[chrooted_subpath.basename]
+            contents.append(spec)
         contents.extend(get_files(real_dir))
 
         contents.sort(filespec_cmp[sort_by])
+        if ppath_id is None:
+            # No "Up to higher" link
+            contents.insert(0, None)
     return contents
 
