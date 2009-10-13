@@ -35,7 +35,7 @@ open EMAIL_RECIPIENTS, $email_notifications_file;
 $recipients = <EMAIL_RECIPIENTS>;
 chomp $recipients;
 close EMAIL_RECIPIENTS;
-$recipients = "russm\@cybersource.com.au hosted-backups\@cybersource.com.au $recipients";
+$recipients = "hosted-backups\@cybersource.com.au $recipients";
 
 $config_hack_file = "$hosted_backup_config_hack_dir/$ARGV[0]";
 $config_hack = '';
