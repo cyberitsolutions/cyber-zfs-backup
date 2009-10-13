@@ -1,19 +1,46 @@
 #!/usr/bin/env python2.4
 
+import datetime
 import psycopg2
 import db
 import os.path
 
 db.connect(None)
-dirs = db.get("select path_id,path from filesystem_info")
-for path in dirs:
-    path_name = path[1]
-    path_id = path[0]
+print "Connected..."
 
-    ppath_name = os.path.dirname(path_name)
-    ppath_id = db.get1("select path_id from filesystem_info where path = %(ppath_name)s", vars())
+CHUNK_SIZE = 1000
+start_index = 0
 
-    if ppath_id:
-        ppath_id = ppath_id[0]
-        db.do("update filesystem_info set ppath_id = %d where path_id = %d" % (ppath_id, path_id))
+#count_rec = db.get1("select count(1) from filesystem_info where ppath_id is null")
+#num_rows = count_rec[0]
+num_rows_in_chunk = 1
+
+# Now break it up into chunks.
+while num_rows_in_chunk > 0:
+    end_index = start_index + CHUNK_SIZE
+    dirs = db.get("select path_id, path from filesystem_info where path_id >= %d and path_id < %d" % ( start_index, end_index ))
+    num_rows_in_chunk = len(dirs)
+    #print "Running main query against filesystem_info..."
+
+    if num_rows_in_chunk == 0:
+        print "No more dirs returned, bailing out."
+        sys.exit(0)
+
+    num_updated_recs = 0
+    for path in dirs:
+        path_name = path[1]
+        path_id = path[0]
+
+        ppath_name = os.path.dirname(path_name)
+        ppath_id = db.get1("select path_id from filesystem_info where path = %(ppath_name)s", vars())
+
+        if ppath_id:
+            ppath_id = ppath_id[0]
+            #print "Setting parent of %d to %d..." % ( path_id, ppath_id )
+            db.do("update filesystem_info set ppath_id = %d where path_id = %d" % (ppath_id, path_id))
+            num_updated_recs += 1
     db.commit()
+    print "%s: [%08d, %08d)\t => %d/%d ..." % ( datetime.datetime.now(), start_index, end_index, num_updated_recs, num_rows_in_chunk )
+
+    start_index += CHUNK_SIZE
+
