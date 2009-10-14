@@ -3,6 +3,7 @@ import sys
 import os
 import datetime
 import time
+import calendar
 from os.path import join, dirname
 import subprocess as sp
 
@@ -31,6 +32,15 @@ class InaccessiblePathError(Exception):
 
 ######################################################################
 # Functions.
+
+def convert_utc_timestamp_string(str, format="%Y-%m-%dT%H:%M:%SZ"):
+    """ Return the date value for the input string. """
+    str = str.strip()
+    str_time = time.strptime(str, format)
+    return datetime.datetime(*str_time[0:6])
+
+def datetime_to_sse(dt):
+    return int(calendar.timegm(dt.timetuple()))
 
 # Yay! Awesome. This will do fine.
 # Perhaps a tad sluggish on huge dirs, but more than
@@ -254,7 +264,7 @@ def get_snapshot_timestamps(filesystem):
 # os.path.islink
 # os.path.isdir
 # os.path.isfile
-def get_dir_contents(chrooted_path, share, sort_by="name", include_parent=True):
+def get_dir_contents(chrooted_path, share, sort_by="name", include_parent=True, reverse=False):
     real_dir = chrooted_path.real_path
     contents = []
 
@@ -278,18 +288,28 @@ def get_dir_contents(chrooted_path, share, sort_by="name", include_parent=True):
             contents.append(FileSpec(chrooted_path.parent(), share, name="Up to higher level directory"))
 
         zd = {}
+        orderby_condition = ""
+        orderby_condition = " order by path desc"
+        limit_condition = ""
+        offset_condition = ""
         if ppath_id is None:
-            zd = get_snapshot_timestamps(get_zfs_filesystem(real_dir))
-        for subdir in db.get("select path,apparent_size from filesystem_info where ppath_id=%d" % path_id):
+            #zd = get_snapshot_timestamps(get_zfs_filesystem(real_dir))
+            limit_condition = " limit 20"
+            reverse = True
+        for subdir in db.get("select path,apparent_size from filesystem_info where ppath_id=%d %s %s %s" % ( path_id, orderby_condition, limit_condition, offset_condition )):
             subpath = os.path.join(chrooted_path.path, subdir[0][len(real_dir) + len(os.sep):])
             chrooted_subpath = chrooted_path.child(subpath)
-            if ppath_id is None and chrooted_subpath.basename in zd:
-                mtime = zd[chrooted_subpath.basename]
+            mtime = None
+            #if ppath_id is None and chrooted_subpath.basename in zd:
+            #    mtime = zd[chrooted_subpath.basename]
+            if ppath_id is None:
+                # Get the mtime from the name.
+                mtime = datetime_to_sse(convert_utc_timestamp_string(chrooted_subpath.basename))
             spec = FileSpec(chrooted_subpath, share, apparent_size=subdir[1], mtime=mtime)
             contents.append(spec)
         contents.extend(get_files(real_dir))
 
-        contents.sort(filespec_cmp[sort_by])
+        contents.sort(filespec_cmp[sort_by], reverse=reverse)
         if ppath_id is None:
             # No "Up to higher" link
             contents.insert(0, None)
