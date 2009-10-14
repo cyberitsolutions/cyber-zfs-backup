@@ -170,7 +170,7 @@ def share_plus_path_to_archive_path(share_plus_path):
     return os.path.join(share, path[1:])
 
 class FileSpec:
-    def __init__(self, chrooted_path, share, name=False, disk_usage=None, apparent_size=None):
+    def __init__(self, chrooted_path, share, name=False, disk_usage=None, apparent_size=None, mtime=None):
         self.chrooted_path = chrooted_path
         self.real_path = self.chrooted_path.real_path
         self.share = share
@@ -195,7 +195,10 @@ class FileSpec:
             self.size = apparent_size
         # Not acquired by default, as it can be expensive.
         self.disk_usage = disk_usage
-        self.mtime = getlmtime(self.real_path)
+        if mtime is None:
+            self.mtime = getlmtime(self.real_path)
+        else:
+            self.mtime = mtime
 
         if self.type == 'link':
             self.display = html.a(self.name, att='title="%s"' % ( cgi.escape(os.readlink(self.real_path), quote=True) ))
@@ -274,15 +277,15 @@ def get_dir_contents(chrooted_path, share, sort_by="name", include_parent=True):
             # Check to see if parent path ID exists
             contents.append(FileSpec(chrooted_path.parent(), share, name="Up to higher level directory"))
 
-        zd = None
+        zd = {}
         if ppath_id is None:
             zd = get_snapshot_timestamps(get_zfs_filesystem(real_dir))
         for subdir in db.get("select path,apparent_size from filesystem_info where ppath_id=%d" % path_id):
             subpath = os.path.join(chrooted_path.path, subdir[0][len(real_dir) + len(os.sep):])
             chrooted_subpath = chrooted_path.child(subpath)
-            spec = FileSpec(chrooted_subpath, share, apparent_size=subdir[1])
             if ppath_id is None and chrooted_subpath.basename in zd:
-                spec.mtime = zd[chrooted_subpath.basename]
+                mtime = zd[chrooted_subpath.basename]
+            spec = FileSpec(chrooted_subpath, share, apparent_size=subdir[1], mtime=mtime)
             contents.append(spec)
         contents.extend(get_files(real_dir))
 
