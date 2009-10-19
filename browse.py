@@ -290,7 +290,8 @@ def get_dir_contents(chrooted_path, share, sort_by="name", include_parent=True, 
         offset_condition = ""
         if ppath_id is None:
             #zd = get_snapshot_timestamps(get_zfs_filesystem(real_dir))
-            limit_condition = " limit 20"
+            # Show only the most recent 35 snapshots.
+            limit_condition = " limit 35"
             reverse = True
         for subdir in db.get("select path,apparent_size from filesystem_info where ppath_id=%d %s %s %s" % ( path_id, orderby_condition, limit_condition, offset_condition )):
             subpath = os.path.join(chrooted_path.path, subdir[0][len(real_dir) + len(os.sep):])
