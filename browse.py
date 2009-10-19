@@ -284,7 +284,6 @@ def get_dir_contents(chrooted_path, share, sort_by="name", include_parent=True, 
         path_id = path_info[0]
         ppath_id = path_info[1]
 
-        zd = {}
         orderby_condition = ""
         orderby_condition = " order by path desc"
         limit_condition = ""
@@ -297,8 +296,6 @@ def get_dir_contents(chrooted_path, share, sort_by="name", include_parent=True, 
             subpath = os.path.join(chrooted_path.path, subdir[0][len(real_dir) + len(os.sep):])
             chrooted_subpath = chrooted_path.child(subpath)
             mtime = None
-            #if ppath_id is None and chrooted_subpath.basename in zd:
-            #    mtime = zd[chrooted_subpath.basename]
             if ppath_id is None:
                 # Get the mtime from the name.
                 mtime = datetime_to_sse(convert_utc_timestamp_string(chrooted_subpath.basename))
