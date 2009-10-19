@@ -283,9 +283,6 @@ def get_dir_contents(chrooted_path, share, sort_by="name", include_parent=True, 
     if True:
         path_id = path_info[0]
         ppath_id = path_info[1]
-        if include_parent and not ppath_id is None:
-            # Check to see if parent path ID exists
-            contents.append(FileSpec(chrooted_path.parent(), share, name="Up to higher level directory"))
 
         zd = {}
         orderby_condition = ""
@@ -313,5 +310,9 @@ def get_dir_contents(chrooted_path, share, sort_by="name", include_parent=True, 
         if ppath_id is None:
             # No "Up to higher" link
             contents.insert(0, None)
+        else:
+            # Check to see if parent path ID exists
+            if include_parent:
+                contents.insert(0, FileSpec(chrooted_path.parent(), share, name="Up to higher level directory"))
     return contents
 
