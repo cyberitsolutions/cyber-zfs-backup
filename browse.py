@@ -248,17 +248,29 @@ def get_zfs_timestamp(filesystem):
         filesystem = get_zfs_filesystem(filesystem)
     output = sp.Popen(["zfs", "get", "-p", "-H", "-r", "-o", "name,value", "creation", filesystem], stdout=sp.PIPE).communicate()[0].split('\n')
 
+# 2009-01-19T12:25:38Z
+def convert_datetime_exp_to_sse(e):
+    m = re.search('^(\d+)-(\d+)-(\d+)T(\d+):(\d+):(\d+)Z$', e)
+    if m is None:
+        print "Waaaah! Didn't match %s" % ( e )
+        sys.exit(1)
+    dt = datetime.datetime(int(m.group(1)), int(m.group(2)), int(m.group(3)), int(m.group(4)), int(m.group(5)), int(m.group(6)))
+    return int(dt.strftime('%s'))
+    #datetime(year, month, day[, hour[, minute[, second
+
 def get_snapshot_timestamps(filesystem):
     """ For a ZFS filesystem, return a dict mapping snapshot name to datetime. """
     # zfs get -p -H -r -o name,value creation tank/hosted-backup/backups/ron/fabre.id.au:home
-    output = sp.Popen(["zfs", "get", "-p", "-H", "-r", "-o", "name,value", "creation", filesystem], stdout=sp.PIPE).communicate()[0].split('\n')
-    output = output[1:]
-    output = output[:len(output)-1]
+    #output = sp.Popen(["zfs", "get", "-p", "-H", "-r", "-o", "name,value", "creation", filesystem], stdout=sp.PIPE).communicate()[0].split('\n')
+    output = os.listdir(os.path.join('/', filesystem, '.zfs/snapshot'))
+    #output = output[1:]
+    #output = output[:len(output)-1]
     d = {}
     for o in output:
-        ( snap_name, sse ) = re.split(r'\t+', o)
-        ( filesystem_name, snapshot_name ) = snap_name.split('@')
-        d[snapshot_name] = int(sse)
+        #( snap_name, sse ) = re.split(r'\t+', o)
+        #( filesystem_name, snapshot_name ) = snap_name.split('@')
+        #d[snapshot_name] = int(sse)
+        d[o] = convert_datetime_exp_to_sse(o)
     return d
 
 # os.path.islink

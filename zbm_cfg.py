@@ -6,8 +6,8 @@ import os
 # Specifically we require one that accepts -b and -s flags.
 GNU_DU_PATH = '/usr/gnu/bin/du'
 
-BACKUP_BASE_DIR = '/tank/hosted-backup/backups'
-#BACKUP_BASE_DIR = os.path.join(os.path.abspath('.'), "test/backup")
+#BACKUP_BASE_DIR = '/tank/hosted-backup/backups'
+BACKUP_BASE_DIR = os.path.join(os.path.abspath('.'), "test/backup")
 
 # The restore directory for a company should be accessed like so:
 #
@@ -26,8 +26,8 @@ BACKUP_BASE_DIR = '/tank/hosted-backup/backups'
 # to handle removing restore-files when they are no longer wanted,
 # where "no longer wanted" is a fairly flexible definition (eg. older
 # than 24 hours?).
-RESTORE_BASE_DIR = '/tank/hosted-backup/restores'
-#RESTORE_BASE_DIR = os.path.join(os.path.abspath('.'), "test/restore")
+#RESTORE_BASE_DIR = '/tank/hosted-backup/restores'
+RESTORE_BASE_DIR = os.path.join(os.path.abspath('.'), "test/restore")
 
 # The restore URL for a company should map directly to that company's
 # restore directory (as described above).
@@ -37,12 +37,12 @@ RESTORE_BASE_DIR = '/tank/hosted-backup/restores'
 # a / plus restore tarball/zipfile name (ie. restore-file) will make
 # a downloadable URL.
 RESTORE_BASE_PATH = "/restore"
-RESTORE_BASE_URL = "https://cybersource.com.au"
+RESTORE_BASE_URL = "http://localhost:8008"
 RESTORE_BASE_URL_PATH = RESTORE_BASE_URL + RESTORE_BASE_PATH
 
 # Backup base URL.
 BACKUP_BASE_PATH = "/backup"
-BACKUP_BASE_URL = "https://cybersource.com.au"
+BACKUP_BASE_URL = "http://localhost:8008"
 BACKUP_BASE_URL_PATH = BACKUP_BASE_URL + BACKUP_BASE_PATH
 
 # The snapshot dir of a company share should be accessed like so:

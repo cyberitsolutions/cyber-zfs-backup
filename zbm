@@ -561,7 +561,7 @@ class ZfsBackupManager:
 zbm_config = {
     'global' : {
         # Explicitly set this to False for deployed apps.
-        'engine.autoreload_on': False,
+        'engine.autoreload_on': True,
 
         'server.socket_host': '0.0.0.0',
         'server.socket_port': 8008,

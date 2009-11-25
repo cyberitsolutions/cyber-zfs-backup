@@ -4,6 +4,7 @@ import datetime
 import psycopg2
 import db
 import os.path
+import sys
 
 db.connect(None)
 print "Connected..."
