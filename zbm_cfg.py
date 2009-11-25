@@ -95,3 +95,6 @@ Fax:   +61 3 9428 6944
 CYBERSOURCE_ACCOUNTS_DOWNLOAD_TEMPLATE = """
 """
 
+# The number of records to display on pages that get ... paged (i.e.,
+# pages that have Next/Prev and "Page X of Y" on them).
+DEFAULT_PAGE_SIZE = 20

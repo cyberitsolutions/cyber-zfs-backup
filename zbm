@@ -175,10 +175,10 @@ class Revolver:
             self._index = 0
         return rv
 
-def dir_box(rs, share, chrooted_path):
+def dir_box(rs, share, chrooted_path, page_num):
     dir_filespec = browse.FileSpec(chrooted_path, share)
     escaped_share_plus_path = cgi.escape(dir_filespec.share_plus_path, quote=True)
-    dir_contents = browse.get_dir_contents(chrooted_path, share)
+    page_count, dir_contents = browse.get_dir_contents(chrooted_path, share, page_num)
 
     def all_directly_included(rs, fs):
         for f in fs:
@@ -194,7 +194,10 @@ def dir_box(rs, share, chrooted_path):
         select_all_extra = " checked"
 
     select_all_checkbox = html.input(att='id="select_all" name="spath:%s" title="Select/deselect all" type="checkbox"%s' % ( escaped_share_plus_path, select_all_extra ))
-    dir_header = html.thead(html.tr(html.th([select_all_checkbox, 'Type', 'Size', 'Name', 'Ext', 'Last Modified', 'Age'])))
+
+    # dir_header = html.thead(html.tr(html.th([select_all_checkbox, 'Type', 'Size', 'Name', 'Ext', 'Last Modified', 'Age'])))
+    header_row = [select_all_checkbox, 'Type', 'Size', 'Name', 'Ext', 'Last Modified', 'Age']
+    dir_header = html.thead(html.tr(html.th(header_row)))
 
     parent_dir_html = ""
     if not dir_contents[0] is None:
@@ -203,7 +206,24 @@ def dir_box(rs, share, chrooted_path):
     revolver = Revolver(('row_odd', 'row_even'))
 
     dir_contents_html = html.tbody(string.join(map(lambda fs: tr_filespec(rs, fs, revolver), dir_contents[1:])))
-    return html.div(parent_dir_html + html.table(dir_header + dir_contents_html, att='class="browsedir tablesorter"'), att='class="browsedir"')
+
+    # TODO: Some of these inline style hacks can be removed when
+    # 'Next' and 'Previous' are replaced with images.
+    if page_num > 1:
+        prev = html.a('Previous', 'href="?share=%s&path=%s&page_num=%d"'%(cgi.escape(share), cgi.escape(chrooted_path.path), min(page_num - 1, page_count)))
+    else:
+        prev = 'Previous'
+    footer_row = html.span(prev, 'style="float: left; width: 40pt; text-align: left"') 
+    if page_num < page_count:
+        next = html.a('Next', 'href="?share=%s&path=%s&page_num=%d"'%(cgi.escape(share), cgi.escape(chrooted_path.path), page_num + 1))
+    else:
+        next = 'Next'
+    footer_row += html.span(next, 'style="float: right; width: 40pt; text-align: right"')
+
+    footer_row = html.td(footer_row + 'Page %d of %d'%(page_num, page_count), 'style="text-align:center" colspan="%d"'%(len(header_row)))
+    dir_footer = html.tfoot(html.tr(footer_row))
+
+    return html.div(parent_dir_html + html.table(dir_header + dir_footer + dir_contents_html, att='class="browsedir tablesorter"'), att='class="browsedir"')
 
 def make_file_spec(company_name, share_name, path):
     """ Returns a FileSpec from a company_name, share_name, path. """
@@ -327,7 +347,8 @@ class ZfsBackupManager:
 
     @expose
     @require()
-    def browse(self, share=None, path="/"):
+    def browse(self, share=None, path="/", page_num=1):
+        page_num = int(page_num)
 
         # Info from session.
         company_name = cherrypy.session.get(auth.COMPANY_NAME)
@@ -352,7 +373,7 @@ class ZfsBackupManager:
             mychroot = chroot.Chroot(sp)
             chrooted_path = mychroot.chrooted_path(path)
             # Supply the share name as well as the chrooted path.
-            dir_box_html = dir_box(rs, share, chrooted_path)
+            dir_box_html = dir_box(rs, share, chrooted_path, page_num)
         except chroot.BadChrootPath, e:
             error_message = html.p(html.span(str(e), att='class="error_message"'))
         download_link = html.div(html.a("View Cart", att='href="/backup/show"'), att='class="funcright"')
