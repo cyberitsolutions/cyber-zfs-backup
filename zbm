@@ -361,8 +361,12 @@ class ZfsBackupManager:
                 chunks = s.split(':')
                 host = chunks[0]
                 if len(chunks) > 1:
-                    if len(chunks[1]) == 1:
-                        # Looks like a Windows drive letter
+                    if chunks[1] in ('.', ''):
+                        # Looks like this should be a '/'.
+                        path = '/'.join([''] + max(chunks[2:], ['']))
+                    elif len(chunks[1]) == 1:
+                        # Looks like a Windows drive letter.
+                        # Probably need a more robust check.
                         path = "%s:/%s"%(chunks[1], "/".join(chunks[2:]))
                     else:
                         path = "/".join([''] + chunks[1:])
