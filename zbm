@@ -355,9 +355,25 @@ class ZfsBackupManager:
 
         # Okay, how to handle share....?
         if share is None:
+            def prettify(s):
+                # Some sort of standard needs to be enforced for share names.
+                # At the moment, assuming host:path/to/share
+                chunks = s.split(':')
+                host = chunks[0]
+                if len(chunks) > 1:
+                    if len(chunks[1]) == 1:
+                        # Looks like a Windows drive letter
+                        path = "%s:/%s"%(chunks[1], "/".join(chunks[2:]))
+                    else:
+                        path = "/".join([''] + chunks[1:])
+                    # Delimit host and path with an em-dash because : is ugly.
+                    return "%s &mdash; %s"%(host, path)
+                else:
+                    return host
+
             # We must return a list of available shares.
             available_shares = [ s[0] for s in db.get("select name from shares where company_name = %(company_name)s", vars()) ]
-            links = [ html.a(s, att='href="/backup/browse?share=%s"' % ( cgi.escape(s, quote=True) )) for s in available_shares ]
+            links = [ html.a(prettify(s), att='href="/backup/browse?share=%s"' % ( cgi.escape(s, quote=True) )) for s in available_shares ]
 
             return page.page("Datasafe/R - Select Share",
                 html.h1("Select Share")
