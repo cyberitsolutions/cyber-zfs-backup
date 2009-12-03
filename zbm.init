@@ -1,0 +1,48 @@
+#!/sbin/sh
+#
+# This is a simple init script for ZBM, intended to be placed in
+# /etc/init.d/ and configured for ZBM to start in runlevel 3.
+#
+# So this script should be copied to /etc/init.d/zbm and a softlink
+# placed in /etc/rc3.d/ like so:
+#
+#   cp zbm.init /etc/init.d/zbm
+#   chmod 755 /etc/init.d/zbm
+#   ln -s /etc/init.d/zbm /etc/rc3.d/S99zbm
+#
+# That is all.
+
+# ZBM config details.
+ZBM_NAME=zbm
+ZBM_USER=root
+ZBM_DIR=/export/home/cyber/src/zbm
+ZBM_WRAPPER=$ZBM_DIR/run_zbm.sh
+ZBM_LOG=/var/log/zbm.log
+ZBM_RUNPID_DIR=/var/run
+ZBM_RUNPID=/var/run/$ZBM_NAME.pid
+
+startcmd () {
+    /usr/local/bin/daemon --user=$ZBM_USER --chdir=$ZBM_DIR --output=$ZBM_LOG --unsafe --name=$ZBM_NAME --pidfiles=$ZBM_RUNPID_DIR --command=$ZBM_WRAPPER
+}
+
+stopcmd () {
+    /bin/kill -s TERM `cat $ZBM_RUNPID`
+}
+
+case "$1" in
+'start')
+        startcmd
+        ;;
+'stop')
+        stopcmd
+        ;;
+'restart')
+        stopcmd
+        sleep 1
+        startcmd
+        ;;
+*)
+        echo "Usage: $0 { start | stop | restart }"
+        exit 1
+        ;;
+esac
