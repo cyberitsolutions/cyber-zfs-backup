@@ -248,24 +248,37 @@ def get_zfs_timestamp(filesystem):
         filesystem = get_zfs_filesystem(filesystem)
     output = sp.Popen(["zfs", "get", "-p", "-H", "-r", "-o", "name,value", "creation", filesystem], stdout=sp.PIPE).communicate()[0].split('\n')
 
+# 2009-01-19T12:25:38Z
+def convert_datetime_exp_to_sse(e):
+    m = re.search('^(\d+)-(\d+)-(\d+)T(\d+):(\d+):(\d+)Z$', e)
+    if m is None:
+        print "Waaaah! Didn't match %s" % ( e )
+        sys.exit(1)
+    dt = datetime.datetime(int(m.group(1)), int(m.group(2)), int(m.group(3)), int(m.group(4)), int(m.group(5)), int(m.group(6)))
+    return int(dt.strftime('%s'))
+    #datetime(year, month, day[, hour[, minute[, second
+
 def get_snapshot_timestamps(filesystem):
     """ For a ZFS filesystem, return a dict mapping snapshot name to datetime. """
     # zfs get -p -H -r -o name,value creation tank/hosted-backup/backups/ron/fabre.id.au:home
-    output = sp.Popen(["zfs", "get", "-p", "-H", "-r", "-o", "name,value", "creation", filesystem], stdout=sp.PIPE).communicate()[0].split('\n')
-    output = output[1:]
-    output = output[:len(output)-1]
+    #output = sp.Popen(["zfs", "get", "-p", "-H", "-r", "-o", "name,value", "creation", filesystem], stdout=sp.PIPE).communicate()[0].split('\n')
+    output = os.listdir(os.path.join('/', filesystem, '.zfs/snapshot'))
+    #output = output[1:]
+    #output = output[:len(output)-1]
     d = {}
     for o in output:
-        ( snap_name, sse ) = re.split(r'\t+', o)
-        ( filesystem_name, snapshot_name ) = snap_name.split('@')
-        d[snapshot_name] = int(sse)
+        #( snap_name, sse ) = re.split(r'\t+', o)
+        #( filesystem_name, snapshot_name ) = snap_name.split('@')
+        #d[snapshot_name] = int(sse)
+        d[o] = convert_datetime_exp_to_sse(o)
     return d
 
 # os.path.islink
 # os.path.isdir
 # os.path.isfile
-def get_dir_contents(chrooted_path, share, sort_by="name", include_parent=True, reverse=False):
+def get_dir_contents(chrooted_path, share, page_num, sort_by="name", include_parent=True, reverse=False):
     real_dir = chrooted_path.real_path
+    page_count = 1
     contents = []
 
     def get_files(real_dir):
@@ -285,14 +298,16 @@ def get_dir_contents(chrooted_path, share, sort_by="name", include_parent=True, 
         ppath_id = path_info[1]
 
         orderby_condition = ""
-        orderby_condition = " order by path desc"
-        limit_condition = ""
-        offset_condition = ""
+        orderby_condition = "order by path"
+
+        limit = cfg.DEFAULT_PAGE_SIZE
+        limit_condition = "limit %d" % limit
+        offset = (page_num - 1) * limit
+        offset_condition = "offset %d" % offset
         if ppath_id is None:
             #zd = get_snapshot_timestamps(get_zfs_filesystem(real_dir))
-            # Show only the most recent 35 snapshots.
-            limit_condition = " limit 35"
             reverse = True
+        dir_count = db.get1("select count(*) from filesystem_info where ppath_id=%d" % ( path_id ))[0]
         for subdir in db.get("select path,apparent_size from filesystem_info where ppath_id=%d %s %s %s" % ( path_id, orderby_condition, limit_condition, offset_condition )):
             subpath = os.path.join(chrooted_path.path, subdir[0][len(real_dir) + len(os.sep):])
             chrooted_subpath = chrooted_path.child(subpath)
@@ -302,9 +317,24 @@ def get_dir_contents(chrooted_path, share, sort_by="name", include_parent=True, 
                 mtime = datetime_to_sse(convert_utc_timestamp_string(chrooted_subpath.basename))
             spec = FileSpec(chrooted_subpath, share, apparent_size=subdir[1], mtime=mtime)
             contents.append(spec)
-        contents.extend(get_files(real_dir))
+        # Assuming that directories should always appear above files,
+        # directory names don't need to be sorted.
+        if sort_by != 'name':
+            contents.sort(filespec_cmp[sort_by], reverse=reverse)
+        elif reverse:
+            contents.reverse()
 
-        contents.sort(filespec_cmp[sort_by], reverse=reverse)
+        files = get_files(real_dir)
+        # Cannot assume files will come in sorted order.
+        files.sort(filespec_cmp[sort_by], reverse=reverse)
+        # Now limit files appropriately based on number of directories
+        # already displaying.
+        file_start = max(0, offset - dir_count)
+        contents.extend(files[file_start:file_start + limit - len(contents)])
+
+        # There will always be a minimum of 1 page displayed.
+        page_count = max(1, (dir_count + len(files) - 1) / limit + 1)
+
         if ppath_id is None:
             # No "Up to higher" link
             contents.insert(0, None)
@@ -312,5 +342,5 @@ def get_dir_contents(chrooted_path, share, sort_by="name", include_parent=True, 
             # Check to see if parent path ID exists
             if include_parent:
                 contents.insert(0, FileSpec(chrooted_path.parent(), share, name="Up to higher level directory"))
-    return contents
+    return (page_count, contents)
 
