@@ -7,6 +7,8 @@ import string
 import psycopg2
 import subprocess as sp
 
+import datetime
+
 import pprint
 
 # Ripped off from core ZBM.
@@ -19,7 +21,12 @@ file_size_class = [
     (1024**5, 'TB')
 ]
 
-def filesize_exp(size):
+def filesize_exp(size, size_class=None):
+    if not size_class is None:
+        for s in file_size_class:
+            if s[1] == size_class:
+                return "%0.1f" % ( float(size)/(s[0]/1024) )
+
     s = file_size_class[0]
     if size < s[0]:
         return str(size)
@@ -133,6 +140,9 @@ for zc in zfs_cols:
         cs = zfs_companies[zn[3]]['shares']
         cs[zn[4]] = { 'ratio':zc[1], 'used':zc[2], 'snapused':zc[3] }
 
+#pp = pprint.PrettyPrinter(indent=3)
+#pp.pprint(zfs_companies)
+#sys.exit(0)
 # Now work out the extra data for every share.
 #
 # Uncompressed size of latest snapshot and number of snapshots is what
@@ -141,6 +151,15 @@ for zc in zfs_cols:
 DB = DB_Wrapper()
 
 for zcn in zfs_companies.keys():
+    zfs_companies[zcn]['total_apparent_size'] = 0
+    zfs_companies[zcn]['total_num_snapshots'] = 0
+
+    longname_rec = DB.get1("select long_name from companies where name = %(name)s", {'name':zcn})
+    if longname_rec is None:
+        zfs_companies[zcn]['long_name'] = zcn
+    else:
+        zfs_companies[zcn]['long_name'] = longname_rec[0]
+
     zc_shares = zfs_companies[zcn]['shares']
     for zsn in zc_shares.keys():
         share_path = "/tank/hosted-backup/backups/%s/%s" % ( zcn, zsn )
@@ -148,7 +167,7 @@ for zcn in zfs_companies.keys():
         share_snapshots = os.listdir(share_snap_path)
         share_snapshots.sort()
         if len(share_snapshots) == 0:
-            print "WARNING: Ignoring, no snapshots for share %s" % ( share_snap_path )
+            print >> sys.stderr, "WARNING: Ignoring, no snapshots for share %s" % ( share_snap_path )
             del zc_shares[zsn]
             continue
         latest_snap = share_snapshots[-1]
@@ -156,15 +175,18 @@ for zcn in zfs_companies.keys():
         #print "Looking at: %s" % ( full_latest_snap )
         rec = DB.get1("select apparent_size from filesystem_info where path = %(path)s", {'path':full_latest_snap})
         if rec is None:
-            print "WARNING: Ignoring, not in database: %s" % ( full_latest_snap )
+            print >> sys.stderr, "WARNING: Ignoring, not in database: %s" % ( full_latest_snap )
             del zc_shares[zsn]
             continue
         apparent_size = rec[0]
         zc_shares[zsn]['apparent_size'] = apparent_size
+        zfs_companies[zcn]['total_apparent_size'] += apparent_size
         zc_shares[zsn]['num_snapshots'] = len(share_snapshots)
+        zfs_companies[zcn]['total_num_snapshots'] += len(share_snapshots)
 
-#pp = pprint.PrettyPrinter(indent=3)
+#print "================================="
 #pp.pprint(zfs_companies)
+#sys.exit(0)
 
 # Okay, now output the data in a readable format.
 #'taralye': {  'ratio': '1.15x',
@@ -186,11 +208,28 @@ for zcn in zfs_companies.keys():
 #                 'snapused': '0',
 #                 'used': '76.4G'}}
 
+BILLING_TABO = TabularOutput([('Customer', 35, 'l'), ('Data (GB)', 9, 'r'), ('Shares', 6, 'r'), ('Snapshots', 9, 'r')])
 COMPANY_TABO = TabularOutput([('Name', 15, 'l'), ('Total Space', 11, 'r'), ('No. Shares', 10, 'r')])
 SHARE_TABO = TabularOutput([('Company', 15, 'l'), ('Share', 36, 'l'), ('Size', 11, 'r'), ('No. Snaps', 9, 'r'), ('Ratio', 6, 'r'), ('Total Space', 11, 'r'), ('Snapshot Space', 14, 'r')])
 
 zc_names = zfs_companies.keys()
 zc_names.sort()
+
+if len(sys.argv) > 1:
+    # Do the billing report.
+    now = datetime.datetime.now()
+    lastfortnight = now - datetime.timedelta(weeks=2)
+    print "Cybersource Hosted Backup Service"
+    print "Date: %s" % ( now.date() )
+    print
+    print "Data hosted for : %s %s" % ( lastfortnight.strftime("%B"), lastfortnight.year )
+    print
+    print BILLING_TABO.header()
+    for zcn in zc_names:
+        zc = zfs_companies[zcn]
+        print BILLING_TABO.row([ zc['long_name'], filesize_exp(zc['total_apparent_size'], 'GB'), len(zc['shares']), zc['total_num_snapshots'] ])
+    print
+    sys.exit(0)
 
 print "==================="
 print "==== Companies ===="

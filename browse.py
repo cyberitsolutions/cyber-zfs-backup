@@ -3,6 +3,7 @@ import sys
 import os
 import datetime
 import time
+import calendar
 from os.path import join, dirname
 import subprocess as sp
 
@@ -31,6 +32,15 @@ class InaccessiblePathError(Exception):
 
 ######################################################################
 # Functions.
+
+def convert_utc_timestamp_string(str, format="%Y-%m-%dT%H:%M:%SZ"):
+    """ Return the date value for the input string. """
+    str = str.strip()
+    str_time = time.strptime(str, format)
+    return datetime.datetime(*str_time[0:6])
+
+def datetime_to_sse(dt):
+    return int(calendar.timegm(dt.timetuple()))
 
 # Yay! Awesome. This will do fine.
 # Perhaps a tad sluggish on huge dirs, but more than
@@ -75,7 +85,7 @@ def update_toplevel_path_apparent_size(path):
     # The last one is always empty, so get rid of it.
     lines.pop()
     # Reverse the output to get shallow directories first
-    lines = lines.reverse()
+    lines.reverse()
     for line in lines:
         if line is not None:
             ( du_size_str, du_path ) = line.split('\t', 1)
@@ -91,7 +101,7 @@ def update_toplevel_path_usage_size(path):
     # The last one is always empty, so get rid of it.
     lines.pop()
     # Reverse the output to get shallow directories first
-    lines = lines.reverse()
+    lines.reverse()
     for line in lines:
         if line is not None:
             ( du_size_str, du_path ) = line.split('\t', 1)
@@ -170,7 +180,7 @@ def share_plus_path_to_archive_path(share_plus_path):
     return os.path.join(share, path[1:])
 
 class FileSpec:
-    def __init__(self, chrooted_path, share, name=False, disk_usage=None, apparent_size=None):
+    def __init__(self, chrooted_path, share, name=False, disk_usage=None, apparent_size=None, mtime=None):
         self.chrooted_path = chrooted_path
         self.real_path = self.chrooted_path.real_path
         self.share = share
@@ -195,7 +205,10 @@ class FileSpec:
             self.size = apparent_size
         # Not acquired by default, as it can be expensive.
         self.disk_usage = disk_usage
-        self.mtime = getlmtime(self.real_path)
+        if mtime is None:
+            self.mtime = getlmtime(self.real_path)
+        else:
+            self.mtime = mtime
 
         if self.type == 'link':
             self.display = html.a(self.name, att='title="%s"' % ( cgi.escape(os.readlink(self.real_path), quote=True) ))
@@ -251,7 +264,7 @@ def get_snapshot_timestamps(filesystem):
 # os.path.islink
 # os.path.isdir
 # os.path.isfile
-def get_dir_contents(chrooted_path, share, sort_by="name", include_parent=True):
+def get_dir_contents(chrooted_path, share, sort_by="name", include_parent=True, reverse=False):
     real_dir = chrooted_path.real_path
     contents = []
 
@@ -266,39 +279,38 @@ def get_dir_contents(chrooted_path, share, sort_by="name", include_parent=True):
 
     path_info = db.get1("select path_id,ppath_id,apparent_size from filesystem_info where path=%(real_dir)s", vars())
     if not path_info:
-        # Snapshot parent directories are not stored in filesystem_info
-        # Note: really can't do an sql "like" selection here due to insanely large database
-        for path in db.get("select path,apparent_size from filesystem_info where ppath_id is null"):
-            path_name = path[0]
-            # TODO: Should try to shorten the comparison strings
-            if path_name.startswith(real_dir):
-                subpath = chrooted_path.child(path_name[len(real_dir):])
-                spec = FileSpec(subpath, share, apparent_size=path[1])
-                # Get the zfs creation time
-                spec.mtime = get_zfs_timestamp(subpath.real_path)
-                contents.append(spec)
-
-        # TODO: Change this message to something more accurate
-        if len(contents) == 0:
-            raise InaccessiblePathError("%s is not an accessible directory." % ( chrooted_path.path ))
-        else:
-            contents.extend(get_files(real_dir))
-            contents.sort(filespec_cmp[sort_by])
-            # No "Up to higher" link
-            contents.insert(0, None)
-    else:
+        raise InaccessiblePathError("%s is not an accessible directory." % ( chrooted_path.path ))
+    if True:
         path_id = path_info[0]
         ppath_id = path_info[1]
-        if include_parent:
-            # Check to see if parent path ID exists
-            contents.append(FileSpec(chrooted_path.parent(), share, name="Up to higher level directory"))
-    
-        for subdir in db.get("select path,apparent_size from filesystem_info where ppath_id=%d" % path_id):
+
+        orderby_condition = ""
+        orderby_condition = " order by path desc"
+        limit_condition = ""
+        offset_condition = ""
+        if ppath_id is None:
+            #zd = get_snapshot_timestamps(get_zfs_filesystem(real_dir))
+            # Show only the most recent 35 snapshots.
+            limit_condition = " limit 35"
+            reverse = True
+        for subdir in db.get("select path,apparent_size from filesystem_info where ppath_id=%d %s %s %s" % ( path_id, orderby_condition, limit_condition, offset_condition )):
             subpath = os.path.join(chrooted_path.path, subdir[0][len(real_dir) + len(os.sep):])
             chrooted_subpath = chrooted_path.child(subpath)
-            contents.append(FileSpec(chrooted_subpath, share, apparent_size=subdir[1]))
+            mtime = None
+            if ppath_id is None:
+                # Get the mtime from the name.
+                mtime = datetime_to_sse(convert_utc_timestamp_string(chrooted_subpath.basename))
+            spec = FileSpec(chrooted_subpath, share, apparent_size=subdir[1], mtime=mtime)
+            contents.append(spec)
         contents.extend(get_files(real_dir))
 
-        contents.sort(filespec_cmp[sort_by])
+        contents.sort(filespec_cmp[sort_by], reverse=reverse)
+        if ppath_id is None:
+            # No "Up to higher" link
+            contents.insert(0, None)
+        else:
+            # Check to see if parent path ID exists
+            if include_parent:
+                contents.insert(0, FileSpec(chrooted_path.parent(), share, name="Up to higher level directory"))
     return contents
 

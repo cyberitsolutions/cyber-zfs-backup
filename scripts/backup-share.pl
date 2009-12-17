@@ -30,12 +30,15 @@ usage() unless length($source_path_colon) > 0;
 $authfile = "$hosted_backup_config_dir/$ARGV[0]";
 die "authfile not found: $authfile" unless -f $authfile;
 
+$recipients = "";
 $email_notifications_file = "$hosted_backup_config_email_dir/$ARGV[0]";
-open EMAIL_RECIPIENTS, $email_notifications_file;
-$recipients = <EMAIL_RECIPIENTS>;
-chomp $recipients;
-close EMAIL_RECIPIENTS;
-$recipients = "russm\@cybersource.com.au hosted-backups\@cybersource.com.au $recipients";
+if ( -r $email_notifications_file && ! -z $email_notifications_file ) {
+  open EMAIL_RECIPIENTS, $email_notifications_file;
+  $recipients = <EMAIL_RECIPIENTS>;
+  chomp $recipients;
+  close EMAIL_RECIPIENTS;
+}
+$recipients = "hosted-backups\@cybersource.com.au $recipients";
 
 $config_hack_file = "$hosted_backup_config_hack_dir/$ARGV[0]";
 $config_hack = '';
@@ -49,6 +52,9 @@ $rsync_source = "$source_userhost:$source_path";
 $rsync_transport_auth = "-e 'ssh -i $authfile'";
 $target_fs = "$hosted_backup_backups_fs/$client/$source_host:$source_path_colon";
 $rsync_target_dir = "/$target_fs";
+
+# XXX THIS IS FUCKED. IT IS NOW TIME TO THROW THIS OUT AND START AGAIN WITH AN ACTUAL SPEC.
+$rsync_transport_auth = "-e 'ssh -p 5250 -i $authfile'" if $client eq "palletcontrol";
 
 # $cmd_zfs_create = qq(zfs create -p $target_fs);
 $cmd_rsync = qq(rsync $rsync_standard_args $rsync_transport_auth $config_hack '$rsync_source/.' '$rsync_target_dir/.' > '$rsync_target_dir.$backup_stamp.out' 2> '$rsync_target_dir.$backup_stamp.err');
