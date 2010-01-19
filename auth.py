@@ -32,16 +32,6 @@ def login_status():
     company_fullname = cherrypy.session.get(COMPANY_FULLNAME)
     return (username, fullname, company_name, company_fullname)
 
-def is_admin_user(username, company=None):
-    if company is None:
-        q = "company_name is null"
-    else:
-        q = "company_name = '%s'" % company.replace("'","''")
-    admin_user = db.get1("select admin from users where username='%s' and %s" % ( username.replace("'","''"), q ))
-
-    # If a non-admin tries to go to the admin page, redirect to the user page rather than cause a 403
-    return admin_user[0]
-
 def reset_password(username, password):
     hashed_password = md5.md5(password).hexdigest()
     db.do("update users set hashed_password = %(hashed_password)s where username = %(username)s", vars())
@@ -106,6 +96,22 @@ def check_auth(*args, **kwargs):
         else:
             # Send old page as from_page parameter
             raise cherrypy.HTTPRedirect(cfg.BACKUP_BASE_PATH + "/auth/login?from_page=%s" % get_params)
+
+def user_is_global_admin(username=None):
+    # If company_name is null, the user is a global admin.
+    if username is None:
+        username = cherrypy.session.get(USER_NAME)
+    return db.get1("select count(1) from admins where username = %(username)s and company_name is null", vars())[0] > 0
+
+def user_is_admin(username=None, company=None):
+    if user_is_global_admin(username):
+        return True
+    if username is None:
+        username = cherrypy.session.get(USER_NAME)
+    if company is None:
+        company = cherrypy.session.get(COMPANY_NAME)
+    # If the user is not a global admin and the company_name is STILL None, there's something wrong!
+    return db.get1("select count(1) from admins where username = %(username)s and company_name = %(company)s", vars())[0] > 0
 
 cherrypy.tools.auth = cherrypy.Tool('before_handler', check_auth)
 

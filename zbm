@@ -446,7 +446,7 @@ class ZfsBackupManager:
         else:
             q = "company_name='%s'" % company[0].replace("'","''")
 
-        users = db.get("select username, full_name, email, admin from users where %s" % q)
+        users = db.get("select username, full_name, email from users where %s" % q)
 
         def field(i_type, f_type, f_name, f_value=""):
             if f_value == None:
@@ -484,7 +484,7 @@ class ZfsBackupManager:
             # Email
             row += field("text","email", "%s|%s" % (company_name[0], u[0]), u[2])
             # Admin
-            if u[3]:
+            if auth.user_is_admin(u[0], company_name[0]):
                 checked = "checked"
             else:
                 checked = ""
@@ -499,13 +499,15 @@ class ZfsBackupManager:
             rows.append(row)
         rows=html.tr(rows)
 
-        table = html.table( html.tr( [
+        table = html.table( html.thead(
+            html.tr( [
             html.th("Username")
             + html.th("Full name")
             + html.th("Email")
             + html.th("Admin")
             + html.th("Delete")
-            ] ) + rows )
+            ] )
+            ) + rows )
         return table
 
 
@@ -521,7 +523,7 @@ class ZfsBackupManager:
         username = lstatus[0]
         company_name = lstatus[2]
         company_fullname = lstatus[3]
-        if auth.is_admin_user(username, company_name):
+        if auth.user_is_admin(username, company_name):
             if company_name:
                 tables = self.company_admin((company_name, company_fullname))
             else:
