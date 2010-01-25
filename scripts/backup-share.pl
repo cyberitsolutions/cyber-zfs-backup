@@ -8,7 +8,7 @@ $hosted_backup_config_dir = "/$hosted_backup_root_fs/config";
 $hosted_backup_config_hack_dir = "/$hosted_backup_root_fs/config-ugly-hacks";
 $hosted_backup_config_email_dir = "/$hosted_backup_root_fs/config-email-logs";
 
-$rsync_standard_args = "-aP --stats --inplace --numeric-ids --delete-after --delete-excluded --compress";
+$rsync_standard_args = "-aP --stats --inplace --numeric-ids --delete-after --delete-excluded --compress --human-readable";
 
 # screw you, Perl...
 chomp ($backup_stamp = qx/date -u +%Y-%m-%dT%H:%M:%SZ/);

@@ -8,7 +8,7 @@ $hosted_backup_config_dir = "/$hosted_backup_root_fs/config-legacy";
 $hosted_backup_config_hack_dir = "/$hosted_backup_root_fs/config-ugly-hacks";
 $hosted_backup_config_email_dir = "/$hosted_backup_root_fs/config-email-logs";
 
-$rsync_standard_args = "-aP --stats --inplace --numeric-ids --delete-after --delete-excluded --compress";
+$rsync_standard_args = "-aP --stats --inplace --numeric-ids --delete-after --delete-excluded --compress --human-readable";
 
 # screw you, Perl...
 chomp ($backup_stamp = qx/date -u +%Y-%m-%dT%H:%M:%SZ/);
@@ -30,11 +30,14 @@ usage() unless length($source_path_colon) > 0;
 $authfile = "$hosted_backup_config_dir/$ARGV[0]";
 die "authfile not found: $authfile" unless -f $authfile;
 
+$recipients = "";
 $email_notifications_file = "$hosted_backup_config_email_dir/$ARGV[0]";
-open EMAIL_RECIPIENTS, $email_notifications_file;
-$recipients = <EMAIL_RECIPIENTS>;
-chomp $recipients;
-close EMAIL_RECIPIENTS;
+if ( -r $email_notifications_file && ! -z $email_notifications_file ) {
+  open EMAIL_RECIPIENTS, $email_notifications_file;
+  $recipients = <EMAIL_RECIPIENTS>;
+  chomp $recipients;
+  close EMAIL_RECIPIENTS;
+}
 $recipients = "hosted-backups\@cybersource.com.au $recipients";
 
 $config_hack_file = "$hosted_backup_config_hack_dir/$ARGV[0]";
