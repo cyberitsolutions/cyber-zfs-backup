@@ -85,7 +85,7 @@ def dt(data='', att=''): return tag('dt', data, att)
 
 # Forms.
 def form(data='', att=''): return tag('form', data, att)
-def input(data='', att=''): return tag('input', data, att)
+def input(data='', att=''): return tag('input', data, att, close=False)
 def textarea(data='', att=''): return tag('textarea', data, att)
 def option(data='', att=''): return tag('option', data, att)
 def select(data='', att=''): return tag('select', data, att)
