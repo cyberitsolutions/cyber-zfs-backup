@@ -434,19 +434,21 @@ class ZfsBackupManager:
 
         return self.show()
 
-    def company_admin(self,company_name):
+    def company_admin(self, company_name, all_companies):
         """Returns a table of users in the supplied company_name
         company_name should be either a string (company_name) or a tuple (company_name,company_fullname)"""
+        c = ''
         if isinstance(company_name, basestring):
-            company = (company_name,company_name)
+            company = (company_name, company_name)
         else:
             company = company_name
         if company_name[0] is None:
             q = "company_name is null"
         else:
-            q = "company_name='%s'" % company[0].replace("'","''")
+            c = company[0].replace("'","''")
+            q = "company_name = %(c)s"
 
-        users = db.get("select username, full_name, email from users where %s" % q)
+        users = db.get("select username, full_name, email, company_name from users where %s" % q, vars())
 
         def field(i_type, f_type, f_name, f_value=""):
             if f_value == None:
@@ -480,19 +482,42 @@ class ZfsBackupManager:
             # Username
             row += html.td(u[0])
             # Full name
-            row += field("text","name", "%s|%s" % (company_name[0], u[0]), u[1])
+            row += field("text","name", "%s|%s" % (u[3], u[0]), u[1])
+            # Company
+            # Only display if Company field of logged-in user is None
+            company_th = ''
+            if auth.login_status()[2] is None:
+                company_th = html.th("Company")
+                if u[0] is None:
+                    att = 'selected '
+                else:
+                    att = ''
+                opts = html.option("&lt;None&gt;", att + 'value="NULL"')
+                for c in all_companies:
+                    if c[0] == u[3]:
+                        att = 'selected '
+                    else:
+                        att = ''
+                    opts += html.option(c[1], att + 'value="%s"' % c[0])
+                row += html.td(
+                    html.form(
+                        html.select(opts, att='name="company|%s|%s"' % (u[3], u[0]))
+                        + html.input(att='type="submit" value="Set"'),
+                        att='class="borderless" action="admin_confirm" method="post"'
+                    )
+                )
             # Email
-            row += field("text","email", "%s|%s" % (company_name[0], u[0]), u[2])
+            row += field("text","email", "%s|%s" % (u[3], u[0]), u[2])
             # Admin
             if auth.user_is_admin(u[0], company_name[0]):
                 checked = "checked"
             else:
                 checked = ""
-            row += field("checkbox","admin", "%s|%s" % (company_name[0], u[0]), checked)
+            row += field("checkbox","admin", "%s|%s" % (u[3], u[0]), checked)
             # Delete
             row += html.td(
                 html.form(
-                    html.input(att='name="delete|%s|%s" type="submit" value="Delete"' % (company_name[0], u[0])),
+                    html.input(att='name="delete|%s|%s" type="submit" value="Delete"' % (u[3], u[0])),
                     att='class="borderless" action="admin_confirm" method="post"'
                     )
                 )
@@ -503,6 +528,7 @@ class ZfsBackupManager:
             html.tr( [
             html.th("Username")
             + html.th("Full name")
+            + company_th
             + html.th("Email")
             + html.th("Admin")
             + html.th("Delete")
@@ -524,18 +550,18 @@ class ZfsBackupManager:
         company_name = lstatus[2]
         company_fullname = lstatus[3]
         if auth.user_is_admin(username, company_name):
+            comps = db.get("select name, long_name from companies")
             if company_name:
-                tables = self.company_admin((company_name, company_fullname))
+                tables = self.company_admin((company_name, company_fullname), comps)
             else:
-                tables = html.h2(html.i("Global admins")) + self.company_admin((None,"Admins"))
-                comps = db.get("select name,long_name from companies")
+                tables = html.h2(html.i("Global admins")) + self.company_admin((None, "Admins"), comps)
                 for c in comps:
                     # Suppress the "Company:" qualifier for global admins
                     if c[0] is None:
                         tab_type = ""
                     else:
                         tab_type = "Company: "
-                    tables += html.h2("%s%s"%(tab_type, html.i(c[1]))) + self.company_admin(c)
+                    tables += html.h2("%s%s"%(tab_type, html.i(c[1]))) + self.company_admin(c, comps)
                 company_fullname = html.i("Global")
 
             return page.page("Datasafe/R - Admin",
@@ -552,22 +578,35 @@ class ZfsBackupManager:
         username = lstatus[0]
         company_name = lstatus[2]
         company_fullname = lstatus[3]
-        if auth.is_admin_user(username, company_name):
+        if auth.user_is_admin(username, company_name):
             hit_admin = False
             for each in keyw:
                 warn = ""
                 # Get the request instructions from the form field name
                 r_cmd, r_comp, r_user = each.split("|",3)
+                # TODO: Bork if r_cmd is "company" ankd company_name is None
                 value = keyw[each]
                 # Warning for modifying your own user stupidly
-                if (r_cmd == "hid_admin" and not hit_admin) or r_cmd == "delete" and r_comp == company_name and r_user == username:
+                if r_user == username and (
+                        (r_cmd == "hid_admin" and not hit_admin) or
+                        r_cmd == "delete" or
+                        (r_cmd == "company" and value != "NULL")
+                    ):
                     # TODO: make this look like a real warning
                     warn = html.span("Warning: this will affect your user and prevent you from administrating!")
                 if r_cmd == "admin":
                     hit_admin = True
                     warn = ""
 
-            return page.page("Flibble",warn + html.ul(html.li([ "%s: %s"%(x,keyw[x]) for x in keyw ])))
+            return page.page(
+                "Flibble"
+                , warn
+                + html.ul(
+                    html.li(
+                        [ "%s: %s"%(x,keyw[x]) for x in keyw ]
+                    )
+                )
+            )
         else:
             # If a non-admin tries to go to the admin page, redirect to the user page rather than cause a 403
             raise cherrypy.HTTPRedirect("user")
