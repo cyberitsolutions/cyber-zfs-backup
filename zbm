@@ -434,6 +434,22 @@ class ZfsBackupManager:
 
         return self.show()
 
+    def company_combobox(self, name, all_companies, selected=None, allow_none=True):
+        opts=''
+        if allow_none:
+            if selected is None:
+                att = 'selected '
+            else:
+                att = ''
+            opts = html.option("&lt;None&gt;", att + 'value="NULL"')
+        for c in all_companies:
+            if c[0] == selected:
+                att = 'selected '
+            else:
+                att = ''
+            opts += html.option(c[1], att + 'value="%s"' % c[0])
+        return html.select(opts, att='name="%s"' % name)
+
     def company_admin(self, company_name, all_companies):
         """Returns a table of users in the supplied company_name
         company_name should be either a string (company_name) or a tuple (company_name,company_fullname)"""
@@ -488,20 +504,9 @@ class ZfsBackupManager:
             company_th = ''
             if auth.login_status()[2] is None:
                 company_th = html.th("Company")
-                if u[0] is None:
-                    att = 'selected '
-                else:
-                    att = ''
-                opts = html.option("&lt;None&gt;", att + 'value="NULL"')
-                for c in all_companies:
-                    if c[0] == u[3]:
-                        att = 'selected '
-                    else:
-                        att = ''
-                    opts += html.option(c[1], att + 'value="%s"' % c[0])
                 row += html.td(
                     html.form(
-                        html.select(opts, att='name="company|%s|%s"' % (u[3], u[0]))
+                        self.company_combobox('company|%s|%s' % (u[3], u[0]), all_companies, u[3])
                         + html.input(att='type="submit" value="Set"'),
                         att='class="borderless" action="admin_confirm" method="post"'
                     )
@@ -539,16 +544,12 @@ class ZfsBackupManager:
 
     @expose
     @require()
-    def admin(self):
-        """Page to manage clients"""
-        # TODO: Tasks:
-        # * Create/delete a new customer (companies table)
-        # * Create/delete a new user (users table)
-        # * Create/delete a new share (shares table)
+    def admin_user(self):
         lstatus = auth.login_status()
         username = lstatus[0]
         company_name = lstatus[2]
         company_fullname = lstatus[3]
+        """Page to manage clients"""
         if auth.user_is_admin(username, company_name):
             comps = db.get("select name, long_name from companies")
             if company_name:
@@ -564,12 +565,156 @@ class ZfsBackupManager:
                     tables += html.h2("%s%s"%(tab_type, html.i(c[1]))) + self.company_admin(c, comps)
                 company_fullname = html.i("Global")
 
-            return page.page("Datasafe/R - Admin",
-                html.h1("Admin (%s)" % company_fullname)
+            return page.page("Datasafe/R - User Admin",
+                html.h1("User Admin (%s)" % company_fullname)
                 + tables)
         else:
             # If a non-admin tries to go to the admin page, redirect to the user page rather than cause a 403
             raise cherrypy.HTTPRedirect("user")
+
+    @expose
+    @require()
+    def admin(self):
+        # TODO: Tasks:
+        # * Create/delete a new customer (companies table)
+        # * Create/delete a new user (users table)
+        # * Create/delete a new share (shares table)
+        lstatus = auth.login_status()
+        username = lstatus[0]
+        company_name = lstatus[2]
+        company_fullname = lstatus[3]
+        if not auth.user_is_admin(username, company_name):
+            raise cherrypy.HTTPRedirect("user")
+
+        links = []
+        links.append(html.a("Create new user", att='href="new_user"'))
+        links.append(html.a("Manage existing users", att='href="admin_user"'))
+        # Only global admins can create new customers and shares
+        if company_name is None:
+            links.append(html.a("Create new customer", att='href="new_cust"'))
+            links.append(html.a("Create new share", att='href="new_share"'))
+        
+        return page.page("Datasafe/R - Admin"
+            , html.h1("Admin")
+            + html.ul(html.li([html.h2(x) for x in links]))
+            )
+
+    @expose
+    @require()
+    def new_user(self, uname=None, fname=None, comp=None, email=None, admin=None):
+        lstatus = auth.login_status()
+        username = lstatus[0]
+        company_name = lstatus[2]
+        company_fullname = lstatus[3]
+        if not auth.user_is_admin(username, company_name):
+            raise cherrypy.HTTPRedirect("user")
+
+        # TODO: Rework this to allow for fully validating the input
+        if uname is None:
+            contents = [
+                "Username" + html.br()
+                + html.input(att='type="text" name="uname"')
+                , "Full name" + html.br()
+                + html.input(att='type="text" name="fname"')
+            ]
+            # Only global admins can configure company for new users
+            # TODO: allow multi-company admin users to select company here
+            if company_name is None:
+                comps = db.get("select name, long_name from companies")
+                contents.extend([
+                    "Company" + html.br()
+                    + self.company_combobox("comp", comps)
+                ])
+            contents.extend([
+                "Email" + html.br()
+                + html.input(att='type="text" name="email"')
+                , "Admin:" + html.input(att='type="checkbox" name="admin"')
+            ])
+
+            return page.page("Datasafe/R - New user"
+                , html.h1("Create new user")
+                + html.form(
+                    html.ul(
+                        html.li(contents)
+                    )
+                    + html.input(att='type="submit" value="Submit"')
+                    , att='method="POST"'
+                )
+            )
+        else:
+            # TODO: Process form
+            raise cherrypy.HTTPRedirect("admin_user")
+
+    @expose
+    @require()
+    def new_share(self, name=None, company=None):
+        lstatus = auth.login_status()
+        username = lstatus[0]
+        company_name = lstatus[2]
+        company_fullname = lstatus[3]
+        if not auth.user_is_global_admin(username):
+            raise cherrypy.HTTPRedirect("user")
+
+        # TODO: Rework this to allow for fully validating the input
+        if name is None:
+            comps = db.get("select name, long_name from companies")
+            contents = [
+                "Share name" + html.br()
+                + html.input(att='type="text" name="name"')
+                , "Company" + html.br()
+                + self.company_combobox("comp", comps, allow_none=False)
+            ]
+
+            return page.page("Datasafe/R - New user"
+                , html.h1("Create new user")
+                + html.form(
+                    html.ul(
+                        html.li(contents)
+                    )
+                    + html.input(att='type="submit" value="Submit"')
+                    , att='method="POST"'
+                )
+            )
+        else:
+            # TODO: Process form
+            raise cherrypy.HTTPRedirect("admin_user")
+        
+
+    @expose
+    @require()
+    def new_company(self, sname=None, lname=None, email=None):
+        lstatus = auth.login_status()
+        username = lstatus[0]
+        company_name = lstatus[2]
+        company_fullname = lstatus[3]
+        if not auth.user_is_global_admin(username):
+            raise cherrypy.HTTPRedirect("user")
+
+        # TODO: Rework this to allow for fully validating the input
+        if sname is None:
+            contents = [
+                "Company ID" + html.br()
+                + html.input(att='type="text" name="sname"')
+                , "Full company name" + html.br()
+                + html.input(att='type="text" name="lname"')
+                , "Email" + html.br()
+                + html.input(att='type="text" name="email"')
+            ]
+
+            return page.page("Datasafe/R - New user"
+                , html.h1("Create new user")
+                + html.form(
+                    html.ul(
+                        html.li(contents)
+                    )
+                    + html.input(att='type="submit" value="Submit"')
+                    , att='method="POST"'
+                )
+            )
+        else:
+            # TODO: Process form
+            raise cherrypy.HTTPRedirect("admin_user")
+        
 
     @expose
     @require()
