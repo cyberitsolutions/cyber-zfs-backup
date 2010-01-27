@@ -18,10 +18,11 @@ def header(content=None):
             content = ''
         else:
             content = "%s (%s)" % ( html.a(status[0], att='href="/backup/user"'), status[1] )
+            company = ''
+            if auth.user_is_admin():
+                company += " " + html.a("admin", att='href="/backup/admin"')
             if status[3]:
-                company = " of %s" % status[3]
-            else:
-                company = " the admin"
+                company += " of %s" % status[3]
             content += company
     menu_bar = string.join([html.a("Browse Shares", att='href="/backup/browse"'), html.a("View Cart", att='href="/backup/show"')], " | ")
     return html.div(html.span(content + html.nbsp(3) + logout_link + html.nbsp(), att='class="logout"') + html.nbsp() + menu_bar, att='class="header"')
