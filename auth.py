@@ -103,6 +103,20 @@ def user_is_global_admin(username=None):
         username = cherrypy.session.get(USER_NAME)
     return db.get1("select count(1) from admins where username = %(username)s and company_name is null", vars())[0] > 0
 
+def get_user_admin_companies(username=None, allow_null=False):
+    if username is None:
+        username = cherrypy.session.get(USER_NAME)
+    if not allow_null and user_is_global_admin(username):
+        return db.get("select name, long_name from companies")
+    else:
+        return db.get("select name, long_name from admins left outer join companies on name = company_name where username = %(username)s", vars())
+
+def user_is_multi_admin(username=None):
+    """Return True if the user is an admin in multiple companies, else return False."""
+    if username is None:
+        username = cherrypy.session.get(USER_NAME)
+    return user_is_global_admin(username) or db.get1("select count(1) from admins where username = %(username)s", vars())[0] > 1
+
 def user_is_admin(username=None, company=None):
     if user_is_global_admin(username):
         return True
