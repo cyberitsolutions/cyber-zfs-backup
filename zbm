@@ -622,7 +622,7 @@ class ZfsBackupManager:
 
     @expose
     @require()
-    def new_user(self, uname=None, fname=None, comp=None, email=None, admin=None):
+    def new_user(self, uname=None, fname=None, comp=None, email=None, admin=None, admin_comps=None):
         lstatus = auth.login_status()
         username = lstatus[0]
         company_name = lstatus[2]
