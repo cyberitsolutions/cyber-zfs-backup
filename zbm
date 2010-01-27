@@ -590,7 +590,7 @@ class ZfsBackupManager:
         links.append(html.a("Create new user", att='href="new_user"'))
         links.append(html.a("Manage existing users", att='href="admin_user"'))
         # Only global admins can create new customers and shares
-        if company_name is None:
+        if auth.user_is_global_admin():
             links.append(html.a("Create new customer", att='href="new_cust"'))
             links.append(html.a("Create new share", att='href="new_share"'))
         
@@ -619,7 +619,7 @@ class ZfsBackupManager:
             ]
             # Only global admins can configure company for new users
             # TODO: allow multi-company admin users to select company here
-            if company_name is None:
+            if auth.user_is_global_admin():
                 comps = db.get("select name, long_name from companies")
                 contents.extend([
                     "Company" + html.br()
@@ -729,7 +729,7 @@ class ZfsBackupManager:
                 warn = ""
                 # Get the request instructions from the form field name
                 r_cmd, r_comp, r_user = each.split("|",3)
-                # TODO: Bork if r_cmd is "company" ankd company_name is None
+                # TODO: Bork if r_cmd is "company" and not auth.user_is_global_admin()
                 value = keyw[each]
                 # Warning for modifying your own user stupidly
                 if r_user == username and (
