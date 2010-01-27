@@ -434,23 +434,26 @@ class ZfsBackupManager:
 
         return self.show()
 
-    def company_combobox(self, name, all_companies, selected=None, allow_none=True):
+    def company_combobox(self, name, companies, selected=None, allow_null=True, null_text="&lt;None&gt;", multi=False):
         opts=''
-        if allow_none:
-            if selected is None:
+        if allow_null:
+            if selected is None or (not isinstance(selected, basestring) and None in selected):
                 att = 'selected '
             else:
                 att = ''
-            opts = html.option("&lt;None&gt;", att + 'value="NULL"')
-        for c in all_companies:
-            if c[0] == selected:
+            opts = html.option(null_text, att + 'value="NULL"')
+        for c in companies:
+            if selected is not None and (c[0] == selected or (not isinstance(selected, basestring) and c[0] in selected)):
                 att = 'selected '
             else:
                 att = ''
             opts += html.option(c[1], att + 'value="%s"' % c[0])
-        return html.select(opts, att='name="%s"' % name)
+        att = 'name="%s"' % name
+        if multi:
+            att += ' multiple'
+        return html.select(opts, att=att)
 
-    def company_admin(self, company_name, all_companies):
+    def admin_table(self, company_name, all_companies):
         """Returns a table of users in the supplied company_name
         company_name should be either a string (company_name) or a tuple (company_name,company_fullname)"""
         c = ''
@@ -459,14 +462,15 @@ class ZfsBackupManager:
         else:
             company = company_name
         if company_name[0] is None:
-            q = "company_name is null"
+            users = db.get("select users.username, full_name, email, users.company_name \
+                from users join admins on admins.username=users.username \
+                where admins.company_name is null \
+                order by users.username")
         else:
             c = company[0].replace("'","''")
-            q = "company_name = %(c)s"
+            users = db.get("select username, full_name, email, company_name from users where company_name = %(c)s order by username", vars())
 
-        users = db.get("select username, full_name, email, company_name from users where %s" % q, vars())
-
-        def field(i_type, f_type, f_name, f_value=""):
+        def field(i_type, f_type, f_name, f_value="", extra=""):
             if f_value == None:
                 f_value = ""
             elif i_type == "text" and f_value in [True, False]:
@@ -487,39 +491,56 @@ class ZfsBackupManager:
             return html.td(
                 html.form(
                     el
+                    + extra
                     + html.input(att='type="submit" value="Set"'),
                     att='class="borderless" action="admin_confirm" method="post"'
                     )
                 )
 
         rows = []
+        company_th = ''
         for u in users:
             row = ''
-            # Username
+            ## Username ##
             row += html.td(u[0])
-            # Full name
+            ## Full name ##
             row += field("text","name", "%s|%s" % (u[3], u[0]), u[1])
-            # Company
-            # Only display if Company field of logged-in user is None
-            company_th = ''
-            if auth.login_status()[2] is None:
+            ## Company ##
+            if auth.user_is_global_admin():
                 company_th = html.th("Company")
                 row += html.td(
                     html.form(
-                        self.company_combobox('company|%s|%s' % (u[3], u[0]), all_companies, u[3])
+                        self.company_combobox('company|%s|%s' % (u[3], u[0]), all_companies, selected=u[3])
                         + html.input(att='type="submit" value="Set"'),
                         att='class="borderless" action="admin_confirm" method="post"'
                     )
                 )
-            # Email
+            ## Email ##
             row += field("text","email", "%s|%s" % (u[3], u[0]), u[2])
-            # Admin
-            if auth.user_is_admin(u[0], company_name[0]):
-                checked = "checked"
+            ## Admin ##
+            # Only Global admins should be allowed to change other Global admin settings
+            if not auth.user_is_global_admin() and auth.user_is_global_admin(u[0]):
+                row += html.td("Yes &lt;All&gt;")
             else:
-                checked = ""
-            row += field("checkbox","admin", "%s|%s" % (u[3], u[0]), checked)
-            # Delete
+                if auth.user_is_admin(u[0], company_name[0]):
+                    checked = "checked"
+                else:
+                    checked = ""
+                extra = ""
+                if auth.user_is_multi_admin():
+                    my_username = auth.login_status()[0]
+                    if auth.user_is_global_admin():
+                        my_comps = all_companies
+                    else:
+                        my_comps = auth.get_user_admin_companies()
+                    their_username = u[0]
+                    their_comps = [x[0] for x in auth.get_user_admin_companies(their_username, allow_null=True)]
+                    extra = self.company_combobox('admin_company|%s|%s' % (u[3], u[0]), my_comps
+                        , multi=True, selected=their_comps
+                        , allow_null = auth.user_is_global_admin(), null_text="&lt;All&gt;"
+                    )
+                row += field("checkbox","admin", "%s|%s" % (u[3], u[0]), checked, extra)
+            ## Delete ##
             row += html.td(
                 html.form(
                     html.input(att='name="delete|%s|%s" type="submit" value="Delete"' % (u[3], u[0])),
@@ -551,18 +572,18 @@ class ZfsBackupManager:
         company_fullname = lstatus[3]
         """Page to manage clients"""
         if auth.user_is_admin(username, company_name):
-            comps = db.get("select name, long_name from companies")
-            if company_name:
-                tables = self.company_admin((company_name, company_fullname), comps)
+            comps = auth.get_user_admin_companies()
+            # Quick hack to bypass extended logic for simple admins
+            if not auth.user_is_multi_admin():
+                tables = self.admin_table((company_name, company_fullname), comps)
             else:
-                tables = html.h2(html.i("Global admins")) + self.company_admin((None, "Admins"), comps)
+                tables =''
+                # No longer needed
+                # if auth.user_is_global_admin():
+                #     tables = html.h2(html.i("Global admins")) + self.admin_table((None, "Admins"), comps)
                 for c in comps:
-                    # Suppress the "Company:" qualifier for global admins
-                    if c[0] is None:
-                        tab_type = ""
-                    else:
-                        tab_type = "Company: "
-                    tables += html.h2("%s%s"%(tab_type, html.i(c[1]))) + self.company_admin(c, comps)
+                    tab_type = "Company: "
+                    tables += html.h2("%s%s"%(tab_type, html.i(c[1]))) + self.admin_table(c, comps)
                 company_fullname = html.i("Global")
 
             return page.page("Datasafe/R - User Admin",
@@ -617,19 +638,30 @@ class ZfsBackupManager:
                 , "Full name" + html.br()
                 + html.input(att='type="text" name="fname"')
             ]
-            # Only global admins can configure company for new users
-            # TODO: allow multi-company admin users to select company here
-            if auth.user_is_global_admin():
-                comps = db.get("select name, long_name from companies")
+            admin_comps = ''
+            comps = auth.get_user_admin_companies()
+            # Allow multi-company admins to create new admins for those companies
+            if auth.user_is_multi_admin():
+                admin_comp_name = 'Admin'
+                if auth.user_is_global_admin():
+                    allow_null = True
+                else:
+                    allow_null = False
                 contents.extend([
                     "Company" + html.br()
-                    + self.company_combobox("comp", comps)
+                    + self.company_combobox("comp", comps, allow_null=allow_null)
                 ])
+                admin_comps = "Admin for:" + html.br() \
+                    + self.company_combobox("admin_comps", comps, multi=True, null_text="&lt;All&gt;", allow_null=allow_null)
+            else:
+                admin_comp_name = "Admin for %s:" % comps[0][1] 
             contents.extend([
                 "Email" + html.br()
                 + html.input(att='type="text" name="email"')
-                , "Admin:" + html.input(att='type="checkbox" name="admin"')
+                , admin_comp_name + html.input(att='type="checkbox" name="admin_user"')
             ])
+            if admin_comps:
+                contents.append(admin_comps)
 
             return page.page("Datasafe/R - New user"
                 , html.h1("Create new user")
@@ -662,11 +694,11 @@ class ZfsBackupManager:
                 "Share name" + html.br()
                 + html.input(att='type="text" name="name"')
                 , "Company" + html.br()
-                + self.company_combobox("comp", comps, allow_none=False)
+                + self.company_combobox("comp", comps, allow_null=False)
             ]
 
             return page.page("Datasafe/R - New user"
-                , html.h1("Create new user")
+                , html.h1("Create new share")
                 + html.form(
                     html.ul(
                         html.li(contents)
@@ -725,23 +757,25 @@ class ZfsBackupManager:
         company_fullname = lstatus[3]
         if auth.user_is_admin(username, company_name):
             hit_admin = False
+            warn = ""
             for each in keyw:
-                warn = ""
                 # Get the request instructions from the form field name
                 r_cmd, r_comp, r_user = each.split("|",3)
+                print r_cmd
                 # TODO: Bork if r_cmd is "company" and not auth.user_is_global_admin()
                 value = keyw[each]
                 # Warning for modifying your own user stupidly
                 if r_user == username and (
                         (r_cmd == "hid_admin" and not hit_admin) or
                         r_cmd == "delete" or
-                        (r_cmd == "company" and value != "NULL")
+                        (r_cmd == "company" and value != "NULL") or
+                        (r_cmd == "admin_company" and value != "NULL")
                     ):
                     # TODO: make this look like a real warning
                     warn = html.span("Warning: this will affect your user and prevent you from administrating!")
                 if r_cmd == "admin":
                     hit_admin = True
-                    warn = ""
+                    # warn = ""
 
             return page.page(
                 "Flibble"
