@@ -552,17 +552,20 @@ class ZfsBackupManager:
             rows.append(row)
         rows=html.tr(rows)
 
-        table = html.table( html.thead(
-            html.tr( [
-            html.th("Username")
-            + html.th("Full name")
-            + company_th
-            + html.th("Email")
-            + html.th("Admin")
-            + html.th("Delete")
-            ] )
-            ) + rows )
-        return table
+        if len(users):
+            table = html.table( html.thead(
+                html.tr( [
+                html.th("Username")
+                + html.th("Full name")
+                + company_th
+                + html.th("Email")
+                + html.th("Admin")
+                + html.th("Delete")
+                ] )
+                ) + rows )
+            return table
+        else:
+            return "No users"
 
 
     @expose
