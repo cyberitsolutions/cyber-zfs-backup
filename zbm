@@ -465,7 +465,7 @@ class ZfsBackupManager:
         else:
             company = company_name
         if company_name[0] is None:
-            users = db.get("select users.username, full_name, email, users.company_name \
+            users = db.get("select users.username, full_name, email, users.company_name from users \
                 where users.company_name is null \
                 order by users.username")
         else:
