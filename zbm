@@ -573,7 +573,7 @@ class ZfsBackupManager:
         company_name = lstatus[2]
         company_fullname = lstatus[3]
         """Page to manage clients"""
-        if auth.user_is_admin(username, company_name):
+        if auth.user_is_any_admin(username):
             comps = auth.get_user_admin_companies()
             # Quick hack to bypass extended logic for simple admins
             if not auth.user_is_multi_admin():
@@ -601,11 +601,11 @@ class ZfsBackupManager:
         # * Create/delete a new customer (companies table)
         # * Create/delete a new user (users table)
         # * Create/delete a new share (shares table)
-        lstatus = auth.login_status()
-        username = lstatus[0]
-        company_name = lstatus[2]
-        company_fullname = lstatus[3]
-        if not auth.user_is_admin(username, company_name):
+        #lstatus = auth.login_status()
+        #username = lstatus[0]
+        #company_name = lstatus[2]
+        #company_fullname = lstatus[3]
+        if not auth.user_is_any_admin():
             raise cherrypy.HTTPRedirect("user")
 
         links = []
@@ -628,7 +628,7 @@ class ZfsBackupManager:
         username = lstatus[0]
         company_name = lstatus[2]
         company_fullname = lstatus[3]
-        if not auth.user_is_admin(username, company_name):
+        if not auth.user_is_any_admin(username):
             raise cherrypy.HTTPRedirect("user")
 
         if isinstance(admin_comps, basestring):

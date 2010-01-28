@@ -127,6 +127,12 @@ def user_is_admin(username=None, company=None):
     # If the user is not a global admin and the company_name is STILL None, there's something wrong!
     return db.get1("select count(1) from admins where username = %(username)s and company_name = %(company)s", vars())[0] > 0
 
+def user_is_any_admin(username=None):
+    """User is an admin in *any* company."""
+    if username is None:
+        username = cherrypy.session.get(USER_NAME)
+    return db.get1("select count(1) from admins where username = %(username)s", vars())[0] > 0
+
 cherrypy.tools.auth = cherrypy.Tool('before_handler', check_auth)
 
 def require(*conditions):

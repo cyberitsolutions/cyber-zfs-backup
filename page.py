@@ -19,7 +19,7 @@ def header(content=None):
         else:
             content = "%s (%s)" % ( html.a(status[0], att='href="/backup/user"'), status[1] )
             company = ''
-            if auth.user_is_admin():
+            if auth.user_is_any_admin():
                 company += " " + html.a("admin", att='href="/backup/admin"')
             if status[3]:
                 company += " of %s" % status[3]
