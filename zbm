@@ -35,6 +35,9 @@ import restore_spec
 # Filesystem-browsing functionality.
 import browse
 
+# Functions for validating fancy user credentials.
+import validation
+
 local_dir = os.path.join(os.getcwd(), os.path.dirname(__file__))
 
 # File size stuff.
@@ -684,21 +687,36 @@ class ZfsBackupManager:
         username = lstatus[0]
         company_name = lstatus[2]
         company_fullname = lstatus[3]
+        # Only global admins can create new shares.
         if not auth.user_is_global_admin(username):
             raise cherrypy.HTTPRedirect("user")
 
-        # TODO: Rework this to allow for fully validating the input
-        if name is None:
+        errors = []
+        if name is not None and not name:
+           errors.append("You must specify a share name.")
+        elif validation.share_exists(name):
+            errors.append("The share '%s' already exists." % name)
+        if validation.company_exists(company) == False:
+            errors.append("The company you selected does not exist.")
+        if None in [name, company] or len(errors):
             comps = db.get("select name, long_name from companies")
+            if name:
+                val = ' value="%s"' % name
+            else:
+                val = ''
             contents = [
                 "Share name" + html.br()
-                + html.input(att='type="text" name="name"')
+                + html.input(att='type="text" name="name"' + val)
                 , "Company" + html.br()
-                + self.company_combobox("comp", comps, allow_null=False)
+                + self.company_combobox("company", comps, selected=company, allow_null=False)
             ]
 
             return page.page("Datasafe/R - New user"
                 , html.h1("Create new share")
+                # TODO: Make this look more like an error
+                + html.ul(
+                    html.li(errors)
+                )
                 + html.form(
                     html.ul(
                         html.li(contents)
@@ -708,7 +726,8 @@ class ZfsBackupManager:
                 )
             )
         else:
-            # TODO: Process form
+            db.do("insert into shares (name, company_name) values (%(name)s, %(company)s)", vars())
+            # TODO: Give notification of success
             raise cherrypy.HTTPRedirect("admin_user")
         
 
