@@ -722,8 +722,14 @@ class ZfsBackupManager:
                 )
             )
         else:
-            import md5
-            passwd = md5.new(passwd).hexdigest()
+            try:
+                # Python 2.5 and above
+                import hashlib
+                passwd = hashlib.md5(passwd).hexdigest()
+            except ImportError:
+                # Python 2.4
+                import md5
+                passwd = md5.new(passwd).hexdigest()
             db.do("insert into users (username, full_name, hashed_password) \
                 values (%(uname)s, %(fname)s, %(passwd)s)", vars())
             if comp:
