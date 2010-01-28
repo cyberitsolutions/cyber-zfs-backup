@@ -319,20 +319,29 @@ class ZfsBackupManager:
 
     @expose
     @require()
-    def browse(self, share=None, path="/"):
+    def browse(self, share=None, path="/", company_name=None):
 
         # Info from session.
-        company_name = cherrypy.session.get(auth.COMPANY_NAME)
+        companies = [cherrypy.session.get(auth.COMPANY_NAME)]
+        companies.extend(auth.get_user_admin_companies())
+        companies = [x[0] for x in companies if validation.company_exists(x[0])]
 
         # Okay, how to handle share....?
-        if share is None:
-            # We must return a list of available shares.
-            available_shares = [ s[0] for s in db.get("select name from shares where company_name = %(company_name)s", vars()) ]
-            links = [ html.a(s, att='href="/backup/browse?share=%s"' % ( cgi.escape(s, quote=True) )) for s in available_shares ]
+        if share is None or company_name not in companies:
+            share_section = ""
+            for company_name in companies:
+                add_href = ""
+                if len(companies) > 1:
+                    share_section += html.h2(company_name)
+                    add_href = "&company_name=" + cgi.escape(company_name, quote=True)
+                # We must return a list of available shares.
+                available_shares = [ s[0] for s in db.get("select name from shares where company_name = %(company_name)s", vars()) ]
+                links = [ html.a(s, att='href="/backup/browse?share=%s%s"' % ( cgi.escape(s, quote=True), add_href )) for s in available_shares ]
+                share_section += html.ul(html.li(links))
 
             return page.page("Datasafe/R - Select Share",
                 html.h1("Select Share")
-                + html.ul(html.li(links)))
+                + share_section )
 
         rs = restore_spec.RestoreSpec()
         error_message = ""
