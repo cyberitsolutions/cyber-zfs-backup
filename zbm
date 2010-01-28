@@ -733,7 +733,7 @@ class ZfsBackupManager:
 
     @expose
     @require()
-    def new_company(self, sname=None, lname=None, email=None):
+    def new_cust(self, sname=None, lname=None, email=None):
         lstatus = auth.login_status()
         username = lstatus[0]
         company_name = lstatus[2]
@@ -741,19 +741,42 @@ class ZfsBackupManager:
         if not auth.user_is_global_admin(username):
             raise cherrypy.HTTPRedirect("user")
 
+        errors = []
+        # TODO: replace reduce() here with all() if upgraded to Python 2.5
+        if None not in [sname, lname, email] and \
+                not reduce(lambda x,y: bool(x and y), [sname, lname, email]):
+            errors.append("You must specify all fields.")
+        if validation.company_exists(sname):
+            errors.append("The company '%s' already exists." % sname)
         # TODO: Rework this to allow for fully validating the input
-        if sname is None:
+        if None in [sname, lname, email] or len(errors):
+            if sname:
+                comp_val = ' value="%s"' % sname
+            else:
+                comp_val = ''
+            if lname:
+                full_val = ' value="%s"' % lname
+            else:
+                full_val = ''
+            if email:
+                mail_val = ' value="%s"' % email
+            else:
+                mail_val = ''
             contents = [
                 "Company ID" + html.br()
-                + html.input(att='type="text" name="sname"')
+                + html.input(att='type="text" name="sname"' + comp_val)
                 , "Full company name" + html.br()
-                + html.input(att='type="text" name="lname"')
+                + html.input(att='type="text" name="lname"' + full_val)
                 , "Email" + html.br()
-                + html.input(att='type="text" name="email"')
+                + html.input(att='type="text" name="email"' + mail_val)
             ]
 
             return page.page("Datasafe/R - New user"
-                , html.h1("Create new user")
+                , html.h1("Create new customer")
+                # TODO: Make this look more like an error
+                + html.ul(
+                    html.li(errors)
+                )
                 + html.form(
                     html.ul(
                         html.li(contents)
@@ -763,9 +786,9 @@ class ZfsBackupManager:
                 )
             )
         else:
-            # TODO: Process form
+            db.do("insert into companies (name, long_name, email) values (%(sname)s, %(lname)s, %(email)s)", vars())
+            # TODO: Give notification of success
             raise cherrypy.HTTPRedirect("admin_user")
-        
 
     @expose
     @require()
