@@ -466,8 +466,7 @@ class ZfsBackupManager:
             company = company_name
         if company_name[0] is None:
             users = db.get("select users.username, full_name, email, users.company_name \
-                from users join admins on admins.username=users.username \
-                where admins.company_name is null \
+                where users.company_name is null \
                 order by users.username")
         else:
             c = company[0].replace("'","''")
@@ -581,9 +580,8 @@ class ZfsBackupManager:
                 tables = self.admin_table((company_name, company_fullname), comps)
             else:
                 tables =''
-                # No longer needed
-                # if auth.user_is_global_admin():
-                #     tables = html.h2(html.i("Global admins")) + self.admin_table((None, "Admins"), comps)
+                if auth.user_is_global_admin():
+                    tables = html.h2(html.i("No company")) + self.admin_table((None, "No company"), comps)
                 for c in comps:
                     tab_type = "Company: "
                     tables += html.h2("%s%s"%(tab_type, html.i(c[1]))) + self.admin_table(c, comps)
