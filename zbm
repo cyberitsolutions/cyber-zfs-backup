@@ -585,7 +585,8 @@ class ZfsBackupManager:
                 for c in comps:
                     tab_type = "Company: "
                     tables += html.h2("%s%s"%(tab_type, html.i(c[1]))) + self.admin_table(c, comps)
-                company_fullname = html.i("Global")
+                if auth.user_is_global_admin():
+                    company_fullname = html.i("Global")
 
             return page.page("Datasafe/R - User Admin",
                 html.h1("User Admin (%s)" % company_fullname)
