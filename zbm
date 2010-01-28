@@ -678,9 +678,9 @@ class ZfsBackupManager:
                 uname_val = ' value="%s"' % uname
             if fname:
                 fname_val = ' value="%s"' % fname
-            # TODO: This needs more sensible security.
-            if passwd:
-                passwd_val = ' value="%s"' % passwd
+            # # TODO: This needs more sensible security.
+            # if passwd:
+            #     passwd_val = ' value="%s"' % passwd
             if comp:
                 comp_val = ' value="%s"' % comp
             if email:
