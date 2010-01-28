@@ -625,7 +625,7 @@ class ZfsBackupManager:
 
     @expose
     @require()
-    def new_user(self, uname=None, fname=None, comp=None, email=None, admin=None, admin_comps=None):
+    def new_user(self, uname=None, fname=None, passwd=None, comp=None, email=None, is_admin=None, admin_comps=None):
         lstatus = auth.login_status()
         username = lstatus[0]
         company_name = lstatus[2]
@@ -633,15 +633,58 @@ class ZfsBackupManager:
         if not auth.user_is_admin(username, company_name):
             raise cherrypy.HTTPRedirect("user")
 
-        # TODO: Rework this to allow for fully validating the input
-        if uname is None:
+        if isinstance(admin_comps, basestring):
+            admin_comps = [admin_comps]
+        if comp == "NULL":
+            comp = None
+
+        is_admin = (is_admin == 'on')
+
+        errors = []
+        if validation.user_exists(uname):
+            errors.append("The user '%s' already exists." % uname)
+        if uname is not None and not uname:
+            errors.append("You must enter a username.")
+        if fname is not None and not fname:
+            errors.append("You must enter a full name for the user.")
+        if passwd is not None and not passwd:
+            errors.append("You must enter a password for the user.")
+        # if not email:
+        #     errors.append("You must enter an email address.")
+        if comp is not None and comp != "NULL" and not validation.company_exists(comp):
+            errors.append("The company you selected does not exist.")
+        if is_admin and admin_comps:
+            # This is pretty horrible. '+ [True]' is needed for reduce() to not complain about an empty list.
+            # Having any() and all() from Python 2.5 would be awesome.
+            if not reduce(lambda x,y: x or y, [validation.company_exists(x) for x in admin_comps if x != "NULL"] + [True] ):
+                errors.append("One or more of the companies you selected for administration does not exist.")
+            # Make sure that POST spoofing can't be abused to allow users to create admins in other companies
+            if not reduce(lambda x,y: x and y, [auth.user_is_admin(company=x) for x in admin_comps]):
+                errors.append("You have selected a company for which you don't have administration rights.")
+        if None in [uname, fname, passwd, is_admin, admin_comps] or len(errors):
+            uname_val = fname_val = passwd_val = comp_val = email_val = admin_val = ""
+            if uname:
+                uname_val = ' value="%s"' % uname
+            if fname:
+                fname_val = ' value="%s"' % fname
+            # TODO: This needs more sensible security.
+            if passwd:
+                passwd_val = ' value="%s"' % passwd
+            if comp:
+                comp_val = ' value="%s"' % comp
+            if email:
+                email_val = ' value="%s"' % email
+            if is_admin:
+                admin_val = ' checked'
             contents = [
                 "Username" + html.br()
-                + html.input(att='type="text" name="uname"')
+                + html.input(att='type="text" name="uname"' + uname_val)
                 , "Full name" + html.br()
-                + html.input(att='type="text" name="fname"')
+                + html.input(att='type="text" name="fname"' + fname_val)
+                , "Password" + html.br()
+                + html.input(att='type="password" name="passwd"' + passwd_val)
             ]
-            admin_comps = ''
+            admin_label = ''
             comps = auth.get_user_admin_companies()
             # Allow multi-company admins to create new admins for those companies
             if auth.user_is_multi_admin():
@@ -654,20 +697,24 @@ class ZfsBackupManager:
                     "Company" + html.br()
                     + self.company_combobox("comp", comps, allow_null=allow_null)
                 ])
-                admin_comps = "Admin for:" + html.br() \
-                    + self.company_combobox("admin_comps", comps, multi=True, null_text="&lt;All&gt;", allow_null=allow_null)
+                admin_label = "Admin for:" + html.br() \
+                    + self.company_combobox("admin_comps", comps, selected=admin_comps, multi=True, null_text="&lt;All&gt;", allow_null=allow_null)
             else:
                 admin_comp_name = "Admin for %s:" % comps[0][1] 
             contents.extend([
-                "Email" + html.br()
-                + html.input(att='type="text" name="email"')
-                , admin_comp_name + html.input(att='type="checkbox" name="admin_user"')
+                "Email (optional)" + html.br()
+                + html.input(att='type="text" name="email"' + email_val)
+                , admin_comp_name + html.input(att='type="checkbox" name="is_admin"' + admin_val)
             ])
-            if admin_comps:
-                contents.append(admin_comps)
+            if admin_label:
+                contents.append(admin_label)
 
             return page.page("Datasafe/R - New user"
                 , html.h1("Create new user")
+                # TODO: Make this look more like an error
+                + html.ul(
+                    html.li(errors)
+                )
                 + html.form(
                     html.ul(
                         html.li(contents)
@@ -677,7 +724,24 @@ class ZfsBackupManager:
                 )
             )
         else:
-            # TODO: Process form
+            import md5
+            passwd = md5.new(passwd).hexdigest()
+            db.do("insert into users (username, full_name, hashed_password) \
+                values (%(uname)s, %(fname)s, %(passwd)s)", vars())
+            if comp:
+                db.do("update users set company_name = %(comp)s where username = %(uname)s", vars())
+            if email:
+                db.do("update users set email = %(comp)s where username = %(email)s", vars())
+            if is_admin:
+                if not admin_comps:
+                    admin_comps = [comp]
+                if "NULL" in admin_comps:
+                    db.do("insert into admins (username, company_name) values (%(uname)s, null)", vars())
+                else:
+                    for comp in admin_comps:
+                        db.do("insert into admins (username, company_name) values (%(uname)s, %(comp)s)", vars())
+            # TODO: Give notification of success
+            db.commit()
             raise cherrypy.HTTPRedirect("admin_user")
 
     @expose
@@ -803,7 +867,6 @@ class ZfsBackupManager:
             for each in keyw:
                 # Get the request instructions from the form field name
                 r_cmd, r_comp, r_user = each.split("|",3)
-                print r_cmd
                 # TODO: Bork if r_cmd is "company" and not auth.user_is_global_admin()
                 value = keyw[each]
                 # Warning for modifying your own user stupidly
