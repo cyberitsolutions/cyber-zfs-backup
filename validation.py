@@ -22,6 +22,7 @@ def share_exists(share):
         return db.get1("select count(1) from shares where name = %(share)s", vars())[0] > 0
 
 def user_in_company(username, company):
+    # TODO: Admins should be considered "in" companies they're not attached to in users table.
     if None in [username, company]:
         return None
     else:
