@@ -178,10 +178,10 @@ class Revolver:
             self._index = 0
         return rv
 
-def dir_box(rs, share, chrooted_path):
-    dir_filespec = browse.FileSpec(chrooted_path, share)
+def dir_box(rs, share, chrooted_path, page_num, company_name=None):
+    dir_filespec = browse.FileSpec(chrooted_path, share, company_name=company_name)
     escaped_share_plus_path = cgi.escape(dir_filespec.share_plus_path, quote=True)
-    dir_contents = browse.get_dir_contents(chrooted_path, share)
+    page_count, dir_contents = browse.get_dir_contents(chrooted_path, share, page_num, company_name=company_name)
 
     def all_directly_included(rs, fs):
         for f in fs:
@@ -197,6 +197,7 @@ def dir_box(rs, share, chrooted_path):
         select_all_extra = " checked"
 
     select_all_checkbox = html.input(att='id="select_all" name="spath:%s" title="Select/deselect all" type="checkbox"%s' % ( escaped_share_plus_path, select_all_extra ))
+
     dir_header = html.thead(html.tr(html.th([select_all_checkbox, 'Type', 'Size', 'Name', 'Ext', 'Last Modified', 'Age'])))
 
     parent_dir_html = ""
@@ -210,9 +211,9 @@ def dir_box(rs, share, chrooted_path):
 
 def make_file_spec(company_name, share_name, path):
     """ Returns a FileSpec from a company_name, share_name, path. """
-    sp = chroot.build_share_path(company_name, share_name)
+    sp = chroot.build_share_path(comp, share_name)
     mychroot = chroot.Chroot(sp)
-    return browse.FileSpec(mychroot.chrooted_path(path), share_name)
+    return browse.FileSpec(mychroot.chrooted_path(path), share_name, company_name=company_name)
 
 def make_file_download_link(filename):
     """ Return a (redirecting) download link for a restore file. """
@@ -319,41 +320,70 @@ class ZfsBackupManager:
 
     @expose
     @require()
-    def browse(self, share=None, path="/", company_name=None):
+    def browse(self, share=None, path="/", company_name=None, page_num=1):
 
+        companies = auth.get_user_admin_companies()
         # Info from session.
-        companies = [cherrypy.session.get(auth.COMPANY_NAME)]
-        companies.extend(auth.get_user_admin_companies())
+        comp = (cherrypy.session.get(auth.COMPANY_NAME), cherrypy.session.get(auth.COMPANY_FULLNAME))
+        # Don't add the logged-in company to the list if it's already there
+        if comp not in companies:
+            companies.append(comp)
         companies = [x[0] for x in companies if validation.company_exists(x[0])]
 
         # Okay, how to handle share....?
-        if share is None or company_name not in companies:
+        if share is None or (company_name and company_name not in companies):
+            def prettify(s):
+                # Some sort of standard needs to be enforced for share names.
+                # At the moment, assuming host:path/to/share
+                chunks = s.split(':')
+                host = chunks[0]
+                if len(chunks) > 1:
+                    if chunks[1] in ('.', ''):
+                        # Looks like this should be a '/'.
+                        path = '/'.join([''] + max(chunks[2:], ['']))
+                    elif len(chunks[1]) == 1:
+                        # Looks like a Windows drive letter.
+                        # Probably need a more robust check.
+                        path = "%s:/%s"%(chunks[1], "/".join(chunks[2:]))
+                    else:
+                        path = "/".join([''] + chunks[1:])
+                    # Delimit host and path with an em-dash because : is ugly.
+                    return "%s &mdash; %s"%(host, path)
+                else:
+                    return host
             share_section = ""
             for company_name in companies:
-                add_href = ""
                 if len(companies) > 1:
                     share_section += html.h2(company_name)
-                    add_href = "&company_name=" + cgi.escape(company_name, quote=True)
-                # We must return a list of available shares.
                 available_shares = [ s[0] for s in db.get("select name from shares where company_name = %(company_name)s", vars()) ]
-                links = [ html.a(s, att='href="/backup/browse?share=%s%s"' % ( cgi.escape(s, quote=True), add_href )) for s in available_shares ]
+                if auth.user_is_multi_admin():
+                    add_href = "&company_name=" + cgi.escape(company_name, quote=True)
+                else:
+                    add_href = ""
+                links = [ html.a(prettify(s), att='href="/backup/browse?share=%s%s"' % ( cgi.escape(s, quote=True), add_href )) for s in available_shares ]
                 share_section += html.ul(html.li(links))
 
             return page.page("Datasafe/R - Select Share",
                 html.h1("Select Share")
                 + share_section )
+        if not company_name and auth.user_is_multi_admin():
+            company_name = companies[0]
 
         rs = restore_spec.RestoreSpec()
         error_message = ""
         dir_box_html = ""
         try:
+            if company_name:
+                comp = company_name
+            else:
+                comp = cherrypy.session.get(auth.COMPANY_NAME)
             # Now we use the company and share names to construct the chroot.
-            sp = chroot.build_share_path(company_name, share)
+            sp = chroot.build_share_path(comp, share)
 
             mychroot = chroot.Chroot(sp)
             chrooted_path = mychroot.chrooted_path(path)
             # Supply the share name as well as the chrooted path.
-            dir_box_html = dir_box(rs, share, chrooted_path)
+            dir_box_html = dir_box(rs, share, chrooted_path, page_num, company_name=company_name)
         except chroot.BadChrootPath, e:
             error_message = html.p(html.span(str(e), att='class="error_message"'))
         download_link = html.div(html.a("View Cart", att='href="/backup/show"'), att='class="funcright"')
@@ -445,6 +475,40 @@ class ZfsBackupManager:
             return self.show(message=message)
 
         return self.show()
+
+    @expose
+    @require()
+    def user(self):
+        sections = []
+        lstatus = auth.login_status()
+        company_name = cherrypy.session.get(auth.COMPANY_NAME)
+        username = lstatus[0]
+
+        view_link = html.a("Your shares", att='href="/backup/browse" title="Browse your shares"')
+
+        # Yanked from browse()
+        available_shares = [ s[0] for s in db.get("select name from shares where company_name = %(company_name)s", vars()) ]
+
+        links = []
+        for share in available_shares:
+            snap_path = os.path.abspath(chroot.build_share_path(company_name, share))
+            if (os.path.isdir(snap_path)):
+                # Try to get the most recent snapshot (assume sensible sorting facility)
+                last_snap = "%s/%s" % ( snap_path, sorted(os.listdir(snap_path))[-1] )
+                size = db.get1("select apparent_size from filesystem_info where path = %(last_snap)s", vars())[0]
+                links.append("%s (%s)" % ( html.a(share, att='href="/backup/browse?share=%s"' % ( cgi.escape(share, quote=True) )), filesize_html(size) ))
+            
+        share_num = "You have %d shares." % len(links)
+        sections.append(html.h2(view_link) + share_num + html.ul(html.li(links)))
+
+        passwd_link = html.a("Change your password", att='href="/backup/password"')
+        sections.append(html.h2(passwd_link))
+
+        # TODO: Provide change email facility.
+
+        return page.page("Datasafe/R - Account " + username,
+            html.h1("User account - " + username)
+            + "".join(sections))
 
     def company_combobox(self, name, companies, selected=None, allow_null=True, null_text="&lt;None&gt;", multi=False):
         opts=''
@@ -916,8 +980,7 @@ class ZfsBackupManager:
 
     @expose
     @require()
-    # TODO: Rename to "password"
-    def user(self, old_password=None, new_password1=None, new_password2=None):
+    def password(self, old_password=None, new_password1=None, new_password2=None):
         error_message = ""
         lstatus = auth.login_status()
         username = lstatus[0]
@@ -934,7 +997,7 @@ class ZfsBackupManager:
                     )
                 ),
                 att='class="borderless"'),
-            att='name="user" method="post" action="/backup/user"'
+            att='name="user" method="post" action="/backup/password"'
         ) + html.script('document.getElementsByName("old_password")[0].focus();', att='language="javascript"')
 
         error_message = ""
