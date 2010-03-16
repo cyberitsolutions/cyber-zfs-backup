@@ -464,17 +464,18 @@ class ZfsBackupManager:
         if 'create_tarball' in kwargs:
             ( result, partname ) = restore_spec.create_restore_file(rs, "tar")
             if result:
-                message = "Successfully created tarball: %s" % ( make_file_download_link(partname) )
+                link_type = 'tarball'
             else:
                 message = "Failed to create tarball: %s" % ( partname )
         if 'create_zipfile' in kwargs:
             ( result, partname ) = restore_spec.create_restore_file(rs, "zip")
             if result:
-                message = "Successfully created zipfile: %s" % ( make_file_download_link(partname) )
+                link_type = 'zip file'
             else:
-                message = "Failed to create zipfile: %s" % ( partname )
+                message = "Failed to create zip file: %s" % ( partname )
         # Once a restore is successfully created, clear out the cart
         if result:
+            message = "Successfully created %s. Click to download: %s" % ( link_type, make_file_download_link(partname) )
             restore_spec.cancel_current_restore()
 
         return self.show(message=message)
