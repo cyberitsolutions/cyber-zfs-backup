@@ -402,8 +402,10 @@ class ZfsBackupManager:
         company_name = cherrypy.session.get(auth.COMPANY_NAME)
         company_restore_dir = os.path.join(cfg.RESTORE_BASE_DIR, company_name)
         contents = os.listdir(company_restore_dir)
-        contents.sort()
-        return html.ul(html.li([ make_file_download_link(filename) + html.nbsp() + "(" + filesize_exp(os.lstat(os.path.join(cfg.RESTORE_BASE_DIR, company_name, filename))[6]) + ")" for filename in contents ]))
+        # The timestamp will appear after the last '_' in the filename. Sort by that instead of sorting by the restore ID with string comparison.
+        contents.sort(key=lambda x: x[x.rindex('_')+1:], reverse=True)
+        return html.h3("Available restores:") + \
+            html.ul(html.li([ make_file_download_link(filename) + html.nbsp() + "(" + filesize_exp(os.lstat(os.path.join(cfg.RESTORE_BASE_DIR, company_name, filename))[6]) + ")" for filename in contents ]))
 
     @expose
     @require()
