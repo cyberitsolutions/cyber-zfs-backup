@@ -211,7 +211,7 @@ def dir_box(rs, share, chrooted_path, page_num, company_name=None):
 
 def make_file_spec(company_name, share_name, path):
     """ Returns a FileSpec from a company_name, share_name, path. """
-    sp = chroot.build_share_path(comp, share_name)
+    sp = chroot.build_share_path(company_name, share_name)
     mychroot = chroot.Chroot(sp)
     return browse.FileSpec(mychroot.chrooted_path(path), share_name, company_name=company_name)
 
