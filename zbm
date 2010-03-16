@@ -310,7 +310,7 @@ class ZfsBackupManager:
         running_total_size = ''
         if rs.disk_usage_running_total > 0:
             running_total_size = html.p("Running total size is %s." % ( html.span(filesize_exp(rs.disk_usage_running_total), att='class="running_total_size"') ))
-        return page.page("Datasafe/R - Cart",
+        return page.page("Cart",
             html.h1("Cart")
             + message
             + running_total_size 
@@ -363,7 +363,7 @@ class ZfsBackupManager:
                 links = [ html.a(prettify(s), att='href="/backup/browse?share=%s%s"' % ( cgi.escape(s, quote=True), add_href )) for s in available_shares ]
                 share_section += html.ul(html.li(links))
 
-            return page.page("Datasafe/R - Select Share",
+            return page.page("Select Share",
                 html.h1("Select Share")
                 + share_section )
         if not company_name and auth.user_is_multi_admin():
@@ -387,7 +387,7 @@ class ZfsBackupManager:
         except chroot.BadChrootPath, e:
             error_message = html.p(html.span(str(e), att='class="error_message"'))
         download_link = html.div(html.a("View Cart", att='href="/backup/show"'), att='class="funcright"')
-        return page.page("Datasafe/R - Browse Share",
+        return page.page("Browse Share",
             download_link
             + html.h1(pathname_dirlink(share, path), att='class="dirlink"')
             + error_message
@@ -515,7 +515,7 @@ class ZfsBackupManager:
 
         # TODO: Provide change email facility.
 
-        return page.page("Datasafe/R - Account " + username,
+        return page.page("Account " + username,
             html.h1("User account - " + username)
             + "".join(sections))
 
@@ -673,7 +673,7 @@ class ZfsBackupManager:
                 if auth.user_is_global_admin():
                     company_fullname = html.i("Global")
 
-            return page.page("Datasafe/R - User Admin",
+            return page.page("User Admin",
                 html.h1("User Admin (%s)" % company_fullname)
                 + tables)
         else:
@@ -702,7 +702,7 @@ class ZfsBackupManager:
             links.append(html.a("Create new customer", att='href="new_cust"'))
             links.append(html.a("Create new share", att='href="new_share"'))
         
-        return page.page("Datasafe/R - Admin"
+        return page.page("Admin"
             , html.h1("Admin")
             + html.ul(html.li([html.h2(x) for x in links]))
             )
@@ -793,7 +793,7 @@ class ZfsBackupManager:
             if admin_label:
                 contents.append(admin_label)
 
-            return page.page("Datasafe/R - New user"
+            return page.page("New user"
                 , html.h1("Create new user")
                 # TODO: Make this look more like an error
                 + html.ul(
@@ -865,7 +865,7 @@ class ZfsBackupManager:
                 + self.company_combobox("company", comps, selected=company, allow_null=False)
             ]
 
-            return page.page("Datasafe/R - New user"
+            return page.page("New user"
                 , html.h1("Create new share")
                 # TODO: Make this look more like an error
                 + html.ul(
@@ -926,7 +926,7 @@ class ZfsBackupManager:
                 + html.input(att='type="text" name="email"' + mail_val)
             ]
 
-            return page.page("Datasafe/R - New user"
+            return page.page("New user"
                 , html.h1("Create new customer")
                 # TODO: Make this look more like an error
                 + html.ul(
@@ -1034,7 +1034,7 @@ class ZfsBackupManager:
         if len(error_message) > 0:
             error_message = html.p(html.span(error_message, att='class="error_message"'))
 
-        return page.page("Datasafe/R - Change Password",
+        return page.page("Change Password",
             html.h1("Change Password")
             + info_message
             + error_message

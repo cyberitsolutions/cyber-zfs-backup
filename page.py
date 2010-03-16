@@ -6,6 +6,12 @@ from html import head, body, title
 
 import auth
 
+def page_title(content):
+    import zbm_cfg as cfg
+    if content:
+        return html.title(cfg.ZBM_PRETTY_NAME + ' - ' +content)
+    else:
+        return html.title(cfg.ZBM_PRETTY_NAME)
 
 def mini_header(content=None):
     return html.div(html.nbsp(), att='class="header"')
@@ -41,7 +47,7 @@ js_links = html.script(att='type="text/javascript" src="/backup/static/jquery-1.
 # Default page template.
 def page(title, content=""):
     return html.html(
-        head(html.title(title) + css_links + js_links)
+        head(page_title(title) + css_links + js_links)
         + body(header()
             + html.div(content, att='id="main"')
             + footer()))
@@ -49,7 +55,7 @@ def page(title, content=""):
 # Mini-header-using page template.
 def mini_page(title, content=""):
     return html.html(
-        head(html.title(title) + css_links + js_links)
+        head(page_title(title) + css_links + js_links)
         + body(mini_header()
             + html.div(content, att='id="main"')
             + footer()))

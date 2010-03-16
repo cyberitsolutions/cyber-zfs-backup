@@ -199,7 +199,7 @@ class AuthController(object):
         """Called on logout"""
 
     def get_loginform(self, username, msg="Enter login information.", from_page="/backup"):
-        return page.mini_page("Datasafe/R - Login",
+        return page.mini_page("Login",
             html.h1("Login")
             + html.form(
                 html.input(att='type="hidden" name="from_page" value="%s"' % ( from_page ))
