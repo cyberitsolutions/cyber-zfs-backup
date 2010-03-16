@@ -313,9 +313,9 @@ class ZfsBackupManager:
         return page.page("Datasafe/R - Cart",
             html.h1("Cart")
             + message
-            + self.restore_dir_contents()
             + running_total_size 
             + restore_display 
+            + self.restore_dir_contents()
             )
 
     @expose
