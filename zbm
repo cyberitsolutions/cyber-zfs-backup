@@ -452,29 +452,32 @@ class ZfsBackupManager:
     @expose
     @require()
     def action(self, **kwargs):
+        result = False
+        message = None
         rs = restore_spec.RestoreSpec()
         if 'retrieve_restore' in kwargs:
             restore_spec.retrieve_previous_restore()
-            return self.show(message="Returned to previous cart.")
+            message = "Returned to previous cart."
         if 'cancel_restore' in kwargs:
             restore_spec.cancel_current_restore()
-            return self.show(message="Cart emptied.")
+            message = "Cart emptied."
         if 'create_tarball' in kwargs:
             ( result, partname ) = restore_spec.create_restore_file(rs, "tar")
             if result:
                 message = "Successfully created tarball: %s" % ( make_file_download_link(partname) )
             else:
                 message = "Failed to create tarball: %s" % ( partname )
-            return self.show(message=message)
         if 'create_zipfile' in kwargs:
             ( result, partname ) = restore_spec.create_restore_file(rs, "zip")
             if result:
                 message = "Successfully created zipfile: %s" % ( make_file_download_link(partname) )
             else:
                 message = "Failed to create zipfile: %s" % ( partname )
-            return self.show(message=message)
+        # Once a restore is successfully created, clear out the cart
+        if result:
+            restore_spec.cancel_current_restore()
 
-        return self.show()
+        return self.show(message=message)
 
     @expose
     @require()
