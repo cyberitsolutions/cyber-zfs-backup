@@ -865,7 +865,7 @@ class ZfsBackupManager:
                 + self.company_combobox("company", comps, selected=company, allow_null=False)
             ]
 
-            return page.page("New user"
+            return page.page("New share"
                 , html.h1("Create new share")
                 # TODO: Make this look more like an error
                 + html.ul(
@@ -926,7 +926,7 @@ class ZfsBackupManager:
                 + html.input(att='type="text" name="email"' + mail_val)
             ]
 
-            return page.page("New user"
+            return page.page("New customer"
                 , html.h1("Create new customer")
                 # TODO: Make this look more like an error
                 + html.ul(
