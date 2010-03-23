@@ -677,6 +677,8 @@ class ZfsBackupManager:
                 if auth.user_is_global_admin():
                     company_fullname = html.i("Global")
 
+            if company_fullname is None:
+                company_fullname = html.i("no company")
             return page.page("User Admin",
                 html.h1("User Admin (%s)" % company_fullname)
                 + tables)
