@@ -13,6 +13,7 @@ import string
 
 import zbm_cfg as cfg
 
+import validation
 import html
 import page
 
@@ -86,7 +87,7 @@ def check_auth(*args, **kwargs):
         username = cherrypy.session.get(USER_NAME)
         # We seem to need to do this in preparation for the redirect.
         cherrypy.request.base = cfg.BACKUP_BASE_URL
-        if username:
+        if username and validation.user_exists(username):
             cherrypy.request.login = username
             for condition in conditions:
                 # A condition is just a callable that returns True or False.

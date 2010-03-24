@@ -547,12 +547,14 @@ class ZfsBackupManager:
         else:
             company = company_name
         if company_name[0] is None:
-            users = db.get("select users.username, full_name, email, users.company_name from users \
+            users = db.get("select users.username, full_name, email, users.company_name, users.disabled from \
+                all_users as users \
                 where users.company_name is null \
                 order by users.username")
         else:
-            c = company[0].replace("'","''")
-            users = db.get("select username, full_name, email, company_name from users where company_name = %(c)s order by username", vars())
+            c = company[0]
+            users = db.get("select username, full_name, email, company_name, disabled from \
+                all_users where company_name = %(c)s order by username", vars())
 
         def field(i_type, comm, comp, user, value="", extra=""):
             el = ""
@@ -631,9 +633,15 @@ class ZfsBackupManager:
                     )
                 row += field("checkbox", "admin", comp=u[3], user=u[0], value=checked, extra=extra)
             ## Disable ##
-            row += field("submit", "disable", comp=u[3], user=u[0],value="Disable")
+            if u[4]:
+                row += field("submit", "enable", comp=u[3], user=u[0], value="Enable",
+                    extra=html.input(att='type="hidden" name="extra" value="user"') )
+            else:
+                row += field("submit", "disable", comp=u[3], user=u[0], value="Disable",
+                    extra=html.input(att='type="hidden" name="extra" value="user"') )
             ## Delete ##
-            row += field("submit", "delete", comp=u[3], user=u[0],value="Delete")
+            row += field("submit", "delete", comp=u[3], user=u[0], value="Delete",
+                extra=html.input(att='type="hidden" name="extra" value="user"') )
             rows.append(row)
         rows=html.tr(rows)
 
@@ -956,7 +964,8 @@ class ZfsBackupManager:
     @require()
     def admin_confirm(self, **keyw):
         lstatus = auth.login_status()
-        username = lstatus[0]
+        luser = lstatus[0]
+        # TODO: clean up this retrieval stuff
         # Get the request instructions from the form field name
         if "value" not in keyw or keyw["value"] == "NULL":
             keyw["value"] = None
@@ -967,18 +976,55 @@ class ZfsBackupManager:
         else:
             extra = keyw["extra"]
         comm, comp, user, value = tuple([ keyw[x] for x in ("comm", "comp", "user", "value") ])
-        if comp == "":
-            comp = None
+        if "action" in keyw:
+            confirm = keyw["action"]
+        else:
+            confirm = None
+        # Check to see if the logged in user is allowed to administer the given company
         if auth.user_is_admin(company=comp):
-            hit_admin = False
             warn = ""
-            for each in keyw:
-                value = keyw[each]
-            args = {"user": user, "comp": comp, "comm": comm, "extra": extra }
+            action = html.h2("Action:")
+            args = {"user": user, "comp": comp, "comm": comm, "extra": extra, "action": "confirm" }
 
+            form = html.form(
+                "".join([ html.input(att='type="hidden" name="%s" value="%s"' %
+                    # funky, hacky translation between None and ""
+                    (k, (lambda x: (x is not None and x) or ((x is None or x == "") and ""))(args[k]))) for k in args ]
+                )
+                + html.input(att='type="submit" value="Confirm"')
+                , att='action="admin_confirm" method="post"'
+            )
+            if comm == "disable":
+                if extra == "user":
+                    if confirm == "confirm":
+                        db.do("update all_users set disabled = true where username = %(user)s", vars())
+                        db.commit()
+                        raise cherrypy.HTTPRedirect("admin_user")
+                    else:
+                        action += "Disable user &lsquo;%s&rsquo;." % user
+                        if user == luser:
+                            warn = "This will disable your login and prevent you from administrating."
+            elif comm == "enable":
+                if extra == "user":
+                    if confirm == "confirm":
+                        db.do("update all_users set disabled = false where username = %(user)s", vars())
+                        db.commit()
+                        raise cherrypy.HTTPRedirect("admin_user")
+                    else:
+                        action += "Enable user &lsquo;%s&rsquo;." % user
+            else:
+                warn = "Unsupported feature &lsquo;%s&rsquo;." % comm
+                action = ""
+                form = ""
+
+            if warn:
+                warn = html.div(warn, att='class="warning"')
             return page.page(
-                "Flibble"
+                "Confirm transaction"
                 , warn
+                + action
+                + form
+                # for testing purposes:
                 + html.ul(
                     html.li(
                         [ "%s: %s"%(x,args[x]) for x in args ]
