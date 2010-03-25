@@ -1008,6 +1008,17 @@ class ZfsBackupManager:
                         db.do("update all_users set disabled = false where username = %(user)s", vars())
                     else:
                         action += "Enable user &lsquo;%s&rsquo;." % user
+            elif comm == "delete":
+                if extra == "user":
+                    if confirm == "confirm":
+                        db.do("delete from all_admins where username = %(user)s", vars())
+                        db.do("delete from all_users where username = %(user)s", vars())
+                    else:
+                        if user == luser:
+                            warn = "This will permanently delete your account and prevent you from administrating or logging in."
+                        else:
+                            warn = "This will permanently delete the account &lsquo;%s&rsquo;. It is not recoverable." % user
+                        action += "Delete user &lsquo;%s&rsquo;." % user
             else:
                 warn = "Unsupported feature &lsquo;%s&rsquo;." % comm
                 action = html.h3("Debug:")
