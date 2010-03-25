@@ -155,6 +155,47 @@ def tr_filespec(rs, file_spec, revolver=None):
 def can_access_parent(path):
     return not ( path == '/' or path == '' )
 
+def field(i_type, comm, comp, user=None, share=None, value="", extra=""):
+    """Returns td{form{set of inputs} + extra}"""
+    el = ""
+    submit = ""
+    if value is None:
+        value = ""
+    elif i_type == "text" and value in [True, False]:
+        if value:
+            value = "Yes"
+        else:
+            value = "No"
+
+    if comp is None:
+        comp = ""
+
+    if user is None:
+        user = ""
+
+    if i_type == "checkbox":
+        if value:
+            checked = "checked"
+        else:
+            checked = ""
+        el = html.input(att='type="%s" name="value" %s value="true"' % (i_type, checked))
+    elif i_type:
+        el = html.input(att='type="%s" name="value" value="%s"' % (i_type, value))
+    if i_type != "submit":
+            submit = html.input(att='type="submit" value="Set"')
+
+    return html.td(
+        html.form(
+            html.input(att='type="hidden" name="user" value="%s"' % user)
+            + html.input(att='type="hidden" name="comp" value="%s"' % comp)
+            + html.input(att='type="hidden" name="comm" value="%s"' % comm)
+            + el
+            + extra
+            + submit
+            , att='class="borderless" action="admin_confirm" method="post"'
+            )
+        )
+
 class EmptyRevolverError(Exception):
     def __init__(self, value):
         self.value = value
@@ -540,13 +581,9 @@ class ZfsBackupManager:
 
     def admin_user_table(self, company_name, all_companies):
         """Returns a table of users in the supplied company_name
-        company_name should be either a string (company_name) or a tuple (company_name,company_fullname)"""
-        c = ''
-        if isinstance(company_name, basestring):
-            company = (company_name, company_name)
-        else:
-            company = company_name
-        if company_name[0] is None:
+        company_name should be a tuple (company_name,company_fullname)"""
+        company = company_name
+        if company[0] is None:
             users = db.get("select users.username, full_name, email, users.company_name, users.disabled from \
                 all_users as users \
                 where users.company_name is null \
@@ -555,43 +592,6 @@ class ZfsBackupManager:
             c = company[0]
             users = db.get("select username, full_name, email, company_name, disabled from \
                 all_users where company_name = %(c)s order by username", vars())
-
-        def field(i_type, comm, comp, user, value="", extra=""):
-            el = ""
-            submit = ""
-            if value is None:
-                value = ""
-            elif i_type == "text" and value in [True, False]:
-                if value:
-                    value = "Yes"
-                else:
-                    value = "No"
-
-            if comp is None:
-                comp = ""
-
-            if i_type == "checkbox":
-                if value:
-                    checked = "checked"
-                else:
-                    checked = ""
-                el = html.input(att='type="%s" name="value" %s value="true"' % (i_type, checked))
-            elif i_type:
-                el = html.input(att='type="%s" name="value" value="%s"' % (i_type, value))
-            if i_type != "submit":
-                    submit = html.input(att='type="submit" value="Set"')
-
-            return html.td(
-                html.form(
-                    html.input(att='type="hidden" name="user" value="%s"' % user)
-                    + html.input(att='type="hidden" name="comp" value="%s"' % comp)
-                    + html.input(att='type="hidden" name="comm" value="%s"' % comm)
-                    + el
-                    + extra
-                    + submit
-                    , att='class="borderless" action="admin_confirm" method="post"'
-                    )
-                )
 
         rows = []
         company_th = ''
@@ -670,7 +670,7 @@ class ZfsBackupManager:
     @expose
     @require()
     def admin_user(self):
-        """Page to manage clients"""
+        """Page to manage user accounts"""
         lstatus = auth.login_status()
         username = lstatus[0]
         company_name = lstatus[2]
@@ -679,21 +679,20 @@ class ZfsBackupManager:
             comps = auth.get_user_admin_companies()
             # Quick hack to bypass extended logic for simple admins
             if not auth.user_is_multi_admin():
+                heading = "User Admin (%s)" % company_fullname
                 tables = self.admin_user_table((company_name, company_fullname), comps)
             else:
+                heading = "User Admin"
                 tables =''
                 if auth.user_is_global_admin():
+                    heading = "User Admin (%s)" % html.i("Global")
                     tables = html.h2(html.i("No company")) + self.admin_user_table((None, "No company"), comps)
                 for c in comps:
                     tab_type = "Company: "
                     tables += html.h2("%s%s"%(tab_type, html.i(c[1]))) + self.admin_user_table(c, comps)
-                if auth.user_is_global_admin():
-                    company_fullname = html.i("Global")
 
-            if company_fullname is None:
-                company_fullname = html.i("no company")
             return page.page("User Admin",
-                html.h1("User Admin (%s)" % company_fullname)
+                html.h1(heading)
                 + tables)
         else:
             # If a non-admin tries to go to the admin page, redirect to the user page rather than cause a 403
