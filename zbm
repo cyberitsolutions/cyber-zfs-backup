@@ -1091,6 +1091,12 @@ class ZfsBackupManager:
                         db.do("update all_users set disabled = false where username = %(user)s", vars())
                     else:
                         action += "Enable user &lsquo;%s&rsquo;." % user
+                elif extra == "company":
+                    redirect = "admin_company"
+                    if confirm == "confirm":
+                        db.do("update all_companies set disabled = false where name = %(comp)s", vars())
+                    else:
+                        action += "Enable company &lsquo;%s&rsquo;." % comp
                 else:
                     warn = "Unknown enable type &lsquo;%s&rsquo;" % extra
                     error = True
