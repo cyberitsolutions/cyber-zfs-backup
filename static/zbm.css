@@ -173,3 +173,9 @@ div.funcright {
     font-size:1.1em;
 }
 
+div.warning {
+    background: #FCC;
+    border: 1pt solid red;
+    font-size: 120%;
+    padding: 2pt;
+}
