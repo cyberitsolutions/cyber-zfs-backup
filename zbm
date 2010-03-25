@@ -840,10 +840,10 @@ class ZfsBackupManager:
                 if not admin_comps:
                     admin_comps = [comp]
                 if "NULL" in admin_comps:
-                    db.do("insert into admins (username, company_name) values (%(uname)s, null)", vars())
+                    db.do("insert into all_admins (username, company_name) values (%(uname)s, null)", vars())
                 else:
                     for comp in admin_comps:
-                        db.do("insert into admins (username, company_name) values (%(uname)s, %(comp)s)", vars())
+                        db.do("insert into all_admins (username, company_name) values (%(uname)s, %(comp)s)", vars())
             # TODO: Give notification of success
             db.commit()
             raise cherrypy.HTTPRedirect("admin_user")
