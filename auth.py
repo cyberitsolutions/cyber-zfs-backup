@@ -41,7 +41,9 @@ def reset_password(username, password):
     os.system("/etc/zbm/remove_user.sh " + username)
 
     # We need the company name here.
-    company_name = cherrypy.session.get(COMPANY_NAME)
+    company_name = user_company(username)
+    if company_name is None:
+        company_name = ""
     hashed_expression = md5.md5(string.join([username, company_name, password], ':')).hexdigest()
     f = open('/etc/zbm/zbm_passwords', 'a')
     f.write("%s\n" % ( string.join([username, company_name, hashed_expression], ':') ))
