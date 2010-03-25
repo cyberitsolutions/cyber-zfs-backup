@@ -35,7 +35,7 @@ def login_status():
 
 def reset_password(username, password):
     hashed_password = md5.md5(password).hexdigest()
-    db.do("update users set hashed_password = %(hashed_password)s where username = %(username)s", vars())
+    db.do("update all_users set hashed_password = %(hashed_password)s where username = %(username)s", vars())
 
     # Also update the htdigest zbm_passwords file.
     os.system("/etc/zbm/remove_user.sh " + username)
