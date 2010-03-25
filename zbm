@@ -983,6 +983,7 @@ class ZfsBackupManager:
         # Check to see if the logged in user is allowed to administer the given company
         if auth.user_is_admin(company=comp):
             warn = ""
+            error = False
             action = html.h2("Action:")
             args = {"user": user, "comp": comp, "comm": comm, "extra": extra, "action": "confirm" }
 
@@ -1002,12 +1003,18 @@ class ZfsBackupManager:
                         action += "Disable user &lsquo;%s&rsquo;." % user
                         if user == luser:
                             warn = "This will disable your login and prevent you from administrating."
+                else:
+                    warn = "Unknown disable type &lsquo;%s&rsquo;" % extra
+                    error = True
             elif comm == "enable":
                 if extra == "user":
                     if confirm == "confirm":
                         db.do("update all_users set disabled = false where username = %(user)s", vars())
                     else:
                         action += "Enable user &lsquo;%s&rsquo;." % user
+                else:
+                    warn = "Unknown enable type &lsquo;%s&rsquo;" % extra
+                    error = True
             elif comm == "delete":
                 if extra == "user":
                     if confirm == "confirm":
@@ -1019,9 +1026,15 @@ class ZfsBackupManager:
                         else:
                             warn = "This will permanently delete the account &lsquo;%s&rsquo;. It is not recoverable." % user
                         action += "Delete user &lsquo;%s&rsquo;." % user
+                else:
+                    warn = "Unknown delete type &lsquo;%s&rsquo;" % extra
+                    error = True
             else:
                 warn = "Unsupported feature &lsquo;%s&rsquo;." % comm
-                action = html.h3("Debug:")
+                error = True
+            
+            if error:
+                action += html.h3("Debug:")
                 form = html.ul(
                     html.li(
                         [ "%s: &lsquo;%s&rsquo;"%(x,args[x]) for x in args ]
@@ -1029,8 +1042,11 @@ class ZfsBackupManager:
                 )
 
             if confirm == "confirm":
-                db.commit()
-                raise cherrypy.HTTPRedirect("admin_user")
+                if error:
+                    db.rollback()
+                else:
+                    db.commit()
+                    raise cherrypy.HTTPRedirect("admin_user")
 
             if warn:
                 warn = html.div(warn, att='class="warning"')
