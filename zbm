@@ -184,11 +184,17 @@ def field(i_type, comm, comp, user=None, share=None, value="", extra=""):
     if i_type != "submit":
             submit = html.input(att='type="submit" value="Set"')
 
+    if share:
+        share = html.input(att='type="hidden" name="share" value="%s"' % share)
+    else:
+        share = ""
+
     return html.td(
         html.form(
             html.input(att='type="hidden" name="user" value="%s"' % user)
             + html.input(att='type="hidden" name="comp" value="%s"' % comp)
             + html.input(att='type="hidden" name="comm" value="%s"' % comm)
+            + share
             + el
             + extra
             + submit
@@ -620,6 +626,38 @@ class ZfsBackupManager:
             ) + rows )
         return table
 
+    def admin_share_table(self, company):
+        if auth.user_is_global_admin():
+            shares = db.get("select name, disabled from all_shares where company_name = %(company)s order by name", vars())
+        else:
+            lstatus = auth.login_status()
+            user = lstatus[0]
+            shares = db.get("select s.name, disabled from \
+                all_shares as s left join admins on s.company_name = admins.company_name where \
+                admins.username = %(user)s order by name", vars())
+        rows = []
+        for s in shares:
+            row = ''
+            ## Share name ##
+            row += html.td(s[0])
+            ## Disable ##
+            if s[1]:
+                row += field("submit", "enable", comp=company, share=s[0], value="Enable",
+                    extra=html.input(att='type="hidden" name="extra" value="share"') )
+            else:
+                row += field("submit", "disable", comp=company, share=s[0], value="Disable",
+                    extra=html.input(att='type="hidden" name="extra" value="share"') )
+            rows.append(row)
+        rows = html.tr(rows)
+
+        table = html.table( html.thead(
+            html.tr( [
+            html.th("Share")
+            + html.th("Disable")
+            ] )
+            ) + rows )
+        return table
+
     # all_companies is needed for the company selection combobox
     def admin_user_table(self, company, all_companies):
         """Returns a table of users in the supplied company_name
@@ -730,6 +768,36 @@ class ZfsBackupManager:
                 for c in comps:
                     tab_type = "Company: "
                     tables += html.h2("%s%s"%(tab_type, html.i(c[1]))) + self.admin_user_table(c, comps)
+
+            return page.page("User Admin",
+                html.h1(heading)
+                + tables)
+        else:
+            # If a non-admin tries to go to the admin page, redirect to the user page rather than cause a 403
+            raise cherrypy.HTTPRedirect("user")
+
+    @expose
+    @require()
+    def admin_share(self):
+        """Page to manage shares"""
+        lstatus = auth.login_status()
+        username = lstatus[0]
+        company_name = lstatus[2]
+        company_fullname = lstatus[3]
+        if auth.user_is_any_admin(username):
+            comps = auth.get_user_admin_companies()
+            # Quick hack to bypass extended logic for simple admins
+            if not auth.user_is_multi_admin():
+                heading = "Share Admin (%s)" % company_fullname
+                tables = self.admin_share_table(company_name)
+            else:
+                heading = "Share Admin"
+                tables =''
+                if auth.user_is_global_admin():
+                    heading = "Share Admin (%s)" % html.i("Global")
+                for c in comps:
+                    tab_type = "Company: "
+                    tables += html.h2("%s%s"%(tab_type, html.i(c[1]))) + self.admin_share_table(c[0])
 
             return page.page("User Admin",
                 html.h1(heading)
@@ -1043,8 +1111,12 @@ class ZfsBackupManager:
         else:
             extra = keyw["extra"]
         comm, comp, user, value = tuple([ keyw[x] for x in ("comm", "comp", "user", "value") ])
-        if "action" in keyw:
-            confirm = keyw["action"]
+        if "share" in keyw:
+            share = keyw["share"]
+        else:
+            share = None
+        if "confirm" in keyw:
+            confirm = keyw["confirm"]
         else:
             confirm = None
         # Check to see if the logged in user is allowed to administer the given company
@@ -1052,7 +1124,7 @@ class ZfsBackupManager:
             warn = ""
             error = False
             action = html.h2("Action:")
-            args = {"user": user, "comp": comp, "comm": comm, "extra": extra, "action": "confirm", "value": value }
+            args = {"user": user, "comp": comp, "comm": comm, "extra": extra, "confirm": "confirm", "value": value, "share": share }
 
             form = html.form(
                 "".join([ html.input(att='type="hidden" name="%s" value="%s"' %
@@ -1081,6 +1153,12 @@ class ZfsBackupManager:
                             warn = "This will disable all users and shares for this company and prevent you from logging in and administrating."
                         else:
                             warn = "This will disable all users and shares for this company."
+                elif extra == "share":
+                    redirect = "admin_share"
+                    if confirm == "confirm":
+                        db.do("update all_shares set disabled = true where name = %(share)s and company_name = %(comp)s", vars())
+                    else:
+                        action += "Disable share &lsquo;%s&rsquo; in company &lsquo;%s&rsquo;." % ( share, comp )
                 else:
                     warn = "Unknown disable type &lsquo;%s&rsquo;" % extra
                     error = True
@@ -1097,6 +1175,12 @@ class ZfsBackupManager:
                         db.do("update all_companies set disabled = false where name = %(comp)s", vars())
                     else:
                         action += "Enable company &lsquo;%s&rsquo;." % comp
+                elif extra == "share":
+                    redirect = "admin_share"
+                    if confirm == "confirm":
+                        db.do("update all_shares set disabled = false where name = %(share)s and company_name = %(comp)s", vars())
+                    else:
+                        action += "Disable share &lsquo;%s&rsquo; in company &lsquo;%s&rsquo;." % ( share, comp )
                 else:
                     warn = "Unknown enable type &lsquo;%s&rsquo;" % extra
                     error = True
