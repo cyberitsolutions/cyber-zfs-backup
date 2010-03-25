@@ -998,8 +998,6 @@ class ZfsBackupManager:
                 if extra == "user":
                     if confirm == "confirm":
                         db.do("update all_users set disabled = true where username = %(user)s", vars())
-                        db.commit()
-                        raise cherrypy.HTTPRedirect("admin_user")
                     else:
                         action += "Disable user &lsquo;%s&rsquo;." % user
                         if user == luser:
@@ -1008,14 +1006,20 @@ class ZfsBackupManager:
                 if extra == "user":
                     if confirm == "confirm":
                         db.do("update all_users set disabled = false where username = %(user)s", vars())
-                        db.commit()
-                        raise cherrypy.HTTPRedirect("admin_user")
                     else:
                         action += "Enable user &lsquo;%s&rsquo;." % user
             else:
                 warn = "Unsupported feature &lsquo;%s&rsquo;." % comm
-                action = ""
-                form = ""
+                action = html.h3("Debug:")
+                form = html.ul(
+                    html.li(
+                        [ "%s: &lsquo;%s&rsquo;"%(x,args[x]) for x in args ]
+                    )
+                )
+
+            if confirm == "confirm":
+                db.commit()
+                raise cherrypy.HTTPRedirect("admin_user")
 
             if warn:
                 warn = html.div(warn, att='class="warning"')
@@ -1024,13 +1028,7 @@ class ZfsBackupManager:
                 , warn
                 + action
                 + form
-                # for testing purposes:
-                + html.ul(
-                    html.li(
-                        [ "%s: %s"%(x,args[x]) for x in args ]
-                    )
                 )
-            )
         else:
             # If a non-admin tries to go to the admin page, redirect to the user page rather than cause a 403
             raise cherrypy.HTTPRedirect("user")
