@@ -609,7 +609,8 @@ class ZfsBackupManager:
                     extra=self.company_combobox('value', all_companies, selected=u[3])
                 )
             ## Email ##
-            row += field("text", "email", comp=u[3], user=u[0], value=u[2])
+            row += field("text", "email", comp=u[3], user=u[0], value=u[2],
+                extra=html.input(att='type="hidden" name="extra" value="user"') )
             ## Admin ##
             # Only Global admins should be allowed to change other Global admin settings
             if not auth.user_is_global_admin() and auth.user_is_global_admin(u[0]):
@@ -1053,6 +1054,28 @@ class ZfsBackupManager:
                 else:
                     warn = "Unknown name type &lsquo;%s&rsquo;" % extra
                     error = True
+            elif comm == "email":
+                if extra == "user":
+                    table = "all_users"
+                    field = "username"
+                    control = user
+                elif extra == "company":
+                    table = "all_companies"
+                    field = "name"
+                    control = comp
+                else:
+                    warn = "Unknown email type &lsquo;%s&rsquo;" % extra
+                    error = True
+
+                if not error:
+                    cur = db.get1("select email from %s where %s = %%(control)s" % (table, field), vars())
+                    # ignore no-op
+                    if cur[0] == value or not (cur[0] or value):
+                        raise cherrypy.HTTPRedirect("admin_user")
+                    if confirm == "confirm":
+                        db.do("update %s set email = %%(value)s where %s = %%(control)s" % (table, field), vars())
+                    else:
+                        action += "Change email of %s &lsquo;%s&rsquo; from &lsquo;%s&rsquo; to &lsquo;%s&rsquo;." % (comm, control, cur[0], value)
             else:
                 warn = "Unsupported feature &lsquo;%s&rsquo;." % comm
                 error = True
