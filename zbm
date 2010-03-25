@@ -608,6 +608,8 @@ class ZfsBackupManager:
                 row += field(None, "company", comp=u[3], user=u[0],
                     extra=self.company_combobox('value', all_companies, selected=u[3])
                 )
+            ## Password ##
+            row += field("submit", "password", comp=u[3], user=u[0], value="Change password")
             ## Email ##
             row += field("text", "email", comp=u[3], user=u[0], value=u[2],
                 extra=html.input(att='type="hidden" name="extra" value="user"') )
@@ -653,6 +655,7 @@ class ZfsBackupManager:
                 html.th("Username")
                 + html.th("Full name")
                 + company_th
+                + html.th("Password")
                 + html.th("Email")
                 + html.th("Admin")
                 + html.th("Disable")
@@ -1076,6 +1079,8 @@ class ZfsBackupManager:
                         db.do("update %s set email = %%(value)s where %s = %%(control)s" % (table, field), vars())
                     else:
                         action += "Change email of %s &lsquo;%s&rsquo; from &lsquo;%s&rsquo; to &lsquo;%s&rsquo;." % (comm, control, cur[0], value)
+            elif comm == "password":
+                raise cherrypy.HTTPRedirect("password?user=%s" % user)
             else:
                 warn = "Unsupported feature &lsquo;%s&rsquo;." % comm
                 error = True
@@ -1109,16 +1114,27 @@ class ZfsBackupManager:
 
     @expose
     @require()
-    def password(self, old_password=None, new_password1=None, new_password2=None):
+    def password(self, old_password=None, new_password1=None, new_password2=None, user=None):
         error_message = ""
         lstatus = auth.login_status()
-        username = lstatus[0]
+        if user is None or user == lstatus[0]:
+            user = None
+            heading = "Change Your Password"
+            old_pass = [html.th("Old Password:") + html.td(html.input(att='type="password" name="old_password"'))]
+            username = lstatus[0]
+        # Admins are exempt from requiring old password for other, *non-admin* users.
+        elif auth.user_is_global_admin() or (auth.user_is_admin(company=auth.user_company(user)) and not auth.user_is_any_admin(user)):
+            heading = "Change Password for &lsquo;%s&rsquo;" % user
+            old_pass = [html.input(att='type="hidden" name="user" value="%s"' % user)]
+            username = user
+        else:
+            # User is not authorised to change password
+            raise cherrypy.HTTPRedirect("user")
 
         password_form = html.form(
             html.table(
                 html.tbody(
-                    html.tr([
-                            html.th("Old Password:") + html.td(html.input(att='type="password" name="old_password"')),
+                    html.tr(old_pass + [
                             html.th("New Password:") + html.td(html.input(att='type="password" name="new_password1"')),
                             html.th("New Password (again):") + html.td(html.input(att='type="password" name="new_password2"')),
                             html.td(html.input(att='type="submit" value="Change Password"'), att='colspan="2"')
@@ -1132,18 +1148,23 @@ class ZfsBackupManager:
         error_message = ""
         info_message = ""
 
+        # Admins are exempt from requiring old password for other users.
         if old_password is None and new_password1 is None and new_password2 is None:
             pass
-        elif old_password is None or new_password1 is None or new_password2 is None:
+        elif (user is None and old_password is None) or new_password1 is None or new_password2 is None:
             error_message = "Not all passwords supplied."
         elif new_password1 != new_password2:
             error_message = "New passwords do not match."
         elif len(new_password1) < 6:
             error_message = "New password must be at least six characters long."
         else:
-            auth_check = auth.check_credentials(username, old_password)
+            if user is None:
+                auth_check = auth.check_credentials(username, old_password)
+            else:
+                auth_check = [None]
             if auth_check[0] is None:
                 # All good. Set the new password.
+                print username, new_password1
                 auth.reset_password(username, new_password1)
                 info_message = "Password successfully changed."
             else:
@@ -1155,7 +1176,7 @@ class ZfsBackupManager:
             error_message = html.p(html.span(error_message, att='class="error_message"'))
 
         return page.page("Change Password",
-            html.h1("Change Password")
+            html.h1(heading)
             + info_message
             + error_message
             + password_form)
