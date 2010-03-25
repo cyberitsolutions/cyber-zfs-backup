@@ -986,7 +986,7 @@ class ZfsBackupManager:
             warn = ""
             error = False
             action = html.h2("Action:")
-            args = {"user": user, "comp": comp, "comm": comm, "extra": extra, "action": "confirm" }
+            args = {"user": user, "comp": comp, "comm": comm, "extra": extra, "action": "confirm", "value": value }
 
             form = html.form(
                 "".join([ html.input(att='type="hidden" name="%s" value="%s"' %
@@ -1037,7 +1037,7 @@ class ZfsBackupManager:
                     if cur[0] == value:
                         raise cherrypy.HTTPRedirect("admin_user")
                     if confirm == "confirm":
-                        db.do("update all_users set full_name = %(value)s", vars())
+                        db.do("update all_users set full_name = %(value)s where username = %(user)s", vars())
                     else:
                         action += "Change full name of user &lsquo;%s&rsquo; from &lsquo;%s&rsquo; to &lsquo;%s&rsquo;." % (user, cur[0], value)
                 elif extra == "company":
@@ -1047,7 +1047,7 @@ class ZfsBackupManager:
                         # TODO: need an admin_company page
                         raise cherrypy.HTTPRedirect("admin")
                     if confirm == "confirm":
-                        db.do("update all_companies set long_name = %(value)s", vars())
+                        db.do("update all_companies set long_name = %(value)s where name = %(comp)s", vars())
                     else:
                         action += "Change name of company &lsquo;%s&rsquo; from &lsquo;%s&rsquo; to &lsquo;%s&rsquo;." % (comp, cur[0], value)
                 else:
