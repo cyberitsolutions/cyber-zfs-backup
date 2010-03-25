@@ -600,7 +600,8 @@ class ZfsBackupManager:
             ## Username ##
             row += html.td(u[0])
             ## Full name ##
-            row += field("text", "name", comp=u[3], user=u[0], value=u[1])
+            row += field("text", "name", comp=u[3], user=u[0], value=u[1],
+                extra=html.input(att='type="hidden" name="extra" value="user"') )
             ## Company ##
             if auth.user_is_global_admin():
                 company_th = html.th("Company")
@@ -1028,6 +1029,29 @@ class ZfsBackupManager:
                         action += "Delete user &lsquo;%s&rsquo;." % user
                 else:
                     warn = "Unknown delete type &lsquo;%s&rsquo;" % extra
+                    error = True
+            elif comm == "name":
+                if extra == "user":
+                    cur = db.get1("select full_name from all_users where username = %(user)s", vars())
+                    # ignore no-op
+                    if cur[0] == value:
+                        raise cherrypy.HTTPRedirect("admin_user")
+                    if confirm == "confirm":
+                        db.do("update all_users set full_name = %(value)s", vars())
+                    else:
+                        action += "Change full name of user &lsquo;%s&rsquo; from &lsquo;%s&rsquo; to &lsquo;%s&rsquo;." % (user, cur[0], value)
+                elif extra == "company":
+                    cur = db.get1("select long_name from all_companies where name = %(comp)s", vars())
+                    # ignore no-op
+                    if cur[0] == value:
+                        # TODO: need an admin_company page
+                        raise cherrypy.HTTPRedirect("admin")
+                    if confirm == "confirm":
+                        db.do("update all_companies set long_name = %(value)s", vars())
+                    else:
+                        action += "Change name of company &lsquo;%s&rsquo; from &lsquo;%s&rsquo; to &lsquo;%s&rsquo;." % (comp, cur[0], value)
+                else:
+                    warn = "Unknown name type &lsquo;%s&rsquo;" % extra
                     error = True
             else:
                 warn = "Unsupported feature &lsquo;%s&rsquo;." % comm
