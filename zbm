@@ -845,6 +845,7 @@ class ZfsBackupManager:
             links.append(html.a("Manage companies", att='href="admin_company"'))
         else:
             links.append(html.a("Manage company", att='href="admin_company"'))
+        links.append(html.a("Manage shares", att='href="admin_share"'))
         # Only global admins can create new customers and shares
         if auth.user_is_global_admin():
             links.insert(2, html.a("Create new customer company", att='href="new_cust"'))
