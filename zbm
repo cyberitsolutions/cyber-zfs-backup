@@ -579,11 +579,52 @@ class ZfsBackupManager:
             att += ' multiple'
         return html.select(opts, att=att)
 
-    def admin_user_table(self, company_name, all_companies):
+    def admin_company_table(self):
+        if auth.user_is_global_admin():
+            comps = db.get("select name, long_name, email, disabled from \
+                all_companies order by name", vars())
+        else:
+            lstatus = auth.login_status()
+            user = lstatus[0]
+            comps = db.get("select c.name, long_name, email, disabled from \
+                all_companies as c left join admins on c.name = admins.company_name where \
+                admins.username = %(user)s order by name", vars())
+        rows = []
+        for c in comps:
+            row = ''
+            ## Company name ##
+            row += html.td(c[0])
+            ## Long name ##
+            row += field("text", "name", comp=c[0], value=c[1],
+                extra=html.input(att='type="hidden" name="extra" value="company"') )
+            ## Email ##
+            row += field("text", "email", comp=c[0], value=c[2],
+                extra=html.input(att='type="hidden" name="extra" value="company"') )
+            ## Disable ##
+            if c[3]:
+                row += field("submit", "enable", comp=c[0], value="Enable",
+                    extra=html.input(att='type="hidden" name="extra" value="company"') )
+            else:
+                row += field("submit", "disable", comp=c[0], value="Disable",
+                    extra=html.input(att='type="hidden" name="extra" value="company"') )
+            rows.append(row)
+        rows = html.tr(rows)
+
+        table = html.table( html.thead(
+            html.tr( [
+            html.th("Company")
+            + html.th("Company name")
+            + html.th("Email")
+            + html.th("Disable")
+            ] )
+            ) + rows )
+        return table
+
+    # all_companies is needed for the company selection combobox
+    def admin_user_table(self, company, all_companies):
         """Returns a table of users in the supplied company_name
-        company_name should be a tuple (company_name,company_fullname)"""
-        company = company_name
-        if company[0] is None:
+        company should be a tuple (company_name,company_fullname)"""
+        if company is None or company[0] is None:
             users = db.get("select users.username, full_name, email, users.company_name, users.disabled from \
                 all_users as users \
                 where users.company_name is null \
@@ -618,7 +659,7 @@ class ZfsBackupManager:
             if not auth.user_is_global_admin() and auth.user_is_global_admin(u[0]):
                 row += html.td("Yes &lt;All&gt;")
             else:
-                if auth.user_is_admin(u[0], company_name[0]):
+                if auth.user_is_admin(u[0], company[0]):
                     checked = "checked"
                 else:
                     checked = ""
@@ -692,6 +733,23 @@ class ZfsBackupManager:
 
             return page.page("User Admin",
                 html.h1(heading)
+                + tables)
+        else:
+            # If a non-admin tries to go to the admin page, redirect to the user page rather than cause a 403
+            raise cherrypy.HTTPRedirect("user")
+
+    @expose
+    @require()
+    def admin_company(self):
+        """Page to manage customers/client companies"""
+        lstatus = auth.login_status()
+        username = lstatus[0]
+        company_name = lstatus[2]
+        company_fullname = lstatus[3]
+        if auth.user_is_any_admin(username):
+            tables = self.admin_company_table()
+            return page.page("Company Admin",
+                html.h1("Company Admin")
                 + tables)
         else:
             # If a non-admin tries to go to the admin page, redirect to the user page rather than cause a 403
@@ -968,6 +1026,7 @@ class ZfsBackupManager:
     def admin_confirm(self, **keyw):
         lstatus = auth.login_status()
         luser = lstatus[0]
+        lcomp = lstatus[2]
         # TODO: clean up this retrieval stuff
         # Get the request instructions from the form field name
         if "value" not in keyw or keyw["value"] == "NULL":
@@ -1007,6 +1066,16 @@ class ZfsBackupManager:
                         action += "Disable user &lsquo;%s&rsquo;." % user
                         if user == luser:
                             warn = "This will disable your login and prevent you from administrating."
+                elif extra == "company":
+                    redirect = "admin_company"
+                    if confirm == "confirm":
+                        db.do("update all_companies set disabled = true where name = %(comp)s", vars())
+                    else:
+                        action += "Disable company &lsquo;%s&rsquo;." % comp
+                        if comp == lcomp:
+                            warn = "This will disable all users and shares for this company and prevent you from logging in and administrating."
+                        else:
+                            warn = "This will disable all users and shares for this company."
                 else:
                     warn = "Unknown disable type &lsquo;%s&rsquo;" % extra
                     error = True
