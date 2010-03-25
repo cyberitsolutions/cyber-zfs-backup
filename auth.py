@@ -134,6 +134,12 @@ def user_is_any_admin(username=None):
         username = cherrypy.session.get(USER_NAME)
     return db.get1("select count(1) from admins where username = %(username)s", vars())[0] > 0
 
+def user_company(username=None):
+    """Return the company the user is in"""
+    if username is None:
+        username = cherrypy.session.get(USER_NAME)
+    return db.get1("select company_name from users where username = %(username)s", vars())[0]
+
 cherrypy.tools.auth = cherrypy.Tool('before_handler', check_auth)
 
 def require(*conditions):
