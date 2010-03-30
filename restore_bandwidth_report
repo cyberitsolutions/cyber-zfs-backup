@@ -1,0 +1,109 @@
+#!/usr/bin/perl -w
+
+use strict;
+use Data::Dumper;
+
+######################################################################
+# Functions.
+
+# File size stuff.
+my @file_size_class = (
+    [1024, ' B'],
+    [1024**2, 'KB'],
+    [1024**3, 'MB'],
+    [1024**4, 'GB'],
+    [1024**5, 'TB']
+);
+
+sub filesize_exp {
+	my $size = shift;
+	my $s = $file_size_class[0];
+
+	if ($size < $s->[0]) { return $size; }
+
+	my $len = scalar(@file_size_class);
+	$s = $file_size_class[$len-1];
+	if (not $size < $s->[0]) {
+		return sprintf("%0.1f%s", $size/($s->[0]/1024.0), $s->[1]);
+	}
+
+	foreach $s (@file_size_class[1..($len-1)]) {
+		if ($size < $s->[0]) {
+			return sprintf("%0.1f%s", $size/($s->[0]/1024.0), $s->[1])
+		}
+	}
+}
+
+######################################################################
+# Main.
+
+# Note that /var/log/apache2 is a manually-maintained softlink!
+my $ACCESS_LOG = "/var/log/apache2/access_log";
+
+# Get the month date expression we need to grep for.
+# Note that this requires GNU date.
+#LAST_MONTH=$( date -d '-'`date +%d`' day' +%b/%Y )
+my $dom = `date +%d`;
+chomp $dom;
+my $LAST_MONTH = `date -d '-$dom day' +%b/%Y`;
+chomp $LAST_MONTH;
+my $PERIOD_DESC = `date -d '-$dom day' '+%B %Y'`;
+chomp $PERIOD_DESC;
+
+open(F, $ACCESS_LOG) or die "Couldn't open $ACCESS_LOG: $!\n";
+
+my %company_records = ();
+
+my $line;
+while ($line = <F>) {
+	chomp $line;
+	if ($line =~ m/^(\S+) - (\w+) \[(\d+)\/$LAST_MONTH:.*\bGET \/restore\/([^\/ ]+)\/(restore_\S*) HTTP.* 200 (\d+)$/) {
+		my $ip = $1;
+		my $username = $2;
+		my $day_of_month = $3;
+		my $company = $4;
+		my $filename = $5;
+		my $num_bytes = $6;
+
+		if (not defined($company_records{$company})) {
+			$company_records{$company} = [];
+		}
+		push(@{$company_records{$company}}, {
+					ip => $ip,
+					username => $username,
+					filename => $filename,
+					num_bytes => $num_bytes,
+					line => $line
+				});
+	}
+}
+close(F);
+
+print "Period: $PERIOD_DESC\n\n";
+my ($company, $bandwidth);
+format STDOUT_TOP =
+COMPANY           BANDWIDTH
+---------------------------
+.
+format STDOUT =
+@<<<<<<<<<<<<<<<< @>>>>>>>>
+$company,         $bandwidth
+.
+
+foreach $company (sort keys %company_records) {
+	my $total_bytes = 0;
+	foreach my $rec (@{$company_records{$company}}) {
+		$total_bytes += $rec->{num_bytes};
+	}
+	$bandwidth = &filesize_exp($total_bytes);
+	write;
+}
+
+foreach $company (sort keys %company_records) {
+	print "\n$company\n";
+	print "=" x 30 . "\n";
+	foreach my $rec (@{$company_records{$company}}) {
+		print $rec->{line} . "\n";
+	}
+}
+
