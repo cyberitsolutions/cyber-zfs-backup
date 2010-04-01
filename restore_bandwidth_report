@@ -42,12 +42,13 @@ my $ACCESS_LOG = "/var/log/apache2/access_log";
 
 # Get the month date expression we need to grep for.
 # Note that this requires GNU date.
+my $GNU_DATE = "/usr/gnu/bin/date";
 #LAST_MONTH=$( date -d '-'`date +%d`' day' +%b/%Y )
-my $dom = `date +%d`;
+my $dom = `$GNU_DATE +%d`;
 chomp $dom;
-my $LAST_MONTH = `date -d '-$dom day' +%b/%Y`;
+my $LAST_MONTH = `$GNU_DATE -d '-$dom day' +%b/%Y`;
 chomp $LAST_MONTH;
-my $PERIOD_DESC = `date -d '-$dom day' '+%B %Y'`;
+my $PERIOD_DESC = `$GNU_DATE -d '-$dom day' '+%B %Y'`;
 chomp $PERIOD_DESC;
 
 open(F, $ACCESS_LOG) or die "Couldn't open $ACCESS_LOG: $!\n";
