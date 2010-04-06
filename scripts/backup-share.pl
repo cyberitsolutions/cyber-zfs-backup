@@ -49,12 +49,12 @@ if ( -T $config_hack_file ) {
 }
 
 $rsync_source = "$source_userhost:$source_path";
-$rsync_transport_auth = "-e 'ssh -i $authfile'";
+$rsync_transport_auth = "-e 'ssh -i $authfile -o ServerAliveInterval=30 -o ServerAliveCountMax=10'";
 $target_fs = "$hosted_backup_backups_fs/$client/$source_host:$source_path_colon";
 $rsync_target_dir = "/$target_fs";
 
 # XXX THIS IS FUCKED. IT IS NOW TIME TO THROW THIS OUT AND START AGAIN WITH AN ACTUAL SPEC.
-$rsync_transport_auth = "-e 'ssh -p 5250 -i $authfile'" if $client eq "palletcontrol";
+$rsync_transport_auth = "-e 'ssh -p 5250 -i $authfile -o ServerAliveInterval=30 -o ServerAliveCountMax=10'" if $client eq "palletcontrol";
 
 # $cmd_zfs_create = qq(zfs create -p $target_fs);
 $cmd_rsync = qq(rsync $rsync_standard_args $rsync_transport_auth $config_hack '$rsync_source/.' '$rsync_target_dir/.' > '$rsync_target_dir.$backup_stamp.out' 2> '$rsync_target_dir.$backup_stamp.err');
