@@ -176,8 +176,19 @@ def split_share_from_path(share_plus_path):
 def share_plus_path_to_archive_path(share_plus_path):
     """ Returns an expression suitable for use as an archive path. """
     ( share, path ) = split_share_from_path(share_plus_path)
-    # FIXME: Crude and kludgy way to exclude the leading '/' from path.
-    return os.path.join(share, path[1:])
+
+    # Bugfix for invalid (colon) characters in the snapshot name.
+    # Normally snapshot dirs look like this: "2010-03-24T14:05:31Z".
+    #
+    # This can't be allowed for a Windows system, as ':' is not a valid
+    # character.
+    m = re.match('^/([^/]+)(/.*)$', path)
+    if not m:
+        raise InaccessiblePathError("Bad path: \"%s\"" % path)
+    snapdir = m.group(1)
+    postsnap = m.group(2)
+    decolonised_snapdir = re.sub(':', '_', snapdir)
+    return os.path.join(share, decolonised_snapdir + postsnap)
 
 class FileSpec:
     def __init__(self, chrooted_path, share, name=False, disk_usage=None, apparent_size=None, mtime=None):
