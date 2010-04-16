@@ -21,7 +21,7 @@ html_4_01_strict = '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://ww
 
 ######################################################################
 # HTML tag handler.
-def tag(tagname, items, attributes='', close=True):
+def tag(tagname, items, attributes='', close=True, newline=True):
     if attributes != '': attributes = ' ' + attributes
     start = '<' + tagname + attributes + '>'
     end = ''
@@ -31,18 +31,21 @@ def tag(tagname, items, attributes='', close=True):
         items = [items]
     for i in items:
         retval += "%s%s%s" % ( start, i, end )
-    return retval
+    if newline:
+        return retval + "\n"
+    else:
+        return retval
 
 
 ######################################################################
 # HTML tag wrapper functions.
 
 # Formatting.
-def a(data='', att=''): return tag('a', data, att)
-def b(data='', att=''): return tag('b', data, att)
-def i(data='', att=''): return tag('i', data, att)
-def em(data='', att=''): return tag('em', data, att)
-def strong(data='', att=''): return tag('em', data, att)
+def a(data='', att=''): return tag('a', data, att, newline=False)
+def b(data='', att=''): return tag('b', data, att, newline=False)
+def i(data='', att=''): return tag('i', data, att, newline=False)
+def em(data='', att=''): return tag('em', data, att, newline=False)
+def strong(data='', att=''): return tag('em', data, att, newline=False)
 
 def p(data='', att=''): return tag('p', data, att)
 def br(data='', att=''): return tag('br', data, att, close=False)
@@ -67,13 +70,14 @@ def script(data='', att=''): return tag('script', data, att)
 def table(data='', att=''): return tag('table', data, att)
 def thead(data='', att=''): return tag('thead', data, att)
 def tbody(data='', att=''): return tag('tbody', data, att)
+def tfoot(data='', att=''): return tag('tfoot', data, att)
 def tr(data='', att=''): return tag('tr', data, att)
 def td(data='', att=''): return tag('td', data, att)
 def th(data='', att=''): return tag('th', data, att)
 
 # Misc.
 def hr(data='', att=''): return tag('hr', data, att, close=False)
-def img(data='', att=''): return tag('img', data, att, close=False)
+def img(data='', att=''): return tag('img', data, att, close=False, newline=False)
 
 # Lists.
 def ul(data='', att=''): return tag('ul', data, att)
@@ -85,7 +89,7 @@ def dt(data='', att=''): return tag('dt', data, att)
 
 # Forms.
 def form(data='', att=''): return tag('form', data, att)
-def input(data='', att=''): return tag('input', data, att)
+def input(data='', att=''): return tag('input', data, att, close=False, newline=False)
 def textarea(data='', att=''): return tag('textarea', data, att)
 def option(data='', att=''): return tag('option', data, att)
 def select(data='', att=''): return tag('select', data, att)

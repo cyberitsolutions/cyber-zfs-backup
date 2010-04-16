@@ -35,6 +35,9 @@ import restore_spec
 # Filesystem-browsing functionality.
 import browse
 
+# Functions for validating fancy user credentials.
+import validation
+
 local_dir = os.path.join(os.getcwd(), os.path.dirname(__file__))
 
 # File size stuff.
@@ -152,6 +155,53 @@ def tr_filespec(rs, file_spec, revolver=None):
 def can_access_parent(path):
     return not ( path == '/' or path == '' )
 
+def field(i_type, comm, comp, user=None, share=None, value="", extra=""):
+    """Returns td{form{set of inputs} + extra}"""
+    el = ""
+    submit = ""
+    if value is None:
+        value = ""
+    elif i_type == "text" and value in [True, False]:
+        if value:
+            value = "Yes"
+        else:
+            value = "No"
+
+    if comp is None:
+        comp = ""
+
+    if user is None:
+        user = ""
+
+    if i_type == "checkbox":
+        if value:
+            checked = "checked"
+        else:
+            checked = ""
+        el = html.input(att='type="%s" name="value" %s value="true"' % (i_type, checked))
+    elif i_type:
+        el = html.input(att='type="%s" name="value" value="%s"' % (i_type, value))
+    if i_type != "submit":
+            submit = html.input(att='type="submit" value="Set"')
+
+    if share:
+        share = html.input(att='type="hidden" name="share" value="%s"' % share)
+    else:
+        share = ""
+
+    return html.td(
+        html.form(
+            html.input(att='type="hidden" name="user" value="%s"' % user)
+            + html.input(att='type="hidden" name="comp" value="%s"' % comp)
+            + html.input(att='type="hidden" name="comm" value="%s"' % comm)
+            + share
+            + el
+            + extra
+            + submit
+            , att='class="borderless" action="admin_confirm" method="post"'
+            )
+        )
+
 class EmptyRevolverError(Exception):
     def __init__(self, value):
         self.value = value
@@ -175,10 +225,10 @@ class Revolver:
             self._index = 0
         return rv
 
-def dir_box(rs, share, chrooted_path):
-    dir_filespec = browse.FileSpec(chrooted_path, share)
+def dir_box(rs, share, chrooted_path, page_num, company_name=None):
+    dir_filespec = browse.FileSpec(chrooted_path, share, company_name=company_name)
     escaped_share_plus_path = cgi.escape(dir_filespec.share_plus_path, quote=True)
-    dir_contents = browse.get_dir_contents(chrooted_path, share)
+    page_count, dir_contents = browse.get_dir_contents(chrooted_path, share, page_num, company_name=company_name)
 
     def all_directly_included(rs, fs):
         for f in fs:
@@ -194,6 +244,7 @@ def dir_box(rs, share, chrooted_path):
         select_all_extra = " checked"
 
     select_all_checkbox = html.input(att='id="select_all" name="spath:%s" title="Select/deselect all" type="checkbox"%s' % ( escaped_share_plus_path, select_all_extra ))
+
     dir_header = html.thead(html.tr(html.th([select_all_checkbox, 'Type', 'Size', 'Name', 'Ext', 'Last Modified', 'Age'])))
 
     parent_dir_html = ""
@@ -209,7 +260,7 @@ def make_file_spec(company_name, share_name, path):
     """ Returns a FileSpec from a company_name, share_name, path. """
     sp = chroot.build_share_path(company_name, share_name)
     mychroot = chroot.Chroot(sp)
-    return browse.FileSpec(mychroot.chrooted_path(path), share_name)
+    return browse.FileSpec(mychroot.chrooted_path(path), share_name, company_name=company_name)
 
 def make_file_download_link(filename):
     """ Return a (redirecting) download link for a restore file. """
@@ -226,7 +277,7 @@ class ZfsBackupManager:
     @expose
     @require()
     def index(self):
-        return self.show()
+        return self.browse()
 
     @expose
     @require()
@@ -294,18 +345,7 @@ class ZfsBackupManager:
             restore_path_rows = string.join([ ifs_to_row(ifs) for ifs in included_filespecs ])
             restore_display = form + html.table(ifs_header + html.tbody(restore_path_rows), att='style="margin-left:10px" class="tablesorter restore_display"')
         else:
-            form = html.form(
-                html.table(
-                    html.tbody(
-                        html.tr(
-                            html.td([
-                                html.input(att='name="retrieve_restore" type="submit" value="Return to previous cart" title="Go back to your previous set of restore files."'),
-                            ]))),
-                    att='class="borderless restore_action" style="text-align:left"'),
-                att='name="restore" method="post" action="/backup/action"')
-            if db.get1("select count(1) from restores where username = %(username)s and not active", vars()) == 0:
-                form = ""
-            restore_display = html.p("Your current cart is empty.") + form
+            restore_display = html.p("Your current cart is empty.")
 
         if message is None:
             message = ""
@@ -317,46 +357,84 @@ class ZfsBackupManager:
         running_total_size = ''
         if rs.disk_usage_running_total > 0:
             running_total_size = html.p("Running total size is %s." % ( html.span(filesize_exp(rs.disk_usage_running_total), att='class="running_total_size"') ))
-        return page.page("Datasafe/R - Cart",
+        return page.page("Cart",
             html.h1("Cart")
             + message
-            + self.restore_dir_contents()
             + running_total_size 
             + restore_display 
+            + self.restore_dir_contents()
             )
 
     @expose
     @require()
-    def browse(self, share=None, path="/"):
+    def browse(self, share=None, path="/", company_name=None, page_num=1):
 
+        companies = auth.get_user_admin_companies()
         # Info from session.
-        company_name = cherrypy.session.get(auth.COMPANY_NAME)
+        comp = (cherrypy.session.get(auth.COMPANY_NAME), cherrypy.session.get(auth.COMPANY_FULLNAME))
+        # Don't add the logged-in company to the list if it's already there
+        if comp not in companies:
+            companies.append(comp)
+        companies = [x[0] for x in companies if validation.company_exists(x[0])]
 
         # Okay, how to handle share....?
-        if share is None:
-            # We must return a list of available shares.
-            available_shares = [ s[0] for s in db.get("select name from shares where company_name = %(company_name)s", vars()) ]
-            links = [ html.a(s, att='href="/backup/browse?share=%s"' % ( cgi.escape(s, quote=True) )) for s in available_shares ]
+        if share is None or (company_name and company_name not in companies):
+            def prettify(s):
+                # Some sort of standard needs to be enforced for share names.
+                # At the moment, assuming host:path/to/share
+                chunks = s.split(':')
+                host = chunks[0]
+                if len(chunks) > 1:
+                    if chunks[1] in ('.', ''):
+                        # Looks like this should be a '/'.
+                        path = '/'.join([''] + max(chunks[2:], ['']))
+                    elif len(chunks[1]) == 1:
+                        # Looks like a Windows drive letter.
+                        # Probably need a more robust check.
+                        path = "%s:/%s"%(chunks[1], "/".join(chunks[2:]))
+                    else:
+                        path = "/".join([''] + chunks[1:])
+                    # Delimit host and path with an em-dash because : is ugly.
+                    return "%s &mdash; %s"%(host, path)
+                else:
+                    return host
+            share_section = ""
+            for company_name in companies:
+                if len(companies) > 1:
+                    share_section += html.h2(company_name)
+                available_shares = [ s[0] for s in db.get("select name from shares where company_name = %(company_name)s", vars()) ]
+                if auth.user_is_multi_admin():
+                    add_href = "&company_name=" + cgi.escape(company_name, quote=True)
+                else:
+                    add_href = ""
+                links = [ html.a(prettify(s), att='href="/backup/browse?share=%s%s"' % ( cgi.escape(s, quote=True), add_href )) for s in available_shares ]
+                share_section += html.ul(html.li(links))
 
-            return page.page("Datasafe/R - Select Share",
+            return page.page("Select Share",
                 html.h1("Select Share")
-                + html.ul(html.li(links)))
+                + share_section )
+        if not company_name and auth.user_is_multi_admin():
+            company_name = companies[0]
 
         rs = restore_spec.RestoreSpec()
         error_message = ""
         dir_box_html = ""
         try:
+            if company_name:
+                comp = company_name
+            else:
+                comp = cherrypy.session.get(auth.COMPANY_NAME)
             # Now we use the company and share names to construct the chroot.
-            sp = chroot.build_share_path(company_name, share)
+            sp = chroot.build_share_path(comp, share)
 
             mychroot = chroot.Chroot(sp)
             chrooted_path = mychroot.chrooted_path(path)
             # Supply the share name as well as the chrooted path.
-            dir_box_html = dir_box(rs, share, chrooted_path)
+            dir_box_html = dir_box(rs, share, chrooted_path, page_num, company_name=company_name)
         except chroot.BadChrootPath, e:
             error_message = html.p(html.span(str(e), att='class="error_message"'))
         download_link = html.div(html.a("View Cart", att='href="/backup/show"'), att='class="funcright"')
-        return page.page("Datasafe/R - Browse Share",
+        return page.page("Browse Share",
             download_link
             + html.h1(pathname_dirlink(share, path), att='class="dirlink"')
             + error_message
@@ -371,8 +449,13 @@ class ZfsBackupManager:
         company_name = cherrypy.session.get(auth.COMPANY_NAME)
         company_restore_dir = os.path.join(cfg.RESTORE_BASE_DIR, company_name)
         contents = os.listdir(company_restore_dir)
-        contents.sort()
-        return html.ul(html.li([ make_file_download_link(filename) + html.nbsp() + "(" + filesize_exp(os.lstat(os.path.join(cfg.RESTORE_BASE_DIR, company_name, filename))[6]) + ")" for filename in contents ]))
+        if len(contents):
+            # The timestamp will appear after the last '_' in the filename. Sort by that instead of sorting by the restore ID with string comparison.
+            contents.sort(key=lambda x: x[x.rindex('_')+1:], reverse=True)
+            return html.h3("Available restores:") + \
+                html.ul(html.li([ make_file_download_link(filename) + html.nbsp() + "(" + filesize_exp(os.lstat(os.path.join(cfg.RESTORE_BASE_DIR, company_name, filename))[6]) + ")" for filename in contents ]))
+        else:
+            return ""
 
     @expose
     @require()
@@ -400,7 +483,7 @@ class ZfsBackupManager:
         download_file_size_expression = filesize_exp(os.lstat(download_file_path)[6])
 
         content_vars = {
-            'human_readable_datetime' : str(datetime.now()),
+            'human_readable_datetime' : datetime.now().strftime("%b %d %Y %H:%M:%S"),
             'download_url' : cfg.RESTORE_BASE_URL + '/' + download_url,
             'username' : username,
             'full_name' : full_name,
@@ -421,42 +504,806 @@ class ZfsBackupManager:
     @expose
     @require()
     def action(self, **kwargs):
+        result = False
+        message = None
         rs = restore_spec.RestoreSpec()
         if 'retrieve_restore' in kwargs:
             restore_spec.retrieve_previous_restore()
-            return self.show(message="Returned to previous cart.")
+            message = "Returned to previous cart."
         if 'cancel_restore' in kwargs:
             restore_spec.cancel_current_restore()
-            return self.show(message="Cart emptied.")
+            message = "Cart emptied."
         if 'create_tarball' in kwargs:
             ( result, partname ) = restore_spec.create_restore_file(rs, "tar")
             if result:
-                message = "Successfully created tarball: %s" % ( make_file_download_link(partname) )
+                link_type = 'tarball'
             else:
                 message = "Failed to create tarball: %s" % ( partname )
-            return self.show(message=message)
         if 'create_zipfile' in kwargs:
             ( result, partname ) = restore_spec.create_restore_file(rs, "zip")
             if result:
-                message = "Successfully created zipfile: %s" % ( make_file_download_link(partname) )
+                link_type = 'zip file'
             else:
-                message = "Failed to create zipfile: %s" % ( partname )
-            return self.show(message=message)
+                message = "Failed to create zip file: %s" % ( partname )
+        # Once a restore is successfully created, clear out the cart
+        if result:
+            message = "Successfully created %s. Click to download: %s" % ( link_type, make_file_download_link(partname) )
+            restore_spec.cancel_current_restore()
 
-        return self.show()
+        return self.show(message=message)
 
     @expose
     @require()
-    def user(self, old_password=None, new_password1=None, new_password2=None):
-        error_message = ""
+    def user(self):
+        sections = []
+        lstatus = auth.login_status()
+        company_name = cherrypy.session.get(auth.COMPANY_NAME)
+        username = lstatus[0]
+
+        view_link = html.a("Your shares", att='href="/backup/browse" title="Browse your shares"')
+
+        # Yanked from browse()
+        available_shares = [ s[0] for s in db.get("select name from shares where company_name = %(company_name)s", vars()) ]
+
+        links = []
+        for share in available_shares:
+            snap_path = os.path.abspath(chroot.build_share_path(company_name, share))
+            if (os.path.isdir(snap_path)):
+                # Try to get the most recent snapshot (assume sensible sorting facility)
+                last_snap = "%s/%s" % ( snap_path, sorted(os.listdir(snap_path))[-1] )
+                size = db.get1("select apparent_size from filesystem_info where path = %(last_snap)s", vars())[0]
+                links.append("%s (%s)" % ( html.a(share, att='href="/backup/browse?share=%s"' % ( cgi.escape(share, quote=True) )), filesize_html(size) ))
+            
+        share_num = "You have %d shares." % len(links)
+        sections.append(html.h2(view_link) + share_num + html.ul(html.li(links)))
+
+        passwd_link = html.a("Change your password", att='href="/backup/password"')
+        sections.append(html.h2(passwd_link))
+
+        # TODO: Provide change email facility.
+
+        return page.page("Account " + username,
+            html.h1("User account - " + username)
+            + "".join(sections))
+
+    def company_combobox(self, name, companies, selected=None, allow_null=True, null_text="&lt;None&gt;", multi=False):
+        opts=''
+        if allow_null:
+            if selected is None or (not isinstance(selected, basestring) and None in selected):
+                att = 'selected '
+            else:
+                att = ''
+            opts = html.option(null_text, att + 'value="NULL"')
+        for c in companies:
+            if selected is not None and (c[0] == selected or (not isinstance(selected, basestring) and c[0] in selected)):
+                att = 'selected '
+            else:
+                att = ''
+            opts += html.option(c[1], att + 'value="%s"' % c[0])
+        att = 'name="%s"' % name
+        if multi:
+            att += ' multiple'
+        return html.select(opts, att=att)
+
+    def admin_company_table(self):
+        if auth.user_is_global_admin():
+            comps = db.get("select name, long_name, email, disabled from \
+                all_companies order by name", vars())
+        else:
+            lstatus = auth.login_status()
+            user = lstatus[0]
+            comps = db.get("select c.name, long_name, email, disabled from \
+                all_companies as c left join admins on c.name = admins.company_name where \
+                admins.username = %(user)s order by name", vars())
+        rows = []
+        for c in comps:
+            row = ''
+            ## Company name ##
+            row += html.td(c[0])
+            ## Long name ##
+            row += field("text", "name", comp=c[0], value=c[1],
+                extra=html.input(att='type="hidden" name="extra" value="company"') )
+            ## Email ##
+            row += field("text", "email", comp=c[0], value=c[2],
+                extra=html.input(att='type="hidden" name="extra" value="company"') )
+            ## Disable ##
+            if c[3]:
+                row += field("submit", "enable", comp=c[0], value="Enable",
+                    extra=html.input(att='type="hidden" name="extra" value="company"') )
+            else:
+                row += field("submit", "disable", comp=c[0], value="Disable",
+                    extra=html.input(att='type="hidden" name="extra" value="company"') )
+            rows.append(row)
+        rows = html.tr(rows)
+
+        table = html.table( html.thead(
+            html.tr( [
+            html.th("Company")
+            + html.th("Company name")
+            + html.th("Email")
+            + html.th("Disable")
+            ] )
+            ) + rows )
+        return table
+
+    def admin_share_table(self, company):
+        if auth.user_is_global_admin():
+            shares = db.get("select name, disabled from all_shares where company_name = %(company)s order by name", vars())
+        else:
+            lstatus = auth.login_status()
+            user = lstatus[0]
+            shares = db.get("select s.name, disabled from \
+                all_shares as s left join admins on s.company_name = admins.company_name where \
+                admins.username = %(user)s order by name", vars())
+        rows = []
+        for s in shares:
+            row = ''
+            ## Share name ##
+            row += html.td(s[0])
+            ## Disable ##
+            if s[1]:
+                row += field("submit", "enable", comp=company, share=s[0], value="Enable",
+                    extra=html.input(att='type="hidden" name="extra" value="share"') )
+            else:
+                row += field("submit", "disable", comp=company, share=s[0], value="Disable",
+                    extra=html.input(att='type="hidden" name="extra" value="share"') )
+            rows.append(row)
+        rows = html.tr(rows)
+
+        table = html.table( html.thead(
+            html.tr( [
+            html.th("Share")
+            + html.th("Disable")
+            ] )
+            ) + rows )
+        return table
+
+    # all_companies is needed for the company selection combobox
+    def admin_user_table(self, company, all_companies):
+        """Returns a table of users in the supplied company_name
+        company should be a tuple (company_name,company_fullname)"""
+        if company is None or company[0] is None:
+            users = db.get("select users.username, full_name, email, users.company_name, users.disabled from \
+                all_users as users \
+                where users.company_name is null \
+                order by users.username")
+        else:
+            c = company[0]
+            users = db.get("select username, full_name, email, company_name, disabled from \
+                all_users where company_name = %(c)s order by username", vars())
+
+        rows = []
+        company_th = ''
+        for u in users:
+            row = ''
+            ## Username ##
+            row += html.td(u[0])
+            ## Full name ##
+            row += field("text", "name", comp=u[3], user=u[0], value=u[1],
+                extra=html.input(att='type="hidden" name="extra" value="user"') )
+            ## Company ##
+            if auth.user_is_global_admin():
+                company_th = html.th("Company")
+                row += field(None, "company", comp=u[3], user=u[0],
+                    extra=self.company_combobox('value', all_companies, selected=u[3])
+                )
+            ## Password ##
+            row += field("submit", "password", comp=u[3], user=u[0], value="Change password")
+            ## Email ##
+            row += field("text", "email", comp=u[3], user=u[0], value=u[2],
+                extra=html.input(att='type="hidden" name="extra" value="user"') )
+            ## Admin ##
+            # Only Global admins should be allowed to change other Global admin settings
+            if not auth.user_is_global_admin() and auth.user_is_global_admin(u[0]):
+                row += html.td("Yes &lt;All&gt;")
+            else:
+                if auth.user_is_admin(u[0], company[0]):
+                    checked = "checked"
+                else:
+                    checked = ""
+                extra = ""
+                if auth.user_is_multi_admin():
+                    my_username = auth.login_status()[0]
+                    if auth.user_is_global_admin():
+                        my_comps = all_companies
+                    else:
+                        my_comps = auth.get_user_admin_companies()
+                    their_username = u[0]
+                    their_comps = [x[0] for x in auth.get_user_admin_companies(their_username, allow_null=True)]
+                    extra = self.company_combobox('extra', my_comps
+                        , multi=True, selected=their_comps
+                        , allow_null = auth.user_is_global_admin(), null_text="&lt;All&gt;"
+                    )
+                row += field("checkbox", "admin", comp=u[3], user=u[0], value=checked, extra=extra)
+            ## Disable ##
+            if u[4]:
+                row += field("submit", "enable", comp=u[3], user=u[0], value="Enable",
+                    extra=html.input(att='type="hidden" name="extra" value="user"') )
+            else:
+                row += field("submit", "disable", comp=u[3], user=u[0], value="Disable",
+                    extra=html.input(att='type="hidden" name="extra" value="user"') )
+            ## Delete ##
+            row += field("submit", "delete", comp=u[3], user=u[0], value="Delete",
+                extra=html.input(att='type="hidden" name="extra" value="user"') )
+            rows.append(row)
+        rows=html.tr(rows)
+
+        if len(users):
+            table = html.table( html.thead(
+                html.tr( [
+                html.th("Username")
+                + html.th("Full name")
+                + company_th
+                + html.th("Password")
+                + html.th("Email")
+                + html.th("Admin")
+                + html.th("Disable")
+                + html.th("Delete")
+                ] )
+                ) + rows )
+            return table
+        else:
+            return "No users"
+
+    @expose
+    @require()
+    def admin_user(self):
+        """Page to manage user accounts"""
         lstatus = auth.login_status()
         username = lstatus[0]
+        company_name = lstatus[2]
+        company_fullname = lstatus[3]
+        if auth.user_is_any_admin(username):
+            comps = auth.get_user_admin_companies()
+            # Quick hack to bypass extended logic for simple admins
+            if not auth.user_is_multi_admin():
+                heading = "User Admin (%s)" % company_fullname
+                tables = self.admin_user_table((company_name, company_fullname), comps)
+            else:
+                heading = "User Admin"
+                tables =''
+                if auth.user_is_global_admin():
+                    heading = "User Admin (%s)" % html.i("Global")
+                    tables = html.h2(html.i("No company")) + self.admin_user_table((None, "No company"), comps)
+                for c in comps:
+                    tab_type = "Company: "
+                    tables += html.h2("%s%s"%(tab_type, html.i(c[1]))) + self.admin_user_table(c, comps)
+
+            return page.page("User Admin",
+                html.h1(heading)
+                + tables)
+        else:
+            # If a non-admin tries to go to the admin page, redirect to the user page rather than cause a 403
+            raise cherrypy.HTTPRedirect("user")
+
+    @expose
+    @require()
+    def admin_share(self):
+        """Page to manage shares"""
+        lstatus = auth.login_status()
+        username = lstatus[0]
+        company_name = lstatus[2]
+        company_fullname = lstatus[3]
+        if auth.user_is_any_admin(username):
+            comps = auth.get_user_admin_companies()
+            # Quick hack to bypass extended logic for simple admins
+            if not auth.user_is_multi_admin():
+                heading = "Share Admin (%s)" % company_fullname
+                tables = self.admin_share_table(company_name)
+            else:
+                heading = "Share Admin"
+                tables =''
+                if auth.user_is_global_admin():
+                    heading = "Share Admin (%s)" % html.i("Global")
+                for c in comps:
+                    tab_type = "Company: "
+                    tables += html.h2("%s%s"%(tab_type, html.i(c[1]))) + self.admin_share_table(c[0])
+
+            return page.page("User Admin",
+                html.h1(heading)
+                + tables)
+        else:
+            # If a non-admin tries to go to the admin page, redirect to the user page rather than cause a 403
+            raise cherrypy.HTTPRedirect("user")
+
+    @expose
+    @require()
+    def admin_company(self):
+        """Page to manage customers/client companies"""
+        lstatus = auth.login_status()
+        username = lstatus[0]
+        company_name = lstatus[2]
+        company_fullname = lstatus[3]
+        if auth.user_is_any_admin(username):
+            tables = self.admin_company_table()
+            return page.page("Company Admin",
+                html.h1("Company Admin")
+                + tables)
+        else:
+            # If a non-admin tries to go to the admin page, redirect to the user page rather than cause a 403
+            raise cherrypy.HTTPRedirect("user")
+
+    @expose
+    @require()
+    def admin(self):
+        # TODO: Tasks:
+        # * Create/delete a new customer (companies table)
+        # * Create/delete a new user (users table)
+        # * Create/delete a new share (shares table)
+        #lstatus = auth.login_status()
+        #username = lstatus[0]
+        #company_name = lstatus[2]
+        #company_fullname = lstatus[3]
+        if not auth.user_is_any_admin():
+            raise cherrypy.HTTPRedirect("user")
+
+        links = [
+            html.a("Create new user", att='href="new_user"'),
+            html.a("Manage existing users", att='href="admin_user"')
+        ]
+        if auth.user_is_multi_admin():
+            links.append(html.a("Manage companies", att='href="admin_company"'))
+        else:
+            links.append(html.a("Manage company", att='href="admin_company"'))
+        links.append(html.a("Manage shares", att='href="admin_share"'))
+        # Only global admins can create new customers and shares
+        if auth.user_is_global_admin():
+            links.insert(2, html.a("Create new customer company", att='href="new_cust"'))
+            links.append(html.a("Create new share", att='href="new_share"'))
+        
+        return page.page("Admin"
+            , html.h1("Admin")
+            + html.ul(html.li([html.h2(x) for x in links]))
+            )
+
+    @expose
+    @require()
+    def new_user(self, uname=None, fname=None, passwd=None, comp=None, email=None, is_admin=None, admin_comps=None):
+        lstatus = auth.login_status()
+        username = lstatus[0]
+        company_name = lstatus[2]
+        company_fullname = lstatus[3]
+        if not auth.user_is_any_admin(username):
+            raise cherrypy.HTTPRedirect("user")
+
+        if isinstance(admin_comps, basestring):
+            admin_comps = [admin_comps]
+        if comp == "NULL":
+            comp = None
+
+        is_admin = (is_admin == 'on')
+
+        errors = []
+        if validation.user_exists(uname):
+            errors.append("The user '%s' already exists." % uname)
+        if uname is not None and not uname:
+            errors.append("You must enter a username.")
+        if fname is not None and not fname:
+            errors.append("You must enter a full name for the user.")
+        if passwd is not None and not passwd:
+            errors.append("You must enter a password for the user.")
+        # if not email:
+        #     errors.append("You must enter an email address.")
+        if comp is not None and comp != "NULL" and not validation.company_exists(comp):
+            errors.append("The company you selected does not exist.")
+        if is_admin and admin_comps:
+            # This is pretty horrible. '+ [True]' is needed for reduce() to not complain about an empty list.
+            # Having any() and all() from Python 2.5 would be awesome.
+            if not reduce(lambda x,y: x or y, [validation.company_exists(x) for x in admin_comps if x != "NULL"] + [True] ):
+                errors.append("One or more of the companies you selected for administration does not exist.")
+            # Make sure that POST spoofing can't be abused to allow users to create admins in other companies
+            if not reduce(lambda x,y: x and y, [auth.user_is_admin(company=x) for x in admin_comps]):
+                errors.append("You have selected a company for which you don't have administration rights.")
+        if None in [uname, fname, passwd, is_admin, admin_comps] or len(errors):
+            uname_val = fname_val = passwd_val = comp_val = email_val = admin_val = ""
+            if uname:
+                uname_val = ' value="%s"' % uname
+            if fname:
+                fname_val = ' value="%s"' % fname
+            # # TODO: This needs more sensible security.
+            # if passwd:
+            #     passwd_val = ' value="%s"' % passwd
+            if comp:
+                comp_val = ' value="%s"' % comp
+            if email:
+                email_val = ' value="%s"' % email
+            if is_admin:
+                admin_val = ' checked'
+            contents = [
+                "Username" + html.br()
+                + html.input(att='type="text" name="uname"' + uname_val)
+                , "Full name" + html.br()
+                + html.input(att='type="text" name="fname"' + fname_val)
+                , "Password" + html.br()
+                + html.input(att='type="password" name="passwd"' + passwd_val)
+            ]
+            admin_label = ''
+            comps = auth.get_user_admin_companies()
+            # Allow multi-company admins to create new admins for those companies
+            if auth.user_is_multi_admin():
+                admin_comp_name = 'Admin'
+                if auth.user_is_global_admin():
+                    allow_null = True
+                else:
+                    allow_null = False
+                contents.extend([
+                    "Company" + html.br()
+                    + self.company_combobox("comp", comps, allow_null=allow_null)
+                ])
+                admin_label = "Admin for:" + html.br() \
+                    + self.company_combobox("admin_comps", comps, selected=admin_comps, multi=True, null_text="&lt;All&gt;", allow_null=allow_null)
+            else:
+                admin_comp_name = "Admin for %s:" % comps[0][1] 
+            contents.extend([
+                "Email (optional)" + html.br()
+                + html.input(att='type="text" name="email"' + email_val)
+                , admin_comp_name + html.input(att='type="checkbox" name="is_admin"' + admin_val)
+            ])
+            if admin_label:
+                contents.append(admin_label)
+
+            return page.page("New user"
+                , html.h1("Create new user")
+                # TODO: Make this look more like an error
+                + html.ul(
+                    html.li(errors)
+                )
+                + html.form(
+                    html.ul(
+                        html.li(contents)
+                    )
+                    + html.input(att='type="submit" value="Submit"')
+                    , att='method="POST"'
+                )
+            )
+        else:
+            try:
+                # Python 2.5 and above
+                import hashlib
+                passwd = hashlib.md5(passwd).hexdigest()
+            except ImportError:
+                # Python 2.4
+                import md5
+                passwd = md5.new(passwd).hexdigest()
+            db.do("insert into all_users (username, full_name, hashed_password) \
+                values (%(uname)s, %(fname)s, %(passwd)s)", vars())
+            if comp:
+                db.do("update all_users set company_name = %(comp)s where username = %(uname)s", vars())
+            if email:
+                db.do("update all_users set email = %(comp)s where username = %(email)s", vars())
+            if is_admin:
+                if not admin_comps:
+                    admin_comps = [comp]
+                if "NULL" in admin_comps:
+                    db.do("insert into all_admins (username, company_name) values (%(uname)s, null)", vars())
+                else:
+                    for comp in admin_comps:
+                        db.do("insert into all_admins (username, company_name) values (%(uname)s, %(comp)s)", vars())
+            # TODO: Give notification of success
+            db.commit()
+            raise cherrypy.HTTPRedirect("admin_user")
+
+    @expose
+    @require()
+    def new_share(self, name=None, company=None):
+        lstatus = auth.login_status()
+        username = lstatus[0]
+        company_name = lstatus[2]
+        company_fullname = lstatus[3]
+        # Only global admins can create new shares.
+        if not auth.user_is_global_admin(username):
+            raise cherrypy.HTTPRedirect("user")
+
+        errors = []
+        if name is not None and not name:
+           errors.append("You must specify a share name.")
+        elif validation.share_exists(name):
+            errors.append("The share '%s' already exists." % name)
+        if validation.company_exists(company) == False:
+            errors.append("The company you selected does not exist.")
+        if None in [name, company] or len(errors):
+            comps = db.get("select name, long_name from companies")
+            if name:
+                val = ' value="%s"' % name
+            else:
+                val = ''
+            contents = [
+                "Share name" + html.br()
+                + html.input(att='type="text" name="name"' + val)
+                , "Company" + html.br()
+                + self.company_combobox("company", comps, selected=company, allow_null=False)
+            ]
+
+            return page.page("New share"
+                , html.h1("Create new share")
+                # TODO: Make this look more like an error
+                + html.ul(
+                    html.li(errors)
+                )
+                + html.form(
+                    html.ul(
+                        html.li(contents)
+                    )
+                    + html.input(att='type="submit" value="Submit"')
+                    , att='method="POST"'
+                )
+            )
+        else:
+            db.do("insert into all_shares (name, company_name) values (%(name)s, %(company)s)", vars())
+            # TODO: Give notification of success
+            db.commit()
+            raise cherrypy.HTTPRedirect("admin")
+        
+
+    @expose
+    @require()
+    def new_cust(self, sname=None, lname=None, email=None):
+        lstatus = auth.login_status()
+        username = lstatus[0]
+        company_name = lstatus[2]
+        company_fullname = lstatus[3]
+        if not auth.user_is_global_admin(username):
+            raise cherrypy.HTTPRedirect("user")
+
+        errors = []
+        # TODO: replace reduce() here with all() if upgraded to Python 2.5
+        if None not in [sname, lname, email] and \
+                not reduce(lambda x,y: bool(x and y), [sname, lname, email]):
+            errors.append("You must specify all fields.")
+        if validation.company_exists(sname):
+            errors.append("The company '%s' already exists." % sname)
+        # TODO: Rework this to allow for fully validating the input
+        if None in [sname, lname, email] or len(errors):
+            if sname:
+                comp_val = ' value="%s"' % sname
+            else:
+                comp_val = ''
+            if lname:
+                full_val = ' value="%s"' % lname
+            else:
+                full_val = ''
+            if email:
+                mail_val = ' value="%s"' % email
+            else:
+                mail_val = ''
+            contents = [
+                "Company ID" + html.br()
+                + html.input(att='type="text" name="sname"' + comp_val)
+                , "Full company name" + html.br()
+                + html.input(att='type="text" name="lname"' + full_val)
+                , "Email" + html.br()
+                + html.input(att='type="text" name="email"' + mail_val)
+            ]
+
+            return page.page("New customer"
+                , html.h1("Create new customer")
+                # TODO: Make this look more like an error
+                + html.ul(
+                    html.li(errors)
+                )
+                + html.form(
+                    html.ul(
+                        html.li(contents)
+                    )
+                    + html.input(att='type="submit" value="Submit"')
+                    , att='method="POST"'
+                )
+            )
+        else:
+            db.do("insert into all_companies (name, long_name, email) values (%(sname)s, %(lname)s, %(email)s)", vars())
+            # TODO: Give notification of success
+            db.commit()
+            raise cherrypy.HTTPRedirect("admin_user")
+
+    @expose
+    @require()
+    def admin_confirm(self, **keyw):
+        lstatus = auth.login_status()
+        luser = lstatus[0]
+        lcomp = lstatus[2]
+        # TODO: clean up this retrieval stuff
+        # Get the request instructions from the form field name
+        if "value" not in keyw or keyw["value"] == "NULL":
+            keyw["value"] = None
+        if "extra" not in keyw:
+            extra = False
+        elif keyw["extra"] == "NULL":
+            extra = None
+        else:
+            extra = keyw["extra"]
+        comm, comp, user, value = tuple([ keyw[x] for x in ("comm", "comp", "user", "value") ])
+        if "share" in keyw:
+            share = keyw["share"]
+        else:
+            share = None
+        if "confirm" in keyw:
+            confirm = keyw["confirm"]
+        else:
+            confirm = None
+        # Check to see if the logged in user is allowed to administer the given company
+        if auth.user_is_admin(company=comp):
+            warn = ""
+            error = False
+            action = html.h2("Action:")
+            args = {"user": user, "comp": comp, "comm": comm, "extra": extra, "confirm": "confirm", "value": value, "share": share }
+
+            form = html.form(
+                "".join([ html.input(att='type="hidden" name="%s" value="%s"' %
+                    # funky, hacky translation between None and ""
+                    (k, (lambda x: (x is not None and x) or ((x is None or x == "") and ""))(args[k]))) for k in args ]
+                )
+                + html.input(att='type="submit" value="Confirm"')
+                , att='action="admin_confirm" method="post"'
+            )
+            if comm == "disable":
+                if extra == "user":
+                    redirect = "admin_user"
+                    if confirm == "confirm":
+                        db.do("update all_users set disabled = true where username = %(user)s", vars())
+                    else:
+                        action += "Disable user &lsquo;%s&rsquo;." % user
+                        if user == luser:
+                            warn = "This will disable your login and prevent you from administrating."
+                elif extra == "company":
+                    redirect = "admin_company"
+                    if confirm == "confirm":
+                        db.do("update all_companies set disabled = true where name = %(comp)s", vars())
+                    else:
+                        action += "Disable company &lsquo;%s&rsquo;." % comp
+                        if comp == lcomp:
+                            warn = "This will disable all users and shares for this company and prevent you from logging in and administrating."
+                        else:
+                            warn = "This will disable all users and shares for this company."
+                elif extra == "share":
+                    redirect = "admin_share"
+                    if confirm == "confirm":
+                        db.do("update all_shares set disabled = true where name = %(share)s and company_name = %(comp)s", vars())
+                    else:
+                        action += "Disable share &lsquo;%s&rsquo; in company &lsquo;%s&rsquo;." % ( share, comp )
+                else:
+                    warn = "Unknown disable type &lsquo;%s&rsquo;" % extra
+                    error = True
+            elif comm == "enable":
+                if extra == "user":
+                    redirect = "admin_user"
+                    if confirm == "confirm":
+                        db.do("update all_users set disabled = false where username = %(user)s", vars())
+                    else:
+                        action += "Enable user &lsquo;%s&rsquo;." % user
+                elif extra == "company":
+                    redirect = "admin_company"
+                    if confirm == "confirm":
+                        db.do("update all_companies set disabled = false where name = %(comp)s", vars())
+                    else:
+                        action += "Enable company &lsquo;%s&rsquo;." % comp
+                elif extra == "share":
+                    redirect = "admin_share"
+                    if confirm == "confirm":
+                        db.do("update all_shares set disabled = false where name = %(share)s and company_name = %(comp)s", vars())
+                    else:
+                        action += "Disable share &lsquo;%s&rsquo; in company &lsquo;%s&rsquo;." % ( share, comp )
+                else:
+                    warn = "Unknown enable type &lsquo;%s&rsquo;" % extra
+                    error = True
+            elif comm == "delete":
+                if extra == "user":
+                    redirect = "admin_user"
+                    if confirm == "confirm":
+                        db.do("delete from all_admins where username = %(user)s", vars())
+                        db.do("delete from all_users where username = %(user)s", vars())
+                    else:
+                        if user == luser:
+                            warn = "This will permanently delete your account and prevent you from administrating or logging in."
+                        else:
+                            warn = "This will permanently delete the account &lsquo;%s&rsquo;. It is not recoverable." % user
+                        action += "Delete user &lsquo;%s&rsquo;." % user
+                else:
+                    warn = "Unknown delete type &lsquo;%s&rsquo;" % extra
+                    error = True
+            elif comm == "name":
+                if extra == "user":
+                    redirect = "admin_user"
+                    cur = db.get1("select full_name from all_users where username = %(user)s", vars())
+                    # ignore no-op
+                    if cur[0] == value:
+                        raise cherrypy.HTTPRedirect(redirect)
+                    if confirm == "confirm":
+                        db.do("update all_users set full_name = %(value)s where username = %(user)s", vars())
+                    else:
+                        action += "Change full name of user &lsquo;%s&rsquo; from &lsquo;%s&rsquo; to &lsquo;%s&rsquo;." % (user, cur[0], value)
+                elif extra == "company":
+                    redirect = "admin_company"
+                    cur = db.get1("select long_name from all_companies where name = %(comp)s", vars())
+                    # ignore no-op
+                    if cur[0] == value:
+                        raise cherrypy.HTTPRedirect(redirect)
+                    if confirm == "confirm":
+                        db.do("update all_companies set long_name = %(value)s where name = %(comp)s", vars())
+                    else:
+                        action += "Change name of company &lsquo;%s&rsquo; from &lsquo;%s&rsquo; to &lsquo;%s&rsquo;." % (comp, cur[0], value)
+                else:
+                    warn = "Unknown name type &lsquo;%s&rsquo;" % extra
+                    error = True
+            elif comm == "email":
+                if extra == "user":
+                    redirect = "admin_user"
+                    table = "all_users"
+                    field = "username"
+                    control = user
+                elif extra == "company":
+                    redirect = "admin_company"
+                    table = "all_companies"
+                    field = "name"
+                    control = comp
+                else:
+                    warn = "Unknown email type &lsquo;%s&rsquo;" % extra
+                    error = True
+
+                if not error:
+                    cur = db.get1("select email from %s where %s = %%(control)s" % (table, field), vars())
+                    # ignore no-op
+                    if cur[0] == value or not (cur[0] or value):
+                        raise cherrypy.HTTPRedirect(redirect)
+                    if confirm == "confirm":
+                        db.do("update %s set email = %%(value)s where %s = %%(control)s" % (table, field), vars())
+                    else:
+                        action += "Change email of %s &lsquo;%s&rsquo; from &lsquo;%s&rsquo; to &lsquo;%s&rsquo;." % (extra, control, cur[0], value)
+            elif comm == "password":
+                raise cherrypy.HTTPRedirect("password?user=%s" % user)
+            else:
+                warn = "Unsupported feature &lsquo;%s&rsquo;." % comm
+                error = True
+            
+            if error:
+                action += html.h3("Debug:")
+                form = html.ul(
+                    html.li(
+                        [ "%s: &lsquo;%s&rsquo;"%(x,args[x]) for x in args ]
+                    )
+                )
+
+            if confirm == "confirm":
+                if error:
+                    db.rollback()
+                else:
+                    db.commit()
+                    raise cherrypy.HTTPRedirect(redirect)
+
+            if warn:
+                warn = html.div(warn, att='class="warning"')
+            return page.page(
+                "Confirm transaction"
+                , warn
+                + action
+                + form
+                )
+        else:
+            # If a non-admin tries to go to the admin page, redirect to the user page rather than cause a 403
+            raise cherrypy.HTTPRedirect("user")
+
+    @expose
+    @require()
+    def password(self, old_password=None, new_password1=None, new_password2=None, user=None):
+        error_message = ""
+        lstatus = auth.login_status()
+        if user is None or user == lstatus[0]:
+            user = None
+            heading = "Change Your Password"
+            old_pass = [html.th("Old Password:") + html.td(html.input(att='type="password" name="old_password"'))]
+            username = lstatus[0]
+        # Admins are exempt from requiring old password for other, *non-admin* users.
+        elif auth.user_is_global_admin() or (auth.user_is_admin(company=auth.user_company(user)) and not auth.user_is_any_admin(user)):
+            heading = "Change Password for &lsquo;%s&rsquo;" % user
+            old_pass = [html.input(att='type="hidden" name="user" value="%s"' % user)]
+            username = user
+        else:
+            # User is not authorised to change password
+            raise cherrypy.HTTPRedirect("user")
 
         password_form = html.form(
             html.table(
                 html.tbody(
-                    html.tr([
-                            html.th("Old Password:") + html.td(html.input(att='type="password" name="old_password"')),
+                    html.tr(old_pass + [
                             html.th("New Password:") + html.td(html.input(att='type="password" name="new_password1"')),
                             html.th("New Password (again):") + html.td(html.input(att='type="password" name="new_password2"')),
                             html.td(html.input(att='type="submit" value="Change Password"'), att='colspan="2"')
@@ -464,22 +1311,26 @@ class ZfsBackupManager:
                     )
                 ),
                 att='class="borderless"'),
-            att='name="user" method="post" action="/backup/user"'
+            att='name="user" method="post" action="/backup/password"'
         ) + html.script('document.getElementsByName("old_password")[0].focus();', att='language="javascript"')
 
         error_message = ""
         info_message = ""
 
+        # Admins are exempt from requiring old password for other users.
         if old_password is None and new_password1 is None and new_password2 is None:
             pass
-        elif old_password is None or new_password1 is None or new_password2 is None:
+        elif (user is None and old_password is None) or new_password1 is None or new_password2 is None:
             error_message = "Not all passwords supplied."
         elif new_password1 != new_password2:
             error_message = "New passwords do not match."
         elif len(new_password1) < 6:
             error_message = "New password must be at least six characters long."
         else:
-            auth_check = auth.check_credentials(username, old_password)
+            if user is None:
+                auth_check = auth.check_credentials(username, old_password)
+            else:
+                auth_check = [None]
             if auth_check[0] is None:
                 # All good. Set the new password.
                 auth.reset_password(username, new_password1)
@@ -492,8 +1343,8 @@ class ZfsBackupManager:
         if len(error_message) > 0:
             error_message = html.p(html.span(error_message, att='class="error_message"'))
 
-        return page.page("Datasafe/R - Change Password",
-            html.h1("Change Password")
+        return page.page("Change Password",
+            html.h1(heading)
             + info_message
             + error_message
             + password_form)

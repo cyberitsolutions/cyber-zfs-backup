@@ -5,10 +5,19 @@ import html
 from html import head, body, title
 
 import auth
+import zbm_cfg as cfg
 
+def branding():
+    return html.div(html.h1(html.img(att='src="http://cybersource.com.au/images/cybersource_logo.gif" alt="Cybersource"') + cfg.ZBM_PRETTY_NAME), att='id="heading"')
+
+def page_title(content):
+    if content:
+        return html.title(cfg.ZBM_PRETTY_NAME + ' - ' +content)
+    else:
+        return html.title(cfg.ZBM_PRETTY_NAME)
 
 def mini_header(content=None):
-    return html.div(html.nbsp(), att='class="header"')
+    return branding()
 
 def header(content=None):
     logout_link = html.a("Logout", att='href="/backup/auth/logout"')
@@ -17,9 +26,15 @@ def header(content=None):
         if status is None:
             content = ''
         else:
-            content = "%s (%s) of %s" % ( html.a(status[0], att='href="/backup/user"'), status[1], status[3] )
+            content = "%s (%s)" % ( html.a(status[0], att='href="/backup/user"'), status[1] )
+            company = ''
+            if auth.user_is_any_admin():
+                company += " " + html.a("admin", att='href="/backup/admin"')
+            if status[3]:
+                company += " of %s" % status[3]
+            content += company
     menu_bar = string.join([html.a("Browse Shares", att='href="/backup/browse"'), html.a("View Cart", att='href="/backup/show"')], " | ")
-    return html.div(html.span(content + html.nbsp(3) + logout_link + html.nbsp(), att='class="logout"') + html.nbsp() + menu_bar, att='class="header"')
+    return branding() + html.div(html.span(content + html.nbsp(3) + logout_link + html.nbsp(), att='class="logout"') + html.nbsp() + menu_bar, att='class="header"')
 
 def footer(content="Datasafe/R"):
     return html.div(content, att='class="footer"')
@@ -35,7 +50,7 @@ js_links = html.script(att='type="text/javascript" src="/backup/static/jquery-1.
 # Default page template.
 def page(title, content=""):
     return html.html(
-        head(html.title(title) + css_links + js_links)
+        head(page_title(title) + css_links + js_links)
         + body(header()
             + html.div(content, att='id="main"')
             + footer()))
@@ -43,7 +58,7 @@ def page(title, content=""):
 # Mini-header-using page template.
 def mini_page(title, content=""):
     return html.html(
-        head(html.title(title) + css_links + js_links)
+        head(page_title(title) + css_links + js_links)
         + body(mini_header()
             + html.div(content, att='id="main"')
             + footer()))

@@ -13,6 +13,7 @@ import string
 
 import zbm_cfg as cfg
 
+import validation
 import html
 import page
 
@@ -23,7 +24,7 @@ COMPANY_NAME = '_cp_company'
 COMPANY_FULLNAME = '_cp_company_full'
 
 def login_status():
-    """ Returns (username, fullname, companyname) if logged in or None if not. """
+    """ Returns (username, fullname, company_name, company_fullname) if logged in or None if not. """
     username = cherrypy.session.get(USER_NAME)
     if username is None:
         return None
@@ -34,13 +35,15 @@ def login_status():
 
 def reset_password(username, password):
     hashed_password = md5.md5(password).hexdigest()
-    db.do("update users set hashed_password = %(hashed_password)s where username = %(username)s", vars())
+    db.do("update all_users set hashed_password = %(hashed_password)s where username = %(username)s", vars())
 
     # Also update the htdigest zbm_passwords file.
     os.system("/etc/zbm/remove_user.sh " + username)
 
     # We need the company name here.
-    company_name = cherrypy.session.get(COMPANY_NAME)
+    company_name = user_company(username)
+    if company_name is None:
+        company_name = ""
     hashed_expression = md5.md5(string.join([username, company_name, password], ':')).hexdigest()
     f = open('/etc/zbm/zbm_passwords', 'a')
     f.write("%s\n" % ( string.join([username, company_name, hashed_expression], ':') ))
@@ -53,15 +56,20 @@ def check_credentials(username, password):
         Returns None on success or a string describing the error on failure. """
     # Adapt to your needs
     hashed_password = md5.md5(password).hexdigest()
-    row = db.get1("select u.full_name, c.name, c.long_name from users u, companies c where u.company_name = c.name and username = %(username)s and hashed_password = %(hashed_password)s", vars())
-    db.commit()
+    # users.company_name is null for global admins
+    row = db.get1("select u.full_name, u.company_name, c.long_name from users u left join companies c on u.company_name = c.name where username = %(username)s and hashed_password = %(hashed_password)s", vars())
+    #db.commit()
     if row is None:
         return ( "Incorrect username or password.", None )
+    if row[1]:
+        fullname = row[2]
+    else:
+        fullname = None
 
     return ( None, {
         'full_name':row[0],
         'company_name':row[1],
-        'company_fullname':row[2]
+        'company_fullname':fullname
     } )
     # An example implementation which uses an ORM could be:
     # u = User.get(username)
@@ -81,7 +89,7 @@ def check_auth(*args, **kwargs):
         username = cherrypy.session.get(USER_NAME)
         # We seem to need to do this in preparation for the redirect.
         cherrypy.request.base = cfg.BACKUP_BASE_URL
-        if username:
+        if username and validation.user_exists(username):
             cherrypy.request.login = username
             for condition in conditions:
                 # A condition is just a callable that returns True or False.
@@ -91,6 +99,48 @@ def check_auth(*args, **kwargs):
         else:
             # Send old page as from_page parameter
             raise cherrypy.HTTPRedirect(cfg.BACKUP_BASE_PATH + "/auth/login?from_page=%s" % get_params)
+
+def user_is_global_admin(username=None):
+    # If company_name is null, the user is a global admin.
+    if username is None:
+        username = cherrypy.session.get(USER_NAME)
+    return db.get1("select count(1) from admins where username = %(username)s and company_name is null", vars())[0] > 0
+
+def get_user_admin_companies(username=None, allow_null=False):
+    if username is None:
+        username = cherrypy.session.get(USER_NAME)
+    if not allow_null and user_is_global_admin(username):
+        return db.get("select name, long_name from companies")
+    else:
+        return db.get("select name, long_name from admins left outer join companies on name = company_name where username = %(username)s", vars())
+
+def user_is_multi_admin(username=None):
+    """Return True if the user is an admin in multiple companies, else return False."""
+    if username is None:
+        username = cherrypy.session.get(USER_NAME)
+    return user_is_global_admin(username) or db.get1("select count(1) from admins where username = %(username)s", vars())[0] > 1
+
+def user_is_admin(username=None, company=None):
+    if user_is_global_admin(username):
+        return True
+    if username is None:
+        username = cherrypy.session.get(USER_NAME)
+    if company is None:
+        company = cherrypy.session.get(COMPANY_NAME)
+    # If the user is not a global admin and the company_name is STILL None, there's something wrong!
+    return db.get1("select count(1) from admins where username = %(username)s and company_name = %(company)s", vars())[0] > 0
+
+def user_is_any_admin(username=None):
+    """User is an admin in *any* company."""
+    if username is None:
+        username = cherrypy.session.get(USER_NAME)
+    return db.get1("select count(1) from admins where username = %(username)s", vars())[0] > 0
+
+def user_company(username=None):
+    """Return the company the user is in"""
+    if username is None:
+        username = cherrypy.session.get(USER_NAME)
+    return db.get1("select company_name from users where username = %(username)s", vars())[0]
 
 cherrypy.tools.auth = cherrypy.Tool('before_handler', check_auth)
 
@@ -158,7 +208,7 @@ class AuthController(object):
         """Called on logout"""
 
     def get_loginform(self, username, msg="Enter login information.", from_page="/backup"):
-        return page.mini_page("Datasafe/R - Login",
+        return page.mini_page("Login",
             html.h1("Login")
             + html.form(
                 html.input(att='type="hidden" name="from_page" value="%s"' % ( from_page ))
