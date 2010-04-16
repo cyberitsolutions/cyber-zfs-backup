@@ -483,7 +483,7 @@ class ZfsBackupManager:
         download_file_size_expression = filesize_exp(os.lstat(download_file_path)[6])
 
         content_vars = {
-            'human_readable_datetime' : str(datetime.now()),
+            'human_readable_datetime' : datetime.now().strftime("%b %d %Y %H:%M:%S"),
             'download_url' : cfg.RESTORE_BASE_URL + '/' + download_url,
             'username' : username,
             'full_name' : full_name,
