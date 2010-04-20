@@ -557,6 +557,8 @@ class ZfsBackupManager:
         share_num = "You have %d shares." % len(links)
         sections.append(html.h2(view_link) + share_num + html.ul(html.li(links)))
 
+        email_link = html.a("Change your email", att='href="/backup/email"')
+        sections.append(html.h2(email_link))
         passwd_link = html.a("Change your password", att='href="/backup/password"')
         sections.append(html.h2(passwd_link))
 
@@ -1280,6 +1282,24 @@ class ZfsBackupManager:
         else:
             # If a non-admin tries to go to the admin page, redirect to the user page rather than cause a 403
             raise cherrypy.HTTPRedirect("user")
+
+    @expose
+    @require()
+    def email(self, email=None):
+        msg = ""
+        lstatus = auth.login_status()
+        username = lstatus[0]
+        oldemail = db.get1("select email from all_users where username = %(username)s", vars())
+        email_form = html.form("New email: "
+                        + html.input(att='type="text" name="email" value="%s"' % oldemail)
+                        + html.input(att='type="submit" value="Change email"'),
+                        att = 'action = "/backup/email" method="post"')
+        if not email is None:
+            db.do("update all_users set email = %(email)s where username = %(username)s", vars())
+            msg = html.p("Email address changed.")
+        
+        return page.page("Change Email", html.h1("Change Your Email") + msg + email_form)
+
 
     @expose
     @require()
