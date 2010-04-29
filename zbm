@@ -2,11 +2,12 @@
 
 import cherrypy
 from cherrypy import expose, tools, url
+from cherrypy.lib.static import serve_file
 
 import sys
 import os
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 import timediff
 import string
 import re
@@ -52,7 +53,7 @@ file_size_class = [
 def filesize_exp(size):
     s = file_size_class[0]
     if size < s[0]:
-        return str(size)
+        return str(size) + s[1]
 
     s = file_size_class[-1]
     if not size < s[0]:
@@ -480,7 +481,8 @@ class ZfsBackupManager:
 
         download_file_path = os.path.join(cfg.RESTORE_BASE_DIR, company_name, file)
         download_file_basename = os.path.basename(download_file_path)
-        download_file_size_expression = filesize_exp(os.lstat(download_file_path)[6])
+        download_file_size = os.lstat(download_file_path)[6]
+        download_file_size_expression = filesize_exp(download_file_size)
 
         content_vars = {
             'human_readable_datetime' : datetime.now().strftime("%b %d %Y %H:%M:%S"),
@@ -500,6 +502,37 @@ class ZfsBackupManager:
         # Raise the redirect.
         cherrypy.request.base = cfg.RESTORE_BASE_URL
         raise cherrypy.HTTPRedirect(download_url)
+
+    @expose
+    @require()
+    def download_one(self, share=None, path=None, company_name=None, go = False):
+        """ Streams a single file to the client. """
+        # Check the user is authorized
+        ( username, full_name, company_authname, company_fullname ) = auth.login_status()
+        if company_authname != company_name:
+            return page.page("Error", html.p("You are not permitted to download this file."))
+
+        if share == None or path == None or company_name == None: # is company_name ok?
+            return page.page("Error", html.p("Error in file specification."))
+
+        if not go:
+            link = html.a("here", att='href="download_one?share=%s&path=%s&company_name=%s&go=1"' %
+                (share, path, company_name))
+            message = html.p("This download will be recorded to your account for billing purposes."
+                + " Click %s to proceed." % link)
+            return page.page("Download single file", message)
+
+        filespec = make_file_spec(company_name, share, path)
+        # Record accounting data
+        timestamp = datetime.now().isoformat()
+        clientip = cherrypy.request.remote.ip
+        filesize = os.lstat(filespec.real_path)[6]
+        print("insert into transfers (starttime, username, companyname, clientip, bytes) values"
+            + "(%(timestamp)s, %(username)s, %(company_name)s, %(clientip)s, %(filesize)s)"% vars())
+        db.do("insert into transfers (starttime, username, companyname, clientip, bytes) values"
+            + "(%(timestamp)s, %(username)s, %(company_name)s, %(clientip)s, %(filesize)s)", vars())
+
+        return serve_file(filespec.real_path, "application/x-download", "attachment")
 
     @expose
     @require()
