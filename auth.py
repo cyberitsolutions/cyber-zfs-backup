@@ -57,7 +57,7 @@ def check_credentials(username, password):
     # Adapt to your needs
     hashed_password = md5.md5(password).hexdigest()
     # users.company_name is null for global admins
-    row = db.get1("select u.full_name, u.company_name, c.long_name from users u left join companies c on u.company_name = c.name where username = %(username)s and hashed_password = %(hashed_password)s", vars())
+    row = db.get1("select u.full_name, u.company_name, c.long_name, u.disabled from all_users u left join companies c on u.company_name = c.name where username = %(username)s and hashed_password = %(hashed_password)s", vars())
     #db.commit()
     if row is None:
         return ( "Incorrect username or password.", None )
@@ -65,6 +65,9 @@ def check_credentials(username, password):
         fullname = row[2]
     else:
         fullname = None
+
+    if row[3]:
+        return("User is disabled.", None)
 
     return ( None, {
         'full_name':row[0],
@@ -110,9 +113,9 @@ def get_user_admin_companies(username=None, allow_null=False):
     if username is None:
         username = cherrypy.session.get(USER_NAME)
     if not allow_null and user_is_global_admin(username):
-        return db.get("select name, long_name from companies")
+        return db.get("select name, long_name from all_companies where disabled = 'f'")
     else:
-        return db.get("select name, long_name from admins left outer join companies on name = company_name where username = %(username)s", vars())
+        return db.get("select name, long_name from admins left outer join all_companies on name = company_name where username = %(username)s and all_companies.disabled = 'f'", vars())
 
 def user_is_multi_admin(username=None):
     """Return True if the user is an admin in multiple companies, else return False."""
