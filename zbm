@@ -402,7 +402,7 @@ class ZfsBackupManager:
             for company_name in companies:
                 if len(companies) > 1:
                     share_section += html.h2(company_name)
-                available_shares = [ s[0] for s in db.get("select name from shares where company_name = %(company_name)s", vars()) ]
+                available_shares = [ s[0] for s in db.get("select name from all_shares where disabled = 'f' and company_name = %(company_name)s", vars()) ]
                 if auth.user_is_multi_admin():
                     add_href = "&company_name=" + cgi.escape(company_name, quote=True)
                 else:
@@ -543,7 +543,7 @@ class ZfsBackupManager:
         view_link = html.a("Your shares", att='href="/backup/browse" title="Browse your shares"')
 
         # Yanked from browse()
-        available_shares = [ s[0] for s in db.get("select name from shares where company_name = %(company_name)s", vars()) ]
+        available_shares = [ s[0] for s in db.get("select name from all_shares where disabled = 'f' and company_name = %(company_name)s", vars()) ]
 
         links = []
         for share in available_shares:
