@@ -2,11 +2,12 @@
 
 import cherrypy
 from cherrypy import expose, tools, url
+from cherrypy.lib.static import serve_file
 
 import sys
 import os
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 import timediff
 import string
 import re
@@ -52,7 +53,7 @@ file_size_class = [
 def filesize_exp(size):
     s = file_size_class[0]
     if size < s[0]:
-        return str(size)
+        return str(size) + s[1]
 
     s = file_size_class[-1]
     if not size < s[0]:
@@ -480,7 +481,8 @@ class ZfsBackupManager:
 
         download_file_path = os.path.join(cfg.RESTORE_BASE_DIR, company_name, file)
         download_file_basename = os.path.basename(download_file_path)
-        download_file_size_expression = filesize_exp(os.lstat(download_file_path)[6])
+        download_file_size = os.lstat(download_file_path)[6]
+        download_file_size_expression = filesize_exp(download_file_size)
 
         content_vars = {
             'human_readable_datetime' : datetime.now().strftime("%b %d %Y %H:%M:%S"),
@@ -497,9 +499,47 @@ class ZfsBackupManager:
                 cfg.COMPANY_FILE_DOWNLOAD_TEMPLATE % content_vars,
                 actual_addressees=[user_email_address, company_email_address, cfg.NOTIFY_CC_EMAIL_ADDRESS])
 
+         # Log the transfer
+        timestamp = datetime.now().isoformat()
+        clientip = cherrypy.request.remote.ip
+        sql = "insert into transfers (starttime, username, companyname, clientip, bytes) values"
+        sql += "(%(timestamp)s, %(username)s, %(company_name)s, %(clientip)s, %(download_file_size)s)"
+        db.do(sql, vars())
+        db.commit()
+
         # Raise the redirect.
         cherrypy.request.base = cfg.RESTORE_BASE_URL
         raise cherrypy.HTTPRedirect(download_url)
+
+    @expose
+    @require()
+    def download_one(self, share=None, path=None, company_name=None, go = False):
+        """ Streams a single file to the client. """
+        # Check the user is authorized
+        ( username, full_name, company_authname, company_fullname ) = auth.login_status()
+        if company_authname != company_name:
+            return page.page("Error", html.p("You are not permitted to download this file."))
+
+        if share == None or path == None or company_name == None: # is company_name ok?
+            return page.page("Error", html.p("Error in file specification."))
+
+        if not go:
+            link = html.a("here", att='href="download_one?share=%s&path=%s&company_name=%s&go=1"' %
+                (share, path, company_name))
+            message = html.p("This download will be recorded to your account for billing purposes."
+                + " Click %s to proceed." % link)
+            return page.page("Download single file", message)
+
+        filespec = make_file_spec(company_name, share, path)
+        # Record accounting data
+        timestamp = datetime.now().isoformat()
+        clientip = cherrypy.request.remote.ip
+        filesize = os.lstat(filespec.real_path)[6]
+        db.do("insert into transfers (starttime, username, companyname, clientip, bytes) values"
+            + "(%(timestamp)s, %(username)s, %(company_name)s, %(clientip)s, %(filesize)s)", vars())
+        db.commit()
+
+        return serve_file(filespec.real_path, "application/x-download", "attachment")
 
     @expose
     @require()
@@ -586,6 +626,22 @@ class ZfsBackupManager:
         if multi:
             att += ' multiple'
         return html.select(opts, att=att)
+
+    def month_combobox(self, selected = 0, name="month", blank=""):
+        # Locale-specific
+        months = [blank, "January", "February", "March", "April", "May",
+            "June", "July", "August", "September", "October", "November", "December"]
+        options = ""
+        idx = 0
+        if selected:
+            selected = int(selected) # allow strings too 
+        for m in months:
+            if selected == idx:
+                options += html.option(m, att = 'value="%i" selected="true"' %idx)
+            else:
+                options += html.option(m, att = 'value="%i"' %idx)
+            idx += 1
+        return html.select(options, att='name="%s"' % name)
 
     def admin_company_table(self):
         if auth.user_is_global_admin():
@@ -852,7 +908,11 @@ class ZfsBackupManager:
         if auth.user_is_global_admin():
             links.insert(2, html.a("Create new customer company", att='href="new_cust"'))
             links.append(html.a("Create new share", att='href="new_share"'))
-        
+
+        # Transfer view only available to admins
+        if auth.user_is_admin():
+            links.append(html.a("View transfer summary", att='href="transfer_summary"'))
+
         return page.page("Admin"
             , html.h1("Admin")
             + html.ul(html.li([html.h2(x) for x in links]))
@@ -1036,6 +1096,39 @@ class ZfsBackupManager:
             db.commit()
             raise cherrypy.HTTPRedirect("admin")
         
+
+    def get_transfers(self, company=None, month=None, total=False):
+        filters = []
+        filter_start = "" # Needed for the month filter, no nonlocal keyword
+        if company != None:
+            filters.append("companyname = %(company)s")
+        if month:
+            # 'month' is a date object, select the date surrounding that month
+            # Inelegant date manipulations
+            start = month
+            start = start.replace(day = 1)
+            filter_start = start.isoformat()
+            start_q = "(timestamp %(filter_start)s)"
+            end_q = "((timestamp %(filter_start)s) + (interval '1 month') - (interval '1 day'))"
+            # Leave the date work to postgres
+            filters.append("starttime between %s and %s" % (start_q, end_q))
+ 
+        filter = ""
+        if len(filters):
+            filter = "WHERE " + " AND ".join(filters)
+
+        # If total, just grab the total size of the transfers
+        if total:
+            sql = "select sum(bytes) from transfers " + filter
+            return db.get1(sql, vars())
+        else:
+            # Am I doing something wrong here? Ick.
+            # [timestamp IP size username(full) companyname(full)]
+            sql = "select starttime, clientip, bytes, all_users.full_name, all_companies.long_name \
+                from transfers as t left join all_users on t.username = all_users.username left join \
+                all_companies on t.companyname = all_companies.name %s order by all_companies.long_name" % filter
+            return db.get(sql, vars())
+
 
     @expose
     @require()
@@ -1282,6 +1375,80 @@ class ZfsBackupManager:
         else:
             # If a non-admin tries to go to the admin page, redirect to the user page rather than cause a 403
             raise cherrypy.HTTPRedirect("user")
+
+    @expose
+    @require()
+    def transfer_summary(self, company=None, month=None):
+        lstatus = auth.login_status()
+
+        if not auth.user_is_admin():
+            # Raise a redirect to somewhere
+            raise cherrypy.HTTPRedirect("admin")
+
+        if company == "NULL":
+            company = None # quirk of company_combobox. This value is used later
+
+        my_comps = auth.get_user_admin_companies()
+        
+        # If the user isn't a global admin only show the summary for their company
+        if (company == None and not auth.user_is_global_admin()):
+            company = lstatus[2]
+        # Make sure the company is admined by the user
+        # No lamba or filter in python 2.4
+        found = False
+        for c in my_comps:
+            if c[0] == company:
+                found = True
+                break
+        if not found:
+            company = lstatus[2]
+
+        # Don't display the company column, instead extract it and put headers in the table.
+        # This assumes the rows will be sorted by company.
+        header = html.tr(html.th(["Date", "User", "Size", "IP"]))
+        month_filter = None
+        if month and month != "0":
+            month = int(month)
+            # Set up the date
+            month_filter = date.today().replace(month = month)
+            # Make sure it's not in the future
+            if month_filter > date.today():
+                month_filter = month_filter.replace(year = month_filter.year - 1)
+        transfers = self.get_transfers(company, month_filter)
+        rows = []
+        cur_company = ""
+        bytes = 0
+        for t in transfers:
+            if not company and cur_company != t[4]:
+                rows.append(html.td(html.h4("Company: %s" % t[4]), att='colspan="4"'))
+                if cur_company != "":
+                    rows.append(html.td(html.b("Total: %s" % filesize_exp(bytes), att='colspan="4"')))
+                    bytes = 0
+                cur_company = t[4]
+
+            ts_pretty = t[0].strftime("%b %d %Y %H:%M:%S")
+            rows.append(html.td([ts_pretty, t[3], filesize_exp(t[2]), t[1]]))
+            bytes += int(t[2])
+        
+        rows.append(html.td(html.b("Total: %s" % filesize_exp(bytes)), 'colspan="4"'))
+
+        table = html.table(header + html.tr(rows))
+        header = "Global Transfer Summary"
+        if company:
+            # Company full name may not be the same as the logged in user
+            # It may also not have been in the above query, if they have no transfers
+            cname = db.get1("select long_name from all_companies where name = %(company)s", vars())
+            header = "Transfer summary for %s" % cname
+        if month_filter:
+            header += " for %s" % month_filter.strftime("%B")
+        
+        form = self.month_combobox(blank="All transfers", selected = month)
+        if auth.user_is_multi_admin():
+            form += self.company_combobox('company', my_comps, allow_null = auth.user_is_global_admin(),
+                null_text="&lt;All&gt;", selected=company)
+        form += html.input(att='type="submit" value="View"')
+        form = html.form(form, att='action="transfer_summary" method="get"')
+        return page.page("Transfer summary", html.h1(header) + form + table)
 
     @expose
     @require()

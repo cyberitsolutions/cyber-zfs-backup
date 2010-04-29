@@ -203,7 +203,7 @@ class FileSpec:
             name = self.basename
         
         self.name = name
-        self.display = name
+        self.display = name # soon to be redundant
         self.path = chrooted_path.path
 
         # Used as a unique ID (well, unique by company).
@@ -222,7 +222,12 @@ class FileSpec:
         else:
             self.mtime = mtime
 
-        if self.type == 'link':
+        if self.type == 'file':
+            link = '/backup/download_one?share=%s&amp;path=%s' % (cgi.escape(self.share, quote=True), cgi.escape(self.path, quote=True))
+            if self.company_name:
+                link += '&amp;company_name=%s' % (cgi.escape(self.company_name, quote=True))
+            self.display = html.a(self.name, att='href="%s"' % link)
+        elif self.type == 'link':
             self.display = html.a(self.name, att='title="%s"' % ( cgi.escape(os.readlink(self.real_path), quote=True) ))
         elif self.type == 'dir':
             href = '/backup/browse?share=%s&amp;path=%s'% ( cgi.escape(self.share, quote=True), cgi.escape(self.path, quote=True) )
