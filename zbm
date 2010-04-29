@@ -1289,15 +1289,22 @@ class ZfsBackupManager:
         msg = ""
         lstatus = auth.login_status()
         username = lstatus[0]
-        oldemail = db.get1("select email from all_users where username = %(username)s", vars())
-        email_form = html.form("New email: "
-                        + html.input(att='type="text" name="email" value="%s"' % oldemail)
-                        + html.input(att='type="submit" value="Change email"'),
-                        att = 'action = "/backup/email" method="post"')
+        showemail = ""
         if not email is None:
             db.do("update all_users set email = %(email)s where username = %(username)s", vars())
+
+            db.commit()
             msg = html.p("Email address changed.")
+            showemail = email
+        else:
+            showemail = db.get1("select email from all_users where username = %(username)s", vars())
+
         
+        email_form = html.form("New email: "
+                        + html.input(att='type="text" name="email" value="%s"' % showemail)
+                        + html.input(att='type="submit" value="Change email"'),
+                        att = 'action="/backup/email" method="post"')
+
         return page.page("Change Email", html.h1("Change Your Email") + msg + email_form)
 
 
