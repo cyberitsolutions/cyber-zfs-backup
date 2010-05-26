@@ -370,13 +370,26 @@ class ZfsBackupManager:
             if erestore:
                 restore_msg = "As your restore is greater than %sMB you must request a physical copy of the selected files." % (cfg.RESTORE_SIZE_LIMIT)
             running_total_size = html.p("Running total size is %s. %s" % ( html.span(filesize_exp(rs.disk_usage_running_total), att='class="running_total_size"'), restore_msg ))
+
+        oldarchives =  html.p(html.a("View old archives", att='href="old_archives"'))
+
+
         return page.page("Cart",
             html.h1("Cart")
             + message
             + running_total_size 
             + restore_display 
-            + self.restore_dir_contents()
+            + oldarchives
             )
+
+    @expose
+    @require()
+    def old_archives(self):
+        return page.page("Restores", 
+            html.h1("Restores")
+            + self.restore_dir_contents())
+
+
 
     @expose
     @require()
