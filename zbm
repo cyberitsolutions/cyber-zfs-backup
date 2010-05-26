@@ -461,6 +461,8 @@ class ZfsBackupManager:
         """ Returns restore directory contents as an unordered list. """
         company_name = cherrypy.session.get(auth.COMPANY_NAME)
         company_restore_dir = os.path.join(cfg.RESTORE_BASE_DIR, company_name)
+        if (not os.path.isdir(company_restore_dir)):
+            return ""
         contents = os.listdir(company_restore_dir)
         if len(contents):
             # The timestamp will appear after the last '_' in the filename. Sort by that instead of sorting by the restore ID with string comparison.

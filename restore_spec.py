@@ -181,6 +181,12 @@ def create_restore_file(rs, restore_type):
     # mode='w'
     #
     # ZipFile.write(filename, arcname, ...)
+
+    # If the company restore dir doesn't exist create it first
+    company_restore_dir = os.path.join(zbm_cfg.RESTORE_BASE_DIR, rs.company_name)
+    if (not os.path.isdir(company_restore_dir)):
+        os.mkdir(company_restore_dir)
+
     if restore_type == 'zip':
         return create_zip_restore_file(rs)
     elif restore_type == 'tar':
