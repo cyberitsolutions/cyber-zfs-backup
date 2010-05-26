@@ -118,7 +118,7 @@ def get_apparent_size(path):
     row = db.get1("select apparent_size from filesystem_info where path = %(path)s", vars())
     db.commit()
     if row is None:
-        return 0
+        return getlsize(path)
     return int(row[0])
 
 def getlsize(path):
