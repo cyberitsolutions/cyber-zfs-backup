@@ -61,7 +61,8 @@ ACCOUNTS_EMAIL_ADDRESS = 'accounts@cybersource.com.au'
 
 # The official Cybersource email address to which ZBM will send a copy
 # of *every* download-notification email sent to a customer.
-NOTIFY_CC_EMAIL_ADDRESS = 'hosted-backups@cybersource.com.au'
+#NOTIFY_CC_EMAIL_ADDRESS = 'hosted-backups@cybersource.com.au'
+NOTIFY_CC_EMAIL_ADDRESS = 'jeremyc@cybersource.com.au'
 
 # Email templates.
 #
@@ -95,9 +96,23 @@ Fax:   +61 3 9428 6944
 CYBERSOURCE_ACCOUNTS_DOWNLOAD_TEMPLATE = """
 """
 
+MANUAL_RESTORE_TEMPLATE = """
+
+%(human_readable_datetime)s
+
+User %(username)s (%(full_name)s) of company %(company)s has requested physical
+media for a restore. The file list is available at:
+%(filename)s
+
+"""
+
 # The number of records to display on pages that get ... paged (i.e.,
 # pages that have Next/Prev and "Page X of Y" on them).
 DEFAULT_PAGE_SIZE = 20
+
+# The maximum size of restore archives (before compression) that will
+# be permitted. Beyond this the customer must ask for physical media
+RESTORE_SIZE_LIMIT=250
 
 # What customers should call zbm
 ZBM_PRETTY_NAME = 'Datasafe/R'

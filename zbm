@@ -328,16 +328,25 @@ class ZfsBackupManager:
         included_filespecs = rs.include_set.values()
 
         restore_display = ""
+
+        # Get the size of the current restore in MB
+        mbsize = rs.disk_usage_running_total / (1024**2)
+        erestore = True
+        restore_buttons = [html.input(att='name="cancel_restore" type="submit" value="Empty Cart" title="Wipe out your current set of restore files."')]
+
+        if (mbsize < cfg.RESTORE_SIZE_LIMIT):
+            erestore = False
+            restore_buttons.append(
+                html.input(att='name="create_tarball" type="submit" value="Create Tarball" title="Create a restore tarball."'))
+            restore_buttons.append(html.input(att='name="create_zipfile" type="submit" value="Create Zipfile" title="Create a restore zipfile."'))
+        restore_buttons.append(html.input(att='name="create_list" type="submit" value="Request Physical Media" title="Request a physical version of the listed files"'))
+
         if len(included_filespecs) > 0:
             form = html.form(
                 html.table(
                     html.tbody(
                         html.tr(
-                            html.td([
-                                html.input(att='name="cancel_restore" type="submit" value="Empty Cart" title="Wipe out your current set of restore files."'),
-                                html.input(att='name="create_tarball" type="submit" value="Create Tarball" title="Create a restore tarball."'),
-                                html.input(att='name="create_zipfile" type="submit" value="Create Zipfile" title="Create a restore zipfile."')
-                            ]))),
+                            html.td(restore_buttons))),
                     att='class="borderless restore_action"'),
                 att='name="restore" method="post" action="/backup/action"')
 
@@ -357,7 +366,10 @@ class ZfsBackupManager:
         # restore.
         running_total_size = ''
         if rs.disk_usage_running_total > 0:
-            running_total_size = html.p("Running total size is %s." % ( html.span(filesize_exp(rs.disk_usage_running_total), att='class="running_total_size"') ))
+            restore_msg = ''
+            if erestore:
+                restore_msg = "As your restore is greater than %sMB you must request a physical copy of the selected files." % (cfg.RESTORE_SIZE_LIMIT)
+            running_total_size = html.p("Running total size is %s. %s" % ( html.span(filesize_exp(rs.disk_usage_running_total), att='class="running_total_size"'), restore_msg ))
         return page.page("Cart",
             html.h1("Cart")
             + message
@@ -544,8 +556,11 @@ class ZfsBackupManager:
     @expose
     @require()
     def action(self, **kwargs):
+
+        ( username, full_name, company, _ ) = auth.login_status()
         result = False
         message = None
+        message = "Successfully created %s. Click to download: %s" 
         rs = restore_spec.RestoreSpec()
         if 'retrieve_restore' in kwargs:
             restore_spec.retrieve_previous_restore()
@@ -557,17 +572,37 @@ class ZfsBackupManager:
             ( result, partname ) = restore_spec.create_restore_file(rs, "tar")
             if result:
                 link_type = 'tarball'
+                message %= ( link_type, make_file_download_link(partname) )
             else:
                 message = "Failed to create tarball: %s" % ( partname )
         if 'create_zipfile' in kwargs:
             ( result, partname ) = restore_spec.create_restore_file(rs, "zip")
             if result:
                 link_type = 'zip file'
+                message %= ( link_type, make_file_download_link(partname) )
             else:
                 message = "Failed to create zip file: %s" % ( partname )
+        if 'create_list' in kwargs:
+            ( result, partname ) = restore_spec.create_restore_file(rs, "list")
+            if result:
+                link_type = 'list'
+                message = "Your request has been filed and will be processed shortly."
+                # Now need to send emails and other stuff
+                content_vars = {
+                    'human_readable_datetime' : datetime.now().strftime("%b %d %Y %H:%M:%S"),
+                    'filename' : os.path.join(cfg.BACKUP_BASE_DIR,partname),
+                    'username' : username,
+                    'full_name' : full_name,
+                    'company' : company}
+                zbm_email.send_email(cfg.FROM_EMAIL_ADDRESS,
+                    [cfg.NOTIFY_CC_EMAIL_ADDRESS],
+                    "Datasafe/R physical media request",
+                    cfg.MANUAL_RESTORE_TEMPLATE % content_vars,
+                    actual_addressees=[cfg.NOTIFY_CC_EMAIL_ADDRESS])
+            else:
+                message = "Failed to create file list: %s" % ( partname )
         # Once a restore is successfully created, clear out the cart
         if result:
-            message = "Successfully created %s. Click to download: %s" % ( link_type, make_file_download_link(partname) )
             restore_spec.cancel_current_restore()
 
         return self.show(message=message)

@@ -127,6 +127,31 @@ def create_tar_restore_file(rs):
 
     return ( True, restore_basename )
 
+def create_restore_list(rs):
+    """ Create a list of the restore files to be processed later.
+    The file will be placed in the restore root."""
+    now = datetime.datetime.now()
+    restore_dirname = "restore_%s_%d_%s" % ( rs.company_name, rs.restore_id, now.strftime("%Y%m%d%H%M") )
+    restore_basename = restore_dirname + ".txt"
+    # This is the partial-path we return from this function.
+    # Update: No, we're now just returning restore_basename.
+    restore_company_basename = os.path.join(rs.company_name, restore_basename)
+    restore_filename = os.path.join(zbm_cfg.RESTORE_BASE_DIR, restore_basename)
+
+    f = open(restore_filename, mode='w')
+
+    for spp in rs.include_set:
+        # note: this doesn't open directories
+        # when the list is processed they need to be done recursively
+        fs = rs.include_set[spp]
+        archive_path = os.path.join(restore_dirname, browse.share_plus_path_to_archive_path(spp))
+        f.write(fs.real_path + "\n")
+
+    f.close()
+    os.chmod(restore_filename, 0644)
+    return ( True, restore_basename )
+
+
 def create_restore_file(rs, restore_type):
     """ Create a restore file (zip or tar) from a restore spec.
         Returns a tuple (result_boolean, message). """
@@ -160,6 +185,8 @@ def create_restore_file(rs, restore_type):
         return create_zip_restore_file(rs)
     elif restore_type == 'tar':
         return create_tar_restore_file(rs)
+    elif restore_type == 'list':
+        return create_restore_list(rs)
 
     # We can't create any other kind of restore file.
     return ( False, None )
