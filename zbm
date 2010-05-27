@@ -2,12 +2,11 @@
 
 import cherrypy
 from cherrypy import expose, tools, url
-from cherrypy.lib.static import serve_file
 
 import sys
 import os
 import time
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta
 import timediff
 import string
 import re
@@ -53,7 +52,7 @@ file_size_class = [
 def filesize_exp(size):
     s = file_size_class[0]
     if size < s[0]:
-        return str(size) + s[1]
+        return str(size)
 
     s = file_size_class[-1]
     if not size < s[0]:
@@ -371,7 +370,7 @@ class ZfsBackupManager:
                 restore_msg = "As your restore is greater than %sMB you must request a physical copy of the selected files." % (cfg.RESTORE_SIZE_LIMIT)
             running_total_size = html.p("Running total size is %s. %s" % ( html.span(filesize_exp(rs.disk_usage_running_total), att='class="running_total_size"'), restore_msg ))
 
-        oldarchives =  html.p(html.a("View old archives", att='href="old_archives"'))
+        oldarchives = html.p(html.a("View old archives", att='href="old_archives"'))
 
 
         return page.page("Cart",
@@ -508,8 +507,7 @@ class ZfsBackupManager:
 
         download_file_path = os.path.join(cfg.RESTORE_BASE_DIR, company_name, file)
         download_file_basename = os.path.basename(download_file_path)
-        download_file_size = os.lstat(download_file_path)[6]
-        download_file_size_expression = filesize_exp(download_file_size)
+        download_file_size_expression = filesize_exp(os.lstat(download_file_path)[6])
 
         content_vars = {
             'human_readable_datetime' : datetime.now().strftime("%b %d %Y %H:%M:%S"),
@@ -540,39 +538,9 @@ class ZfsBackupManager:
 
     @expose
     @require()
-    def download_one(self, share=None, path=None, company_name=None, go = False):
-        """ Streams a single file to the client. """
-        # Check the user is authorized
-        ( username, full_name, company_authname, company_fullname ) = auth.login_status()
-        if company_authname != company_name:
-            return page.page("Error", html.p("You are not permitted to download this file."))
-
-        if share == None or path == None or company_name == None: # is company_name ok?
-            return page.page("Error", html.p("Error in file specification."))
-
-        if not go:
-            link = html.a("here", att='href="download_one?share=%s&path=%s&company_name=%s&go=1"' %
-                (share, path, company_name))
-            message = html.p("This download will be recorded to your account for billing purposes."
-                + " Click %s to proceed." % link)
-            return page.page("Download single file", message)
-
-        filespec = make_file_spec(company_name, share, path)
-        # Record accounting data
-        timestamp = datetime.now().isoformat()
-        clientip = cherrypy.request.remote.ip
-        filesize = os.lstat(filespec.real_path)[6]
-        db.do("insert into transfers (starttime, username, companyname, clientip, bytes) values"
-            + "(%(timestamp)s, %(username)s, %(company_name)s, %(clientip)s, %(filesize)s)", vars())
-        db.commit()
-
-        return serve_file(filespec.real_path, "application/x-download", "attachment")
-
-    @expose
-    @require()
     def action(self, **kwargs):
 
-        ( username, full_name, company, _ ) = auth.login_status()
+        ( username, full_name, company, company_fullname ) = auth.login_status()
         result = False
         message = None
         message = "Successfully created %s. Click to download: %s" 
@@ -605,10 +573,10 @@ class ZfsBackupManager:
                 # Now need to send emails and other stuff
                 content_vars = {
                     'human_readable_datetime' : datetime.now().strftime("%b %d %Y %H:%M:%S"),
-                    'filename' : os.path.join(cfg.BACKUP_BASE_DIR,partname),
+                    'filename' : os.path.join(cfg.RESTORE_BASE_DIR,partname),
                     'username' : username,
                     'full_name' : full_name,
-                    'company' : company}
+                    'company' : company_fullname}
                 zbm_email.send_email(cfg.FROM_EMAIL_ADDRESS,
                     [cfg.NOTIFY_CC_EMAIL_ADDRESS],
                     "Datasafe/R physical media request",
