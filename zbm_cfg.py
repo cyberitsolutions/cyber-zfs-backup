@@ -61,8 +61,7 @@ ACCOUNTS_EMAIL_ADDRESS = 'accounts@cybersource.com.au'
 
 # The official Cybersource email address to which ZBM will send a copy
 # of *every* download-notification email sent to a customer.
-#NOTIFY_CC_EMAIL_ADDRESS = 'hosted-backups@cybersource.com.au'
-NOTIFY_CC_EMAIL_ADDRESS = 'jeremyc@cybersource.com.au'
+NOTIFY_CC_EMAIL_ADDRESS = 'hosted-backups@cybersource.com.au'
 
 # Email templates.
 #
