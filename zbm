@@ -52,7 +52,7 @@ file_size_class = [
 def filesize_exp(size):
     s = file_size_class[0]
     if size < s[0]:
-        return str(size)
+        return str(size) + s[1]
 
     s = file_size_class[-1]
     if not size < s[0]:
