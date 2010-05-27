@@ -81,7 +81,7 @@ def check_credentials(username, password):
     # Adapt to your needs
     hashed_password = md5.md5(password).hexdigest()
     # users.company_name is null for global admins
-    row = db.get1("select u.full_name, u.company_name, c.long_name, u.disabled from all_users u left join companies c on u.company_name = c.name where username = %(username)s and hashed_password = %(hashed_password)s", vars())
+    row = db.get1("select u.full_name, u.company_name, c.long_name, u.disabled, c.disabled from all_users u left join all_companies c on u.company_name = c.name where username = %(username)s and hashed_password = %(hashed_password)s", vars())
     #db.commit()
     if row is None:
         return ( "Incorrect username or password.", None )
@@ -92,6 +92,8 @@ def check_credentials(username, password):
 
     if row[3]:
         return("User is disabled.", None)
+    if row[4]:
+        return("Company is disabled.", None)
 
     return ( None, {
         'full_name':row[0],
