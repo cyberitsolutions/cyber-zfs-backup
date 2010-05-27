@@ -63,6 +63,9 @@ ACCOUNTS_EMAIL_ADDRESS = 'accounts@cybersource.com.au'
 # of *every* download-notification email sent to a customer.
 NOTIFY_CC_EMAIL_ADDRESS = 'hosted-backups@cybersource.com.au'
 
+# Location of the external auth file, used for archive downloads
+EXTERNAL_AUTH_FILE = '/etc/zbm/zbm_passwords'
+
 # Email templates.
 #
 # There's probably a better place to put these, but I'll

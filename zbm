@@ -1037,16 +1037,7 @@ class ZfsBackupManager:
                 )
             )
         else:
-            try:
-                # Python 2.5 and above
-                import hashlib
-                passwd = hashlib.md5(passwd).hexdigest()
-            except ImportError:
-                # Python 2.4
-                import md5
-                passwd = md5.new(passwd).hexdigest()
-            db.do("insert into all_users (username, full_name, hashed_password) \
-                values (%(uname)s, %(fname)s, %(passwd)s)", vars())
+            auth.add_user(uname, fname, comp, passwd)
             if comp:
                 db.do("update all_users set company_name = %(comp)s where username = %(uname)s", vars())
             if email:
@@ -1061,6 +1052,7 @@ class ZfsBackupManager:
                         db.do("insert into all_admins (username, company_name) values (%(uname)s, %(comp)s)", vars())
             # TODO: Give notification of success
             db.commit()
+
             raise cherrypy.HTTPRedirect("admin_user")
 
     @expose
@@ -1302,8 +1294,7 @@ class ZfsBackupManager:
                 if extra == "user":
                     redirect = "admin_user"
                     if confirm == "confirm":
-                        db.do("delete from all_admins where username = %(user)s", vars())
-                        db.do("delete from all_users where username = %(user)s", vars())
+                        auth.delete_user(user)
                     else:
                         if user == luser:
                             warn = "This will permanently delete your account and prevent you from administrating or logging in."

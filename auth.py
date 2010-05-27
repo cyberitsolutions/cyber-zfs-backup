@@ -4,6 +4,11 @@
 # Session tool to be loaded.
 #
 
+# Note regarding the authentication:
+# Passwords are stored in 2 places, /etc/zbm/zbm_passwords and the users table
+# in the DB. When a user logs in the DB one is used; the /etc/ one is only for
+# apache for file downloads. Apache is used because downloads can be resumed.
+
 import cherrypy
 import urllib
 import db
@@ -33,6 +38,25 @@ def login_status():
     company_fullname = cherrypy.session.get(COMPANY_FULLNAME)
     return (username, fullname, company_name, company_fullname)
 
+def delete_user(user):
+    db.do("delete from all_admins where username = %(user)s", vars())
+    db.do("delete from all_users where username = %(user)s", vars())
+    db.commit()
+    os.system("/etc/zbm/remove_user.sh " + user)
+
+def add_user(username, full_name, company_name, password):
+    # global admins have no company, but the pw hash can't be created without this
+    if (not company_name):
+        company_name = ""
+    hashed_password = md5.md5(password).hexdigest()   
+    db.do("insert into all_users (username, full_name, hashed_password) \
+                values (%(username)s, %(full_name)s, %(hashed_password)s)", vars())
+    # Update the external file
+    hashed_expression = md5.md5(string.join([username, company_name, password], ':')).hexdigest()   
+    f = open(cfg.EXTERNAL_AUTH_FILE, 'a')
+    f.write("%s\n" % ( string.join([username, company_name, hashed_expression], ':') ))
+    f.close()
+
 def reset_password(username, password):
     hashed_password = md5.md5(password).hexdigest()
     db.do("update all_users set hashed_password = %(hashed_password)s where username = %(username)s", vars())
@@ -45,7 +69,7 @@ def reset_password(username, password):
     if company_name is None:
         company_name = ""
     hashed_expression = md5.md5(string.join([username, company_name, password], ':')).hexdigest()
-    f = open('/etc/zbm/zbm_passwords', 'a')
+    f = open(cfg.EXTERNAL_AUTH_FILE, 'a')
     f.write("%s\n" % ( string.join([username, company_name, hashed_expression], ':') ))
     f.close()
 
