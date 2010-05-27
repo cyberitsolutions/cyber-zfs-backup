@@ -557,7 +557,7 @@ class ZfsBackupManager:
     @require()
     def action(self, **kwargs):
 
-        ( username, full_name, company, _ ) = auth.login_status()
+        ( username, full_name, company, company_fullname ) = auth.login_status()
         result = False
         message = None
         message = "Successfully created %s. Click to download: %s" 
@@ -590,10 +590,10 @@ class ZfsBackupManager:
                 # Now need to send emails and other stuff
                 content_vars = {
                     'human_readable_datetime' : datetime.now().strftime("%b %d %Y %H:%M:%S"),
-                    'filename' : os.path.join(cfg.BACKUP_BASE_DIR,partname),
+                    'filename' : os.path.join(cfg.RESTORE_BASE_DIR,partname),
                     'username' : username,
                     'full_name' : full_name,
-                    'company' : company}
+                    'company' : company_fullname}
                 zbm_email.send_email(cfg.FROM_EMAIL_ADDRESS,
                     [cfg.NOTIFY_CC_EMAIL_ADDRESS],
                     "Datasafe/R physical media request",
