@@ -327,7 +327,11 @@ def get_dir_contents(chrooted_path, share, page_num, sort_by="name", include_par
         elif reverse:
             contents.reverse()
 
-        files = get_files(real_dir)
+        # Don't try to list files for the topmost directory as it can take a while
+        # There should be no files in there anyway
+        files = []
+        if ppath_id is not None:
+            files = get_files(real_dir)
         # Cannot assume files will come in sorted order.
         files.sort(filespec_cmp[sort_by], reverse=reverse)
         # Now limit files appropriately based on number of directories
