@@ -507,7 +507,8 @@ class ZfsBackupManager:
 
         download_file_path = os.path.join(cfg.RESTORE_BASE_DIR, company_name, file)
         download_file_basename = os.path.basename(download_file_path)
-        download_file_size_expression = filesize_exp(os.lstat(download_file_path)[6])
+        download_file_size = os.lstat(download_file_path)[6]
+        download_file_size_expression = filesize_exp(download_file_size)
 
         content_vars = {
             'human_readable_datetime' : datetime.now().strftime("%b %d %Y %H:%M:%S"),
