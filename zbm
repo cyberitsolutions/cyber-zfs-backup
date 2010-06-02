@@ -6,7 +6,7 @@ from cherrypy import expose, tools, url
 import sys
 import os
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 import timediff
 import string
 import re
@@ -778,7 +778,10 @@ class ZfsBackupManager:
                 else:
                     checked = ""
                 extra = ""
+                type="checkbox"
                 if auth.user_is_multi_admin():
+                    type="hidden"
+                    checked="true"
                     my_username = auth.login_status()[0]
                     if auth.user_is_global_admin():
                         my_comps = all_companies
@@ -790,7 +793,7 @@ class ZfsBackupManager:
                         , multi=True, selected=their_comps
                         , allow_null = auth.user_is_global_admin(), null_text="&lt;All&gt;"
                     )
-                row += field("checkbox", "admin", comp=u[3], user=u[0], value=checked, extra=extra)
+                row += field(type, "admin", comp=u[3], user=u[0], value=checked, extra=extra)
             ## Disable ##
             if u[4]:
                 row += field("submit", "enable", comp=u[3], user=u[0], value="Enable",
@@ -928,7 +931,9 @@ class ZfsBackupManager:
             links.append(html.a("Create new share", att='href="new_share"'))
 
         # Transfer view only available to admins
-        if auth.user_is_admin():
+        # This weird logic is to handle the case where user is only an admin of a company 
+        # other than their own (shouldn't happen, but deal with it right anyway)
+        if auth.user_is_admin() or auth.user_is_multi_admin():
             links.append(html.a("View transfer summary", att='href="transfer_summary"'))
 
         return page.page("Admin"
@@ -1037,16 +1042,7 @@ class ZfsBackupManager:
                 )
             )
         else:
-            try:
-                # Python 2.5 and above
-                import hashlib
-                passwd = hashlib.md5(passwd).hexdigest()
-            except ImportError:
-                # Python 2.4
-                import md5
-                passwd = md5.new(passwd).hexdigest()
-            db.do("insert into all_users (username, full_name, hashed_password) \
-                values (%(uname)s, %(fname)s, %(passwd)s)", vars())
+            auth.add_user(uname, fname, comp, passwd)
             if comp:
                 db.do("update all_users set company_name = %(comp)s where username = %(uname)s", vars())
             if email:
@@ -1061,6 +1057,7 @@ class ZfsBackupManager:
                         db.do("insert into all_admins (username, company_name) values (%(uname)s, %(comp)s)", vars())
             # TODO: Give notification of success
             db.commit()
+
             raise cherrypy.HTTPRedirect("admin_user")
 
     @expose
@@ -1302,8 +1299,7 @@ class ZfsBackupManager:
                 if extra == "user":
                     redirect = "admin_user"
                     if confirm == "confirm":
-                        db.do("delete from all_admins where username = %(user)s", vars())
-                        db.do("delete from all_users where username = %(user)s", vars())
+                        auth.delete_user(user)
                     else:
                         if user == luser:
                             warn = "This will permanently delete your account and prevent you from administrating or logging in."
@@ -1363,6 +1359,42 @@ class ZfsBackupManager:
                         action += "Change email of %s &lsquo;%s&rsquo; from &lsquo;%s&rsquo; to &lsquo;%s&rsquo;." % (extra, control, cur[0], value)
             elif comm == "password":
                 raise cherrypy.HTTPRedirect("password?user=%s" % user)
+            elif comm == "admin":
+                # The overall logic for this is messed up.
+                # A regular admin can only enable/disable admins for their own company
+                # multi admins can set admins for their own companies
+                # Users can't be reassigned between companies, so global admins can't be created
+                if not value:
+                    action = "Remove admin rights from %(user)s" % vars()
+                else:
+                    action = "Change admin rights of user %(user)s." % vars()
+
+                redirect = "admin_user"
+                # extra is the list of users to admin
+                # value is a checkbox indicating whether or not the user is an admin
+                if confirm == "confirm":
+                    # Cache the list of adminned companies first
+                    # Things get messy otherwise
+                    admin_companies = auth.get_user_admin_companies()
+                    # don't need the company's long name
+                    admin_companies = map(lambda x: x[0], admin_companies)
+                    db.do("DELETE FROM all_admins WHERE username = %(user)s" , vars())
+                    if value:
+                        # This is kind of stupid
+                        # To create the confirm screen the code takes the value of extra, assumes it's a string
+                        # and crams it into a hidden field. Hence this weird junk.
+                        if extra != "False":
+                            # if the user selected multiple entries, break it down
+                            # "['company1', 'company2'...]"
+                            if extra[0] == '[':
+                                extra = extra[1:-1].split(',')
+                            else:
+                                extra = [extra]
+                            for company in extra:
+                                company = company.strip(" '")
+                                if not company in admin_companies:
+                                    continue
+                                db.do("INSERT INTO all_admins (username, company_name) VALUES (%(user)s, %(company)s)", vars())
             else:
                 warn = "Unsupported feature &lsquo;%s&rsquo;." % comm
                 error = True
