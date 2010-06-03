@@ -305,11 +305,12 @@ def get_dir_contents(chrooted_path, share, page_num, sort_by="name", include_par
 
         limit = cfg.DEFAULT_PAGE_SIZE
         limit_condition = "limit %d" % limit
-        offset = (page_num - 1) * limit
+        offset = (int(page_num) - 1) * limit
         offset_condition = "offset %d" % offset
         if ppath_id is None:
             #zd = get_snapshot_timestamps(get_zfs_filesystem(real_dir))
-            reverse = True
+            # Reverse it
+            orderby_condition += " DESC"
         dir_count = db.get1("select count(*) from filesystem_info where ppath_id=%d" % ( path_id ))[0]
         for subdir in db.get("select path,apparent_size from filesystem_info where ppath_id=%d %s %s %s" % ( path_id, orderby_condition, limit_condition, offset_condition )):
             subpath = os.path.join(chrooted_path.path, subdir[0][len(real_dir) + len(os.sep):])
@@ -322,10 +323,9 @@ def get_dir_contents(chrooted_path, share, page_num, sort_by="name", include_par
             contents.append(spec)
         # Assuming that directories should always appear above files,
         # directory names don't need to be sorted.
+        # This actually doesn't do much, the real sorting is in JS
         if sort_by != 'name':
             contents.sort(filespec_cmp[sort_by], reverse=reverse)
-        elif reverse:
-            contents.reverse()
 
         # Don't try to list files for the topmost directory as it can take a while
         # There should be no files in there anyway
