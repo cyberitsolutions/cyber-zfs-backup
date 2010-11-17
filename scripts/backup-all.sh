@@ -7,11 +7,9 @@ IFS=$'\n'
 cd /tank/hosted-backup
 rm -f z-backup-output.txt
 
-# nuke any existing rsync processes
-# XXX this sucks, and should only be killing *our* rsync processes, but
-# XXX since we don't save their PIDs we just hit everything with a rock.
-/usr/bin/pkill rsync; sleep 30; /usr/bin/pkill -9 rsync
+datestamp=$(/usr/gnu/bin/date --rfc-3339=date)
 
+# ls -lFd /tank/hosted-backup/backups/*/* > /tank/hosted-backup/z-ls-prerun-$datestamp
 # config files containing RSA private keys for rsync+ssh clients
 for conf in $(cd config && grep -l -- '-----BEGIN RSA PRIVATE KEY-----' *)
 do
@@ -24,6 +22,8 @@ do
 done
 
 wait
+# ls -lFd /tank/hosted-backup/backups/*/* > /tank/hosted-backup/z-ls-postrun-$datestamp
+
 
 (cat z-backup-output.txt; head -100 backups/*/*.err) | /usr/bin/mailx -s 'zhug backup logs' hosted-backups@cybersource.com.au
 

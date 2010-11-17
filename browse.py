@@ -90,8 +90,11 @@ def update_toplevel_path_apparent_size(path):
         if line is not None:
             ( du_size_str, du_path ) = line.split('\t', 1)
             apparent_size = int(du_size_str)
-            update_or_insert_filesystem_info_apparent_size(du_path, apparent_size)
-            db.commit()
+            try:
+                update_or_insert_filesystem_info_apparent_size(du_path, apparent_size)
+                db.commit()
+            except db.psycopg2.DataError, e:
+                sys.stderr.write("ERROR: apparent size %d ; path %s\n" % ( apparent_size, du_path ))
 
 def update_toplevel_path_usage_size(path):
     """ Manually extracts du disk-usage-size of path and all
@@ -106,8 +109,11 @@ def update_toplevel_path_usage_size(path):
         if line is not None:
             ( du_size_str, du_path ) = line.split('\t', 1)
             usage_size = int(du_size_str)
-            update_or_insert_filesystem_info_usage_size(du_path, usage_size)
-            db.commit()
+            try:
+                update_or_insert_filesystem_info_usage_size(du_path, usage_size)
+                db.commit()
+            except db.psycopg2.DataError, e:
+                sys.stderr.write("ERROR: usage size %d ; path %s\n" % ( apparent_size, du_path ))
 
 # Note: The contents of the supplied path are assumed to never ever
 # change. Unless they're completely removed. This will be true for a
@@ -177,18 +183,16 @@ def share_plus_path_to_archive_path(share_plus_path):
     """ Returns an expression suitable for use as an archive path. """
     ( share, path ) = split_share_from_path(share_plus_path)
 
-    # Bugfix for invalid (colon) characters in the snapshot name.
-    # Normally snapshot dirs look like this: "2010-03-24T14:05:31Z".
-    #
-    # This can't be allowed for a Windows system, as ':' is not a valid
-    # character.
+    # Bugfix for invalid (colon) characters in the snapshot name
+    # and the share name. For example, snapshot dirs normally look like this:
+    # "2010-03-24T14:05:31Z". This can't be allowed for a Windows system, as
+    # ':' is not a valid character.
     m = re.match('^/([^/]+)(/.*)$', path)
     if not m:
         raise InaccessiblePathError("Bad path: \"%s\"" % path)
     snapdir = m.group(1)
     postsnap = m.group(2)
-    decolonised_snapdir = re.sub(':', '_', snapdir)
-    return os.path.join(share, decolonised_snapdir + postsnap)
+    return os.path.join(re.sub(':', '_', share), re.sub(':', '_', snapdir) + postsnap)
 
 class FileSpec:
     def __init__(self, chrooted_path, share, name=False, disk_usage=None, apparent_size=None, mtime=None):
