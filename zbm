@@ -256,13 +256,15 @@ def dir_box(rs, share, chrooted_path, page_num, company_name=None):
     paging = ""
     path = dir_filespec.path
     # The unclosed quote is intentional
-    link_base = 'href="/backup/browse?share=%(share)s&path=%(path)s&company_name=%(company_name)s' % vars()
+    link_base = 'href="/backup/browse?share=%(share)s&path=%(path)s' % vars()
+    if company_name != None:
+        link_base += "&company_name=%s" % company_name
 
     # Insert pagination
     if page_count > 1:
         pages = ""
         if int(page_num) > 1:
-            pages = html.a(" < ", att=link_base + "&page_num=%s\"" % (int(page_num) - 1))
+            pages = html.a(" &lt; ", att=link_base + "&page_num=%s\"" % (int(page_num) - 1))
         for x in range(1,page_count + 1):
             if x == int(page_num):
                 pages += " %s " % x
@@ -270,7 +272,7 @@ def dir_box(rs, share, chrooted_path, page_num, company_name=None):
                 att = link_base + "&page_num=%s\"" % x
                 pages += html.a(" %s " % x, att=att)
         if int(page_num) < page_count:
-            pages += html.a(" > ", att=link_base + "&page_num=%s\"" % (int(page_num) + 1))
+            pages += html.a(" &gt; ", att=link_base + "&page_num=%s\"" % (int(page_num) + 1))
         paging = html.p(pages, att='style="text-align:center"')
 
     dir_contents_html = html.tbody(string.join(map(lambda fs: tr_filespec(rs, fs, revolver), dir_contents[1:])))
