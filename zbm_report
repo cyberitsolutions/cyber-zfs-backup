@@ -219,7 +219,7 @@ if len(sys.argv) > 1:
     # Do the billing report.
     now = datetime.datetime.now()
     lastfortnight = now - datetime.timedelta(weeks=2)
-    print "Cybersource Hosted Backup Service"
+    print "Cyber Hosted Backup Service"
     print "Date: %s" % ( now.date() )
     print
     print "Data hosted for : %s %s" % ( lastfortnight.strftime("%B"), lastfortnight.year )

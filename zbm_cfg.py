@@ -37,12 +37,12 @@ RESTORE_BASE_DIR = '/tank/hosted-backup/restores'
 # a / plus restore tarball/zipfile name (ie. restore-file) will make
 # a downloadable URL.
 RESTORE_BASE_PATH = "/restore"
-RESTORE_BASE_URL = "https://datasafe.cybersource.com.au"
+RESTORE_BASE_URL = "https://datasafe.cyber.com.au"
 RESTORE_BASE_URL_PATH = RESTORE_BASE_URL + RESTORE_BASE_PATH
 
 # Backup base URL.
 BACKUP_BASE_PATH = "/backup"
-BACKUP_BASE_URL = "https://datasafe.cybersource.com.au"
+BACKUP_BASE_URL = "https://datasafe.cyber.com.au"
 BACKUP_BASE_URL_PATH = BACKUP_BASE_URL + BACKUP_BASE_PATH
 
 # The snapshot dir of a company share should be accessed like so:
@@ -53,15 +53,15 @@ SNAPSHOT_DIR = '.zfs/snapshot'
 # SMTP server for use by ZBM in sending email.
 SMTP_SERVER = 'localhost'
 
-# The official Cybersource email address(es) to which ZBM may need to
+# The official Cyber email address(es) to which ZBM may need to
 # send particular types of notification messages.
-FROM_EMAIL_ADDRESS = 'Hosted Backups <hosted-backups@cybersource.com.au>'
-SUPPORT_EMAIL_ADDRESS = 'support@cybersource.com.au'
-ACCOUNTS_EMAIL_ADDRESS = 'accounts@cybersource.com.au'
+FROM_EMAIL_ADDRESS = 'Hosted Backups <hosted-backups@cyber.com.au>'
+SUPPORT_EMAIL_ADDRESS = 'support@cyber.com.au'
+ACCOUNTS_EMAIL_ADDRESS = 'accounts@cyber.com.au'
 
-# The official Cybersource email address to which ZBM will send a copy
+# The official Cyber email address to which ZBM will send a copy
 # of *every* download-notification email sent to a customer.
-NOTIFY_CC_EMAIL_ADDRESS = 'hosted-backups@cybersource.com.au'
+NOTIFY_CC_EMAIL_ADDRESS = 'hosted-backups@cyber.com.au'
 
 # Location of the external auth file, used for archive downloads
 EXTERNAL_AUTH_FILE = '/etc/zbm/zbm_passwords'
@@ -71,7 +71,7 @@ EXTERNAL_AUTH_FILE = '/etc/zbm/zbm_passwords'
 # There's probably a better place to put these, but I'll
 # put them here for the time being.
 COMPANY_FILE_DOWNLOAD_TEMPLATE = """
-Cybersource Hosted Backup Service
+Cyber Hosted Backup Service
 
 %(human_readable_datetime)s
 
@@ -85,12 +85,12 @@ This link will remain valid for 48 hours.
 This is not a bill for payment. You will be invoiced for this download
 after the end of the month.
 
-Thank you for using the Cybersource Hosted Backup service.
+Thank you for using the Cyber Hosted Backup service.
 
 Regards,
 
-Cybersource Pty Ltd
-Email: info@cybersource.com.au
+Cyber IT Solutions Pty Ltd
+Email: info@cyber.com.au
 Phone: +61 3 9428 6922
 Fax:   +61 3 9428 6944
 """

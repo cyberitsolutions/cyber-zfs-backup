@@ -1,4 +1,4 @@
-From: ZBM Status Report <root@zhug.cybersource.com.au>
-To: Hosted Backups <hosted-backups@cybersource.com.au>
+From: ZBM Status Report <root@zhug.cyber.com.au>
+To: Hosted Backups <hosted-backups@cyber.com.au>
 Subject: ZBM Status Report
 

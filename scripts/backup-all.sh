@@ -25,6 +25,6 @@ wait
 # ls -lFd /tank/hosted-backup/backups/*/* > /tank/hosted-backup/z-ls-postrun-$datestamp
 
 
-(cat z-backup-output.txt; head -100 backups/*/*.err) | /usr/bin/mailx -s 'zhug backup logs' hosted-backups@cybersource.com.au
+(cat z-backup-output.txt; head -100 backups/*/*.err) | /usr/bin/mailx -s 'zhug backup logs' hosted-backups@cyber.com.au
 
 mv backups/*/*.{out,err} logs

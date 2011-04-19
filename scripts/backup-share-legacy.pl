@@ -38,7 +38,7 @@ if ( -r $email_notifications_file && ! -z $email_notifications_file ) {
   chomp $recipients;
   close EMAIL_RECIPIENTS;
 }
-$recipients = "hosted-backups\@cybersource.com.au $recipients";
+$recipients = "hosted-backups\@cyber.com.au $recipients";
 
 $config_hack_file = "$hosted_backup_config_hack_dir/$ARGV[0]";
 $config_hack = '';
