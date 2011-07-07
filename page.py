@@ -8,9 +8,7 @@ import auth
 import zbm_cfg as cfg
 
 def branding():
-    # Put back the logo when we have a logo
-    #return html.div(html.h1(html.img(att='src="http://cybersource.com.au/images/cybersource_logo.gif" alt="Cybersource"') + cfg.ZBM_PRETTY_NAME), att='id="heading"')
-    return html.div(html.h1("Cyber " + cfg.ZBM_PRETTY_NAME), att='id="heading"')
+    return html.div(html.h1(html.img(att='src="/backup/static/cyber_logo.gif" alt="Cyber IT Solutions"') + cfg.ZBM_PRETTY_NAME), att='id="heading"')
 
 def page_title(content):
     if content:
