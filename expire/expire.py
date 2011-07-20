@@ -136,7 +136,8 @@ for remain in datelist:
     replacement = nexthighest(keys, remain)
 
     if (replacement == None):
-        print >> sys.stderr, "No valid backup for ", remain
+        # print >> sys.stderr, "No valid backup for ", remain
+        pass # This is going to be fairly common, keep stdout clean
     else:
         # If the replacement backup is newer than another backup to be
         # kept, forget about it. 
@@ -147,7 +148,7 @@ for remain in datelist:
         kkeys.sort()
         next = nexthighest(kkeys, remain)
         if (replacement > next):
-            print >> sys.stderr, "No valid backup for ", remain
+            # print >> sys.stderr, "No valid backup for ", remain
             continue
         keep[replacement] = delete[replacement]
         del delete[replacement]
