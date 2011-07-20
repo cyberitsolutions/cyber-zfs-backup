@@ -6,5 +6,5 @@ cd /export/home/cyber/src/zbm
 
 header=bandwidth_report_header.txt
 
-./restore_bandwidth_report 2> /dev/null | cat "$header" - | mail hosted-backups@cybersource.com.au
+./restore_bandwidth_report 2> /dev/null | cat "$header" - | mail hosted-backups@cyber.com.au
 
