@@ -1,9 +1,9 @@
 #!/bin/bash
 
-set -x
+#set -x
 
-expire="./expire.py"
-remove="./remove.sh"
+expire="/tank/hosted-backup/bin/expire.py"
+remove="/tank/hosted-backup/bin/remove.sh"
 
 if [ -n "$1" ]
 then
