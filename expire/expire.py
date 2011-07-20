@@ -46,12 +46,12 @@ for i in range(0, dailies):
 # Weeks: back up to Sunday, remove 7 days at a time
 
 wd = today.weekday()
-curweek = today - datetime.timedelta(days = -wd)
-weekdiff = datetime.timedelta(days = -7)
+curweek = today - datetime.timedelta(days = wd)
+weekdiff = datetime.timedelta(days = 7)
 for i in range(0, weeklies):
-    curweek += weekdiff
     if curweek not in datelist:
         datelist.append(curweek)
+    curweek -= weekdiff
 
 # Months: count manually
 tm = today.month
