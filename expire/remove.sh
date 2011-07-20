@@ -32,9 +32,9 @@ full_path="${path}/.zfs/snapshot/${snapshot}"
 # db path is /tank/hosted-backup/backups/insightsrc/mail.insightsrc.com.au:srv:share/.zfs/snapshot/2010-11-18T14:05:08Z
 # Let the FK ON DELETE CASCADE do the hard work
 echo "DELETE FROM filesystem_info WHERE path = '${full_path}';" | $psql -A --username "$DBUSER" --host "$DBHOST" --port "$DBPORT" --dbname "$DBNAME"
-#echo "DELETE FROM filesystem_info WHERE path = '${full_path}';" 
+echo "DELETE FROM filesystem_info WHERE path = '${full_path}';" 
 # zfs doesn't want the leading /
 zfs_path=`echo $path | sed 's|^/||'`
 
 zfs destroy "${zfs_path}@${snapshot}"
-
+echo "${zfs_path}@${snapshot}"
