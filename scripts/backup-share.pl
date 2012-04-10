@@ -38,7 +38,7 @@ if ( -r $email_notifications_file && ! -z $email_notifications_file ) {
   chomp $recipients;
   close EMAIL_RECIPIENTS;
 }
-$recipients = "hosted-backups\@cyber.com.au $recipients";
+$recipients = "support-DatasafeR\@cyber.com.au $recipients";
 
 $config_hack_file = "$hosted_backup_config_hack_dir/$ARGV[0]";
 $config_hack = '';
@@ -56,6 +56,8 @@ $rsync_target_dir = "/$target_fs";
 # XXX THIS IS FUCKED. IT IS NOW TIME TO THROW THIS OUT AND START AGAIN WITH AN ACTUAL SPEC.
 $rsync_standard_args = "-aP --stats --numeric-ids --delete-after --delete-excluded --compress --human-readable --exclude proc/ --exclude sys/ --exclude dev/" if $source_userhost eq "root\@vanilla.cyber.com.au";
 $rsync_standard_args = "-aP --stats --numeric-ids --delete-after --delete-excluded --compress --human-readable --exclude proc/ --exclude sys/ --exclude dev/" if $source_userhost eq "root\@white.cyber.com.au";
+# Fix inflation -5 error (http://rsync.samba.org/FAQ.html#13)
+$rsync_standard_args = "-aP --stats --inplace --numeric-ids --delete-after --delete-excluded --compress --human-readable --block-size=33000 --exclude proc/ --exclude sys/ --exclude dev/ --exclude mnt/" if $source_userhost eq "root\@omega.cyber.com.au";
 $rsync_transport_auth = "-e 'ssh -p 5250 -i $authfile -o ServerAliveInterval=30 -o ServerAliveCountMax=10'" if $client eq "palletcontrol";
 $rsync_transport_auth = "-e '/tank/hosted-backup/openssh-5.6p1/bin/ssh -p 2222 -i $authfile -o ServerAliveInterval=30 -o ServerAliveCountMax=10'" if $client eq "worklogic";
 # $rsync_standard_args = "-aP --stats --numeric-ids --delete-after --delete-excluded --compress --human-readable --exclude proc/ --exclude sys/ --exclude dev/" if $client eq "aunic";
