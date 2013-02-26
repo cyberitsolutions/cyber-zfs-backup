@@ -57,13 +57,16 @@ $rsync_target_dir = "/$target_fs";
 $rsync_standard_args = "-aP --stats --numeric-ids --delete-after --delete-excluded --compress --human-readable --exclude proc/ --exclude sys/ --exclude dev/" if $source_userhost eq "root\@vanilla.cyber.com.au";
 $rsync_standard_args = "-aP --stats --numeric-ids --delete-after --delete-excluded --compress --human-readable --exclude proc/ --exclude sys/ --exclude dev/" if $source_userhost eq "root\@white.cyber.com.au";
 # Fix inflation -5 error (http://rsync.samba.org/FAQ.html#13)
-$rsync_standard_args = "-aP --stats --inplace --numeric-ids --delete-after --delete-excluded --compress --human-readable --block-size=33000 --exclude proc/ --exclude sys/ --exclude dev/ --exclude mnt/" if $source_userhost eq "root\@omega.cyber.com.au";
+$rsync_standard_args = "-aP --stats --inplace --numeric-ids --delete-after --delete-excluded --compress --human-readable -B 33000 --exclude proc/ --exclude sys/ --exclude dev/ --exclude mnt/ " if $source_userhost eq "root\@omega.cyber.com.au";
 $rsync_transport_auth = "-e 'ssh -p 5250 -i $authfile -o ServerAliveInterval=30 -o ServerAliveCountMax=10'" if $client eq "palletcontrol";
+$rsync_transport_auth = "-e 'ssh -p 2222 -i $authfile -o ServerAliveInterval=30 -o ServerAliveCountMax=10'" if $client eq "keypass";
 $rsync_transport_auth = "-e '/tank/hosted-backup/openssh-5.6p1/bin/ssh -p 2222 -i $authfile -o ServerAliveInterval=30 -o ServerAliveCountMax=10'" if $client eq "worklogic";
 # $rsync_standard_args = "-aP --stats --numeric-ids --delete-after --delete-excluded --compress --human-readable --exclude proc/ --exclude sys/ --exclude dev/" if $client eq "aunic";
 
 # $cmd_zfs_create = qq(zfs create -p $target_fs);
-$cmd_rsync = qq(rsync $rsync_standard_args $rsync_transport_auth $config_hack '$rsync_source/.' '$rsync_target_dir/.' > '$rsync_target_dir.$backup_stamp.out' 2> '$rsync_target_dir.$backup_stamp.err');
+# $cmd_rsync = qq(rsync $rsync_standard_args $rsync_transport_auth $config_hack '$rsync_source/.' '$rsync_target_dir/.' > '$rsync_target_dir.$backup_stamp.out' 2> '$rsync_target_dir.$backup_stamp.err');
+# local rsync is newer and doesn't have the inflate -5 bug
+$cmd_rsync = qq(/tank/hosted-backup/bin/rsync $rsync_standard_args $rsync_transport_auth $config_hack '$rsync_source/.' '$rsync_target_dir/.' > '$rsync_target_dir.$backup_stamp.out' 2> '$rsync_target_dir.$backup_stamp.err');
 $cmd_zfs_snapshot = qq(zfs snapshot '$target_fs\@$backup_stamp');
 $cmd_cache_disk_usage = qq(env LD_LIBRARY_PATH=/usr/postgres/8.2/lib /tank/hosted-backup/bin/cache_directory_sizes '$rsync_target_dir/.zfs/snapshot/$backup_stamp');
 $cmd_email_notification = qq((cat /${hosted_backup_root_fs}/email-header.txt; tail -20 "$rsync_target_dir.$backup_stamp.out" | perl -ne '\$go += /^Number/; print if \$go'; echo; strings "$rsync_target_dir.$backup_stamp.out" | grep vanished; echo; cat "$rsync_target_dir.$backup_stamp.err") | /usr/bin/mailx -s 'backup log $ARGV[0]' $recipients);

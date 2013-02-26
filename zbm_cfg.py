@@ -55,13 +55,13 @@ SMTP_SERVER = 'localhost'
 
 # The official Cyber email address(es) to which ZBM may need to
 # send particular types of notification messages.
-FROM_EMAIL_ADDRESS = 'Hosted Backups <hosted-backups@cyber.com.au>'
+FROM_EMAIL_ADDRESS = 'Hosted Backups <support-DatasafeR@cyber.com.au>'
 SUPPORT_EMAIL_ADDRESS = 'support@cyber.com.au'
 ACCOUNTS_EMAIL_ADDRESS = 'accounts@cyber.com.au'
 
 # The official Cyber email address to which ZBM will send a copy
 # of *every* download-notification email sent to a customer.
-NOTIFY_CC_EMAIL_ADDRESS = 'hosted-backups@cyber.com.au'
+NOTIFY_CC_EMAIL_ADDRESS = 'support-DatasafeR@cyber.com.au'
 
 # Location of the external auth file, used for archive downloads
 EXTERNAL_AUTH_FILE = '/etc/zbm/zbm_passwords'

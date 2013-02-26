@@ -11,5 +11,5 @@ if [ -n "$1" ]; then
     header=zbm_report_header_steve.txt
 fi
 
-./zbm_report $steve 2> /dev/null | cat "$header" - | mail hosted-backups@cybersource.com.au
+./zbm_report $steve 2> /dev/null | cat "$header" - | mail support-DatasafeR@cyber.com.au
 
