@@ -9,7 +9,7 @@ import time
 (opts, args) = getopt.getopt(sys.argv[1:], "vd:")
 
 if len(args) < 4:
-    print "Usage: ", sys.argv[0], " [-v] <path> <d> <w> <m>"
+    print "Usage: ", sys.argv[0], " [-v] <path> <d> <w> <m> <y>"
     print "\tpath: directory containing backups"
     print "\td: number of daily backups to keep"
     print "\tw: weekly backups"
