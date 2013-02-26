@@ -37,3 +37,5 @@ echo "DELETE FROM filesystem_info WHERE path = '${full_path}';" | $psql -A --use
 zfs_path=`echo $path | sed 's|^/||'`
 
 zfs destroy "${zfs_path}@${snapshot}"
+echo "Expired $path $snapshot"
+
