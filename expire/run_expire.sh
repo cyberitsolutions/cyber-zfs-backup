@@ -20,10 +20,11 @@ do
     dailies=-1
     weeklies=-1
     monthlies=-1
+    yearlies=-1
 
     . $backup
 
-    if [ "$dailies" -eq -1 -o "$weeklies" -eq -1 -o "$monthlies" -eq -1 ]
+    if [ "$dailies" -eq -1 -o "$weeklies" -eq -1 -o "$monthlies" -eq -1 -o "$yearlies" -eq -1 ]
     then
         true # Error message?
     else
@@ -32,10 +33,10 @@ do
         if [ -n "$dry_run" ]
         then
             echo "full_path: $full_path company $company path $path"
-            $expire -v $full_path $dailies $weeklies $monthlies
+            $expire -v $full_path $dailies $weeklies $monthlies $yearlies
         else
-            $expire $full_path $dailies $weeklies $monthlies | xargs -L 1 $remove $share_root
-        fi
+            $expire $full_path $dailies $weeklies $monthlies $yearlies | xargs -L 1 $remove $share_root
+       fi
     fi
 
 done
