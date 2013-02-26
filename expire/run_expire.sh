@@ -23,8 +23,6 @@ do
     yearlies=-1
 
     . $backup
-    echo "$backup"
-    echo "$dailies" -eq -1 -o "$weeklies" -eq -1 -o "$monthlies" -eq -1 -o "$yearlies" -eq -1
 
     if [ "$dailies" -eq -1 -o "$weeklies" -eq -1 -o "$monthlies" -eq -1 -o "$yearlies" -eq -1 ]
     then
