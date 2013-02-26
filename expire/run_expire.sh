@@ -29,7 +29,6 @@ do
     if [ "$dailies" -eq -1 -o "$weeklies" -eq -1 -o "$monthlies" -eq -1 -o "$yearlies" -eq -1 ]
     then
         true # Error message?
-        echo blah
     else
         share_root=/tank/hosted-backup/backups/$company/$path
         full_path="$share_root/.zfs/snapshot"
@@ -38,7 +37,7 @@ do
             echo "full_path: $full_path company $company path $path"
             $expire -v $full_path $dailies $weeklies $monthlies $yearlies
         else
-            $expire $full_path $dailies $weeklies $monthlies $yearlies | xargs -L 1 echo $remove $share_root
+            $expire $full_path $dailies $weeklies $monthlies $yearlies | xargs -L 1 $remove $share_root
        fi
     fi
 
