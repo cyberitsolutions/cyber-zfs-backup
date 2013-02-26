@@ -2,14 +2,14 @@
 
 # Generate a directory with a year of 'snapshots' for testing
 
-if [ ! -d "test" ]
+if [ ! -d "$1" ]
 then
 	mkdir test
 fi
-cd test
-for (( i = 0 ; i < 365 ; i++ ))
+cd "$1"
+for (( i = 0 ; i < 1095 ; i++ ))
 do
-	dn=`date -d "today - $i days" +%Y-%m-%d`
+	dn=`date -d "today - $i days" +%Y-%m-%dT%H:%M:%SZ`
 	mkdir $dn
 	touch -d "today - $i days" $dn
 done

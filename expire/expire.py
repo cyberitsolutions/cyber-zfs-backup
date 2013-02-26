@@ -14,6 +14,7 @@ if len(args) < 4:
     print "\td: number of daily backups to keep"
     print "\tw: weekly backups"
     print "\tm: monthly backups"
+    print "\ty: yearly backups"
     sys.exit(1)
 
 path = args[0]
@@ -21,6 +22,7 @@ path = args[0]
 dailies = int(args[1])
 weeklies = int(args[2])
 monthlies = int(args[3])
+yearlies = int(args[4])
 
 # Filenames are all UTC, so do these calculations in UTC too
 
@@ -66,6 +68,11 @@ for i in range(0, monthlies):
         tm = 12
         ty -= 1
 
+for i in range(0, yearlies):
+    curyear = datetime.date(ty, 1, 1)
+    if curyear not in datelist:
+        datelist.append(curyear)
+    ty -= 1
 
 # Go through the directory, find one file matching each date, delete the rest
 
