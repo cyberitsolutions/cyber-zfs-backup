@@ -1,9 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 
 import datetime
-import sys
-import os
 import getopt
+import os
+import sys
 import time
 
 (opts, args) = getopt.getopt(sys.argv[1:], "vd:")
@@ -40,16 +40,16 @@ for (o, v) in opts:
 datelist = []
 
 curdate = today
-daydiff = datetime.timedelta(days = -1)
+daydiff = datetime.timedelta(days=-1)
 for i in range(0, dailies):
     datelist.append(curdate)
-    curdate += daydiff #daydiff should be -ve
+    curdate += daydiff          # daydiff should be -ve
 
 # Weeks: back up to Sunday, remove 7 days at a time
 
 wd = today.weekday()
-curweek = today - datetime.timedelta(days = wd)
-weekdiff = datetime.timedelta(days = 7)
+curweek = today - datetime.timedelta(days=wd)
+weekdiff = datetime.timedelta(days=7)
 for i in range(0, weeklies):
     if curweek not in datelist:
         datelist.append(curweek)
@@ -80,7 +80,7 @@ dirs = os.listdir(path)
 
 datelist = set(datelist)
 
-keep = {} # actually not useful for anything
+keep = {}                       # actually not useful for anything
 delete = {}
 
 
@@ -95,10 +95,11 @@ class UTC(datetime.tzinfo):
     def dst(self, dt):
         return ZERO
 
+
 for dir in dirs:
     # {{{ Don't use mtime, there's some weirdness on zhug
-    #t = os.stat(os.path.join(path, dir)).st_mtime # mtime and ctime should be roughly identical
-    #d = datetime.date.fromtimestamp(t)
+    # t = os.stat(os.path.join(path, dir)).st_mtime # mtime and ctime should be roughly identical
+    # d = datetime.date.fromtimestamp(t)
     # }}}
 
     ts = time.strptime(dir, "%Y-%m-%dT%H:%M:%SZ")
@@ -119,7 +120,7 @@ for dir in dirs:
         if d in delete:
             d = datetime.date.min
             while d in delete:
-                d = d + datetime.timedelta(days = 1)
+                d = d + datetime.timedelta(days=1)
         delete[d] = dir
 
 # If there's anything left in datelist it represents a gap in the backups.
@@ -137,16 +138,17 @@ def nexthighest(list, elem):
             return e
     return None
 
+
 for remain in datelist:
     keys = sorted(list(delete.keys()))
     replacement = nexthighest(keys, remain)
 
-    if (replacement == None):
+    if (replacement is None):
         # print >> sys.stderr, "No valid backup for ", remain
-        pass # This is going to be fairly common, keep stdout clean
+        pass    # This is going to be fairly common, keep stdout clean
     else:
         # If the replacement backup is newer than another backup to be
-        # kept, forget about it. 
+        # kept, forget about it.
         # i.e. 2010-05-01 was missing
         # 2010-05-30 is the next newest backup to be deleted
         # 2010-05-15 is being kept as well
@@ -166,4 +168,3 @@ if verbose:
     print("Deleting:\n", "\n".join(deletevs))
 else:
     print("\n".join(list(delete.values())))
-
