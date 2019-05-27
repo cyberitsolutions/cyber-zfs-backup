@@ -70,27 +70,13 @@ keep = {}                       # actually not useful for anything
 delete = {}
 
 
-# Sample from the python docs
-class UTC(datetime.tzinfo):
-    def utcoffset(self, dt):
-        return ZERO
-
-    def tzname(self, dt):
-        return "UTC"
-
-    def dst(self, dt):
-        return ZERO
-
-
 for dir in dirs:
     # {{{ Don't use mtime, there's some weirdness on zhug
     # t = os.stat(os.path.join(path, dir)).st_mtime # mtime and ctime should be roughly identical
     # d = datetime.date.fromtimestamp(t)
     # }}}
 
-    ts = time.strptime(dir, "%Y-%m-%dT%H:%M:%SZ")
-    dt = datetime.datetime(ts[0], ts[1], ts[2], ts[3], ts[4], ts[5], ts[6], UTC())
-
+    dt = arrow.get(dir)  # parse e.g. '2019-05-28T00:16:11Z' to a UTC timestamp
     d = dt.date()
 
     if d in datelist:
