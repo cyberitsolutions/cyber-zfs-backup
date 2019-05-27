@@ -5,32 +5,53 @@ import os
 import time
 import pathlib
 
-import click
+# NOTE: we use arrow (not datetime) because datetime.timedelta can't do weeks/months/years!
+# NOTE: we use click (not argparse) gives us easier input validation.
+import arrow                    # https://arrow.readthedocs.io
+import click                    # https://click.palletsprojects.com
 
 
-# NOTE: using click (not argparse) gives us easier input validation.
 @click.command()
 @click.argument('path', type=click.Path(exists=True,
                                         file_okay=False,
                                         resolve_path=True))
-@click.argument('dailies', type=click.IntRange(min=0))
-@click.argument('weeklies', type=click.IntRange(min=0))
-@click.argument('monthlies', type=click.IntRange(min=0))
-@click.argument('yearlies', type=click.IntRange(min=0))
+@click.argument('days', type=click.IntRange(min=0))
+@click.argument('weeks', type=click.IntRange(min=0))
+@click.argument('months', type=click.IntRange(min=0))
+@click.argument('years', type=click.IntRange(min=0))
 @click.option('--verbose', '-v', is_flag=True)
 # NOTE: just use datefudge(1) instead of the old -d YYYY-MM-DD.
-def main(path, dailies, weeklies, monthlies, yearlies, verbose):
+def main(path, days, weeks, months, years, verbose):
     # Sigh, click.Path doesn't use pathlib.
     path = pathlib.PosixPath(path)
-    print(path, dailies, weeklies, monthlies, yearlies, verbose)
     print('HELLO')
 
+    # NOTE: like rsnapshot,
+    #       the weeklies "start up" where the dailies "leave off", i.e. they do not overlap.
+    #       (And so on for older rotations)
+    #       UPDATE: actually they do overlap a little bit, because range(n)  is [0..n-1] not [1..n]!
+    #
+    # NOTE: jeremyc's code was manually doing weeklies as "go to Sunday, then walk back 7 days".
+    #       Other stuff was even more klunky.
+    #
+    # NOTE: ZFS snapshots are in UTC, so we do *everything* in UTC.
+    then = arrow.utcnow()
+    goal_date_list = set()      # accumulator
+    for i in range(days):
+        then = then.shift(days=-i)
+        goal_date_list.add(then)
+    for i in range(weeks):
+        then = then.shift(weeks=-i)
+        goal_date_list.add(then)
+    for i in range(months):
+        then = then.shift(weeks=-i)
+        goal_date_list.add(then)
+    for i in range(months):
+        then = then.shift(months=-i)
+        goal_date_list.add(then)
+    import pprint
+    pprint.pprint(sorted(goal_date_list))
 
-# As at Python 3.5, datetime.datetime.utcnow() returns a "naive" time,
-# meaning it has no knowledge of its timezone.  This is daft.
-# Provide our own that makes it an "aware" time.
-def utcnow() -> datetime.datetime:
-    return datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc)
 
 
 if __name__ == '__main__':
@@ -38,47 +59,6 @@ if __name__ == '__main__':
     exit()
 
 
-# Filenames are all UTC, so do these calculations in UTC too
-
-today_utc = utcnow()
-today = today_utc.date()
-
-datelist = []
-
-curdate = today
-daydiff = datetime.timedelta(days=-1)
-for i in range(0, dailies):
-    datelist.append(curdate)
-    curdate += daydiff          # daydiff should be -ve
-
-# Weeks: back up to Sunday, remove 7 days at a time
-
-wd = today.weekday()
-curweek = today - datetime.timedelta(days=wd)
-weekdiff = datetime.timedelta(days=7)
-for i in range(0, weeklies):
-    if curweek not in datelist:
-        datelist.append(curweek)
-    curweek -= weekdiff
-
-# Months: count manually
-tm = today.month
-ty = today.year
-
-for i in range(0, monthlies):
-    curmonth = datetime.date(ty, tm, 1)
-    if curmonth not in datelist:
-        datelist.append(curmonth)
-    tm -= 1
-    if tm == 0:
-        tm = 12
-        ty -= 1
-
-for i in range(0, yearlies):
-    curyear = datetime.date(ty, 1, 1)
-    if curyear not in datelist:
-        datelist.append(curyear)
-    ty -= 1
 
 # Go through the directory, find one file matching each date, delete the rest
 
