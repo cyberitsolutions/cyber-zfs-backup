@@ -9,12 +9,12 @@ import time
 (opts, args) = getopt.getopt(sys.argv[1:], "vd:")
 
 if len(args) < 4:
-    print "Usage: ", sys.argv[0], " [-v] <path> <d> <w> <m> <y>"
-    print "\tpath: directory containing backups"
-    print "\td: number of daily backups to keep"
-    print "\tw: weekly backups"
-    print "\tm: monthly backups"
-    print "\ty: yearly backups"
+    print("Usage: ", sys.argv[0], " [-v] <path> <d> <w> <m> <y>")
+    print("\tpath: directory containing backups")
+    print("\td: number of daily backups to keep")
+    print("\tw: weekly backups")
+    print("\tm: monthly backups")
+    print("\ty: yearly backups")
     sys.exit(1)
 
 path = args[0]
@@ -30,7 +30,7 @@ today_utc = datetime.datetime.utcnow()
 today = today_utc.date()
 
 verbose = False
-for (o,v) in opts:
+for (o, v) in opts:
     if (o == "-v"):
         verbose = True
     elif (o == "-d"):
@@ -138,8 +138,7 @@ def nexthighest(list, elem):
     return None
 
 for remain in datelist:
-    keys = delete.keys()
-    keys.sort() # in-place sort, can't inline it
+    keys = sorted(list(delete.keys()))
     replacement = nexthighest(keys, remain)
 
     if (replacement == None):
@@ -151,8 +150,7 @@ for remain in datelist:
         # i.e. 2010-05-01 was missing
         # 2010-05-30 is the next newest backup to be deleted
         # 2010-05-15 is being kept as well
-        kkeys = keep.keys()
-        kkeys.sort()
+        kkeys = sorted(list(keep.keys()))
         next = nexthighest(kkeys, remain)
         if (replacement > next):
             # print >> sys.stderr, "No valid backup for ", remain
@@ -161,12 +159,11 @@ for remain in datelist:
         del delete[replacement]
 
 if verbose:
-    keepvs = keep.values()
-    keepvs.sort()
-    deletevs = delete.values()
+    keepvs = sorted(list(keep.values()))
+    deletevs = list(delete.values())
     deletevs.sort()
-    print "Keeping:\n", "\n".join(keepvs)
-    print "Deleting:\n", "\n".join(deletevs)
+    print("Keeping:\n", "\n".join(keepvs))
+    print("Deleting:\n", "\n".join(deletevs))
 else:
-    print "\n".join(delete.values())
+    print("\n".join(list(delete.values())))
 
