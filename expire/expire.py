@@ -1,41 +1,47 @@
 #!/usr/bin/python3
 
 import datetime
-import getopt
 import os
-import sys
 import time
+import pathlib
 
-(opts, args) = getopt.getopt(sys.argv[1:], "vd:")
+import click
 
-if len(args) < 4:
-    print("Usage: ", sys.argv[0], " [-v] <path> <d> <w> <m> <y>")
-    print("\tpath: directory containing backups")
-    print("\td: number of daily backups to keep")
-    print("\tw: weekly backups")
-    print("\tm: monthly backups")
-    print("\ty: yearly backups")
-    sys.exit(1)
 
-path = args[0]
+# NOTE: using click (not argparse) gives us easier input validation.
+@click.command()
+@click.argument('path', type=click.Path(exists=True,
+                                        file_okay=False,
+                                        resolve_path=True))
+@click.argument('dailies', type=click.IntRange(min=0))
+@click.argument('weeklies', type=click.IntRange(min=0))
+@click.argument('monthlies', type=click.IntRange(min=0))
+@click.argument('yearlies', type=click.IntRange(min=0))
+@click.option('--verbose', '-v', is_flag=True)
+# NOTE: just use datefudge(1) instead of the old -d YYYY-MM-DD.
+def main(path, dailies, weeklies, monthlies, yearlies, verbose):
+    # Sigh, click.Path doesn't use pathlib.
+    path = pathlib.PosixPath(path)
+    print(path, dailies, weeklies, monthlies, yearlies, verbose)
+    print('HELLO')
 
-dailies = int(args[1])
-weeklies = int(args[2])
-monthlies = int(args[3])
-yearlies = int(args[4])
+
+# As at Python 3.5, datetime.datetime.utcnow() returns a "naive" time,
+# meaning it has no knowledge of its timezone.  This is daft.
+# Provide our own that makes it an "aware" time.
+def utcnow() -> datetime.datetime:
+    return datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc)
+
+
+if __name__ == '__main__':
+    main()
+    exit()
+
 
 # Filenames are all UTC, so do these calculations in UTC too
 
-today_utc = datetime.datetime.utcnow()
+today_utc = utcnow()
 today = today_utc.date()
-
-verbose = False
-for (o, v) in opts:
-    if (o == "-v"):
-        verbose = True
-    elif (o == "-d"):
-        # hidden option for testing.
-        today = datetime.datetime.strptime(v, "%Y-%m-%d").date()
 
 datelist = []
 
