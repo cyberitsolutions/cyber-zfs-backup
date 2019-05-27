@@ -35,23 +35,48 @@ def main(path, days, weeks, months, years, verbose):
     #       Other stuff was even more klunky.
     #
     # NOTE: ZFS snapshots are in UTC, so we do *everything* in UTC.
+    # FIXME: this is wrong, it means "same date" is same date in UTC, not same date in Melbourne.
+    # We should probably localize all the timestamps instead.
     then = arrow.utcnow()
-    goal_date_list = set()      # accumulator
+    goal_date_set = set()      # accumulator
     for i in range(days):
         then = then.shift(days=-i)
-        goal_date_list.add(then)
+        goal_date_set.add(then)
     for i in range(weeks):
         then = then.shift(weeks=-i)
-        goal_date_list.add(then)
+        goal_date_set.add(then)
     for i in range(months):
         then = then.shift(weeks=-i)
-        goal_date_list.add(then)
+        goal_date_set.add(then)
     for i in range(months):
         then = then.shift(months=-i)
-        goal_date_list.add(then)
-    import pprint
-    pprint.pprint(sorted(goal_date_list))
+        goal_date_set.add(then)
 
+    goal_date_list = sorted(goal_date_set, reverse=True)
+
+    # Go through the directory of snapshots (/tank/foo/bar/.zfs/snapshot/), then
+    # for each goal date, find the NEWEST matching snapshot (same date), and KEEP THAT.
+    # Anything that wasn't matched, it dies.
+    #
+    # FIXME: "same date" is right for *days*, but what we want is:
+    #        * same day for dailies,
+    #        * same week for weeklies,
+    #        * and so on
+    #        Can I fudge this using arrow intervals?
+    snapshot_path_list = sorted(
+        os.listdir(path),
+        reverse=True,
+        # Sort by timestamp, not string, just in case
+        key=arrow.get)
+
+    for snapshot_path in snapshot_path_list:
+        keep = (goal_date_list and
+                goal_date_list[0].date() == arrow.get(snapshot_path).date())
+        if keep:
+            goal_date_list.pop()
+            print('KEEP', snapshot_path)  # just print for now
+        else:
+            print('KILL', snapshot_path)  # just print for now
 
 
 if __name__ == '__main__':
@@ -60,29 +85,11 @@ if __name__ == '__main__':
 
 
 
-# Go through the directory, find one file matching each date, delete the rest
+# FIXME: jeremyc wrote this, and I don't understand it AT ALL. --twb, May 2019
 
-dirs = os.listdir(path)
-
-datelist = set(datelist)
-
-keep = {}                       # actually not useful for anything
-delete = {}
-
-
-for dir in dirs:
-    # {{{ Don't use mtime, there's some weirdness on zhug
-    # t = os.stat(os.path.join(path, dir)).st_mtime # mtime and ctime should be roughly identical
-    # d = datetime.date.fromtimestamp(t)
-    # }}}
-
-    dt = arrow.get(dir)  # parse e.g. '2019-05-28T00:16:11Z' to a UTC timestamp
-    d = dt.date()
-
-    if d in datelist:
-        keep[d] = dir
-        datelist.remove(d)
-    else:
+for ... in ...:
+    ...
+    if keep:
         # Keep the delete list searchable in case there are missed dates
         # This list will be used during deletion, so make sure multiple
         # backups on the same date won't mess it up.
