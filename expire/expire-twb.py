@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+import os
 import logging
 import subprocess
 import collections
@@ -12,15 +13,25 @@ import click                    # https://click.palletsprojects.com
 # import libzfs_core            # https://pyzfs.readthedocs.io
 
 
+# FIXME: stop using click now.
+# There's fuck-all point now that we don't do as much input validation.
+#
+# FIXME: allow for all of these:
+#     __main__.py                 # consider ALL zfs datasets
+#     __main__.py  poolA          # consider one pool
+#     __main__.py  poolA/foo/bar  # consider subset of pool
 @click.command()
 # @click.option('--days', default=7, type=click.IntRange(min=0))
 # @click.option('--weeks', default=4, type=click.IntRange(min=0))
 # @click.option('--months', default=6, type=click.IntRange(min=0))
 # @click.option('--years', default=10, type=click.IntRange(min=0))
 @click.option('--verbose', is_flag=True)
-def main(                       # days, weeks, months, years,
-         verbose):
-    logging.basicConfig(level=logging.INFO if verbose else logging.WARNING)
+@click.option('--debug', is_flag=True)
+@click.option('--force-destroy-lots', is_flag=True)
+def main(verbose, debug, force_destroy_lots):
+    logging.basicConfig(level=(logging.DEBUG if debug else
+                               logging.INFO if verbose else
+                               logging.WARNING))
 
     # Get the list of snapshots.
     # For each snapshot (newest first),
@@ -39,13 +50,37 @@ def main(                       # days, weeks, months, years,
     # ...I think.
 
     now = arrow.now()
+    dataset_snapshots_to_kill = []  # ACCUMULATOR
     for dataset, snapshots in zfs_snapshots().items():
-        snapshots_to_kill = decide_what_to_expire(now, snapshots)
-        if len(snapshots_to_kill) > 2:
-            logging.warning(
-                'Multiple snaps marked for destruction! %s',
-                dataset)
-        # do the actual "zfs destroy" here.
+        logging.debug('Considering dataset "%s" (%s snaps)', dataset, len(snapshots))
+        if not snapshots:
+            continue
+        if any(now < arrow.get(s) for s in snapshots):
+            raise RuntimeError('Snapshot is in the future!', dataset, snapshots)
+        snapshots_to_kill = decide_what_to_destroy(now, snapshots)
+
+        # Sanity check.
+        # If we run regularly (every day), we shouldn't be removing much!
+        percentage_to_kill = len(snapshots_to_kill) / len(snapshots)
+        if percentage_to_kill > 0.25:  # FIXME: arbitrary magic number cutoff
+            logging.warning('Destroying %s snapshots of %s',
+                            '{:2.0%}'.format(percentage_to_kill),
+                            dataset)
+            require_force_destroy_lots = True
+        dataset_snapshots_to_kill += [
+            '{}@{}'.format(dataset, s)
+            for s in snapshots_to_kill]
+
+    if require_force_destroy_lots and not force_destroy_lots:
+        logging.error('Refusing to destroy lots of snapshots without --force-destroy-lots')
+        exit(os.EX_USAGE)
+
+    if verbose or debug:
+        print('The following snapshots will be removed:')
+        for s in dataset_snapshots_to_kill:
+            print(s)
+
+    subprocess.check_call(['echo', 'zfs', 'destroy', '...FIXME...'])
 
 
 def zfs_snapshots():     # -> {'tank/foo/bar': ['1970-01-01T...', ...], ...}
@@ -73,7 +108,7 @@ def zfs_snapshots():     # -> {'tank/foo/bar': ['1970-01-01T...', ...], ...}
     return dict(acc)
 
 
-def decide_what_to_expire(now, snapshots):
+def decide_what_to_destroy(now, snapshots):
     # FIXME: stop hard-coding the retention policy here?
     # FIXME: support different policies for different datasets?
     # FIXME: this retention policy is too small!  Space is cheap.
