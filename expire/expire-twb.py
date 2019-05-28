@@ -17,12 +17,12 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--verbose',
                         action='store_const',
-                        dest='verbosity',
+                        dest='loglevel',
                         const=logging.INFO,
                         default=logging.WARNING)
     parser.add_argument('--debug',
                         action='store_const',
-                        dest='verbosity',
+                        dest='loglevel',
                         const=logging.DEBUG,
                         default=logging.WARNING)
     parser.add_argument('--force-destroy-lots', action='store_true')
@@ -33,6 +33,7 @@ def main():
                         pass it as an argument.
                         """)
     args = parser.parse_args()
+    logging.basicConfig(level=args.loglevel)
 
     # Get the list of snapshots.
     # For each snapshot (newest first),
@@ -78,7 +79,7 @@ def main():
         logging.error('Refusing to destroy lots of snapshots without --force-destroy-lots')
         exit(os.EX_USAGE)
 
-    if args.verbosity < logging.WARNING:
+    if args.loglevel < logging.WARNING:
         print('The following snapshots will be removed:')
         for s in dataset_snapshots_to_kill:
             print(s)
