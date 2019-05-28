@@ -83,7 +83,9 @@ def main(verbose, debug, force_destroy_lots):
     subprocess.check_call(['echo', 'zfs', 'destroy', '...FIXME...'])
 
 
-def zfs_snapshots():     # -> {'tank/foo/bar': ['1970-01-01T...', ...], ...}
+def zfs_snapshots(pools_or_datasets=None):
+    # -> {'tank/foo/bar': ['1970-01-01T...', ...], ...}
+
     # FIXME: use pyzfs instead of subprocess+csv!
     # NOTE: I thought of doing this in separate stages, like
     #         for dataset in zfs list -H:
@@ -92,9 +94,8 @@ def zfs_snapshots():     # -> {'tank/foo/bar': ['1970-01-01T...', ...], ...}
     #       Doing ONE BIG "zfs list" means less raciness (I hope).
     acc = collections.defaultdict(list)
     for line in subprocess.check_output(
-            ['zfs', 'list', '-Htsnapshot',
-             '-r', 'tank/hosted-backup/backups/djk',  # DEBUGGING
-            ],
+            ['zfs', 'list', '-H', '-t', 'snapshot'] +
+            (['-r'] + pools_or_datasets if pools_or_datasets else []),
             universal_newlines=True).splitlines():
         snapshot_name, _, _, _, _ = line.strip().split('\t')
         dataset_name, snapshot_suffix = snapshot_name.split('@')
