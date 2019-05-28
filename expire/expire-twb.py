@@ -13,10 +13,6 @@ import arrow                    # https://arrow.readthedocs.io
 # import libzfs_core            # https://pyzfs.readthedocs.io
 
 
-# FIXME: allow for all of these:
-#     __main__.py                 # consider ALL zfs datasets
-#     __main__.py  poolA          # consider one pool
-#     __main__.py  poolA/foo/bar  # consider subset of pool
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--verbose',
@@ -30,6 +26,12 @@ def main():
                         const=logging.DEBUG,
                         default=logging.WARNING)
     parser.add_argument('--force-destroy-lots', action='store_true')
+    parser.add_argument('pools_or_datasets', nargs='*', metavar='POOL/DATASET',
+                        help="""
+                        By default ALL datasets in ALL pools are considered.
+                        To consider only one pool or dataset (recursively!),
+                        pass it as an argument.
+                        """)
     args = parser.parse_args()
 
     # Get the list of snapshots.
@@ -50,7 +52,7 @@ def main():
 
     now = arrow.now()
     dataset_snapshots_to_kill = []  # ACCUMULATOR
-    for dataset, snapshots in zfs_snapshots().items():
+    for dataset, snapshots in zfs_snapshots(args.pools_or_datasets).items():
         logging.debug('Considering dataset "%s" (%s snaps)',
                       dataset, len(snapshots))
         if not snapshots:
