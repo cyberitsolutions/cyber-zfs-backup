@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+import argparse
 import collections
 import logging
 import os
@@ -9,29 +10,27 @@ import subprocess
 #       datetime.timedelta can't do weeks/months/years!
 # NOTE: we use click (not argparse) gives us easier input validation.
 import arrow                    # https://arrow.readthedocs.io
-import click                    # https://click.palletsprojects.com
 # import libzfs_core            # https://pyzfs.readthedocs.io
 
 
-# FIXME: stop using click now.
-# There's fuck-all point now that we don't do as much input validation.
-#
 # FIXME: allow for all of these:
 #     __main__.py                 # consider ALL zfs datasets
 #     __main__.py  poolA          # consider one pool
 #     __main__.py  poolA/foo/bar  # consider subset of pool
-@click.command()
-# @click.option('--days', default=7, type=click.IntRange(min=0))
-# @click.option('--weeks', default=4, type=click.IntRange(min=0))
-# @click.option('--months', default=6, type=click.IntRange(min=0))
-# @click.option('--years', default=10, type=click.IntRange(min=0))
-@click.option('--verbose', is_flag=True)
-@click.option('--debug', is_flag=True)
-@click.option('--force-destroy-lots', is_flag=True)
-def main(verbose, debug, force_destroy_lots):
-    logging.basicConfig(level=(logging.DEBUG if debug else
-                               logging.INFO if verbose else
-                               logging.WARNING))
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--verbose',
+                        action='store_const',
+                        dest='verbosity',
+                        const=logging.INFO,
+                        default=logging.WARNING)
+    parser.add_argument('--debug',
+                        action='store_const',
+                        dest='verbosity',
+                        const=logging.DEBUG,
+                        default=logging.WARNING)
+    parser.add_argument('--force-destroy-lots', action='store_true')
+    args = parser.parse_args()
 
     # Get the list of snapshots.
     # For each snapshot (newest first),
@@ -73,11 +72,11 @@ def main(verbose, debug, force_destroy_lots):
             '{}@{}'.format(dataset, s)
             for s in snapshots_to_kill]
 
-    if require_force_destroy_lots and not force_destroy_lots:
+    if require_force_destroy_lots and not args.force_destroy_lots:
         logging.error('Refusing to destroy lots of snapshots without --force-destroy-lots')
         exit(os.EX_USAGE)
 
-    if verbose or debug:
+    if args.verbosity < logging.WARNING:
         print('The following snapshots will be removed:')
         for s in dataset_snapshots_to_kill:
             print(s)
