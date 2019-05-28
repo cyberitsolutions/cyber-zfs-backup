@@ -40,8 +40,8 @@ def main(                       # days, weeks, months, years,
 
     now = arrow.now()
     for dataset, snapshots in zfs_snapshots().items():
-        acc_keep, acc_kill = test_expire(now, snapshots)
-        if len(acc_kill) > 2:
+        snapshots_to_kill = decide_what_to_expire(now, snapshots)
+        if len(snapshots_to_kill) > 2:
             logging.warning(
                 'Multiple snaps marked for destruction! %s',
                 dataset)
@@ -74,72 +74,62 @@ def zfs_snapshots():     # -> {'tank/foo/bar': ['1970-01-01T...', ...], ...}
 
 
 def decide_what_to_expire(now, snapshots):
-    days, weeks, months, years = 7, 4, 12, 999
-    acc_keep, acc_kill = [], []         # ACCUMULATOR
+    # FIXME: stop hard-coding the retention policy here?
+    # FIXME: support different policies for different datasets?
+    # FIXME: this retention policy is too small!  Space is cheap.
+    # NOTE: We ALWAYS keep at least one snapshot per year.
+    #       If you really don't want this,
+    #       you can do a manual expiry once a year.
+    days, weeks, months = 7, 4, 12
+    snapshots_to_keep, snapshots_to_kill = [], []  # ACCUMULATORS
 
-    snapshots.sort(key=arrow.get, reverse=True)  # most recent date first
-
+    # Make sure the most recent date is first.
+    # The original strings SHOULD sort correctly, but
+    # sort them as arrows Just In Case.
+    #
+    # (We need to keep the strings around because str -> Arrow -> str
+    # might not give the SAME string, and then "zfs destroy" would not
+    # work.)
+    snapshots.sort(key=arrow.get, reverse=True)
     for snapshot in snapshots:
-        prev_snapshot_ts = arrow.get(acc_keep[-1]) if acc_keep else None
-        snapshot_ts = arrow.get(snapshot)
-        if not acc_keep:
-            logging.debug('%s %s first snapshot', now, snapshot_ts)
-            keep = True
-        elif snapshot_ts > now:
-            logging.warning('%s %s future snapshot!', now, snapshot_ts)
-            keep = True
-        elif snapshot_ts.floor('day') == now.floor('day'):
-            logging.debug('%s %s KEEP because today', now, snapshot_ts)
-            keep = True
+        # NOTE: ts_prev is the last *KEPT* snapshot, not the last CANDIDATE snapshot.
+        ts_prev = arrow.get(snapshots_to_keep[-1]) if snapshots_to_keep else None
+        ts_cur = arrow.get(snapshot)
 
-        # NOTE: these branches are IDENTICAL except for day/week/&c.
+        keep = False
+        # ALWAYS keep NEWEST snapshot (first run through loop).
+        # This simplifies subsequent iterations.
+        if not snapshots_to_keep:
+            keep = True
+        # NOTE: day/week/month branches are IDENTICAL except for the interval.
         elif days:              # we're looking for the next day
-            if prev_snapshot_ts.floor('day') == snapshot_ts.floor('day'):
-                # Day hasn't changed; keep looking
-                keep = False
-            else:
-                # Day HAS changed!
-                days = days - 1
-                keep = True
+            if ts_cur.floor('day') != ts_prev.floor('day'):
+                days -= 1
+                keep = True     # Day HAS changed, keep this one.
+            # else day hasn't changed, so keep = False (default)
         elif weeks:              # we're looking for the next week
-            if prev_snapshot_ts.floor('week') == snapshot_ts.floor('week'):
-                # Week hasn't changed; keep looking
-                keep = False
-            else:
-                # Week HAS changed!
-                weeks = weeks - 1
-                keep = True
+            if ts_cur.floor('week') != ts_prev.floor('week'):
+                keep = True     # Week HAS changed, keep this one.
+                weeks -= - 1
+            # else week hasn't changed, so keep = False (default)
         elif months:              # we're looking for the next month
-            if prev_snapshot_ts.floor('month') == snapshot_ts.floor('month'):
-                # Month hasn't changed; keep looking
-                keep = False
-            else:
-                # Month HAS changed!
-                months = months - 1
-                keep = True
-        elif years:              # we're looking for the next year
-            if prev_snapshot_ts.floor('year') == snapshot_ts.floor('year'):
-                # Year hasn't changed; keep looking
-                keep = False
-            else:
-                # Year HAS changed!
-                years = years - 1
-                keep = True
-        else:
-            # We don't care about any more rotations, so
-            # just throw away anything else.
-            # FIXME: we should keep "infinite" years by default, and
-            #        raise an error in this case!
-            raise RuntimeError()
+            if ts_cur.floor('month') != ts_prev.floor('month'):
+                keep = True     # Month HAS changed, keep this one.
+                months -= 1
+            # else month hasn't changed, so keep = False (default)
+        else:         # We ALWAYS keep at least one snapshot per year.
+            if ts_cur.floor('year') != ts_prev.floor('year'):
+                keep = True     # Year HAS changed, keep this one.
+            # else year hasn't changed, so keep = False (default)
 
-        logging.info('%s %s %s (%s)',
-                     now,
-                     snapshot_ts,
-                     'keep' if keep else 'KILL',
-                     my_humanize(now, snapshot_ts))
-        (acc_keep if keep else acc_kill).append(snapshot)
+        # Add to one list or the other.
+        # NOTE: we only *return* the kill list, but
+        #       we use the keep list internally for the next iteration
+        #       through this loop.
+        logging.debug('%s "%s"', 'keep' if keep else 'KILL', snapshot)
+        (snapshots_to_keep if keep else snapshots_to_kill).append(snapshot)
 
-    return (acc_keep, acc_kill)
+    return snapshots_to_kill
 
 
 # This bodge helps you examine test_expire's output.
