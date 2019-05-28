@@ -1,5 +1,7 @@
 #!/usr/bin/python3
 import logging
+import subprocess
+import collections
 
 
 # NOTE: we use arrow (not datetime) because
@@ -7,20 +9,17 @@ import logging
 # NOTE: we use click (not argparse) gives us easier input validation.
 import arrow                    # https://arrow.readthedocs.io
 import click                    # https://click.palletsprojects.com
+# import libzfs_core            # https://pyzfs.readthedocs.io
 
 
 @click.command()
-@click.argument('path',
-                default='/tank',
-                type=click.Path(exists=True,
-                                file_okay=False,
-                                resolve_path=True))
-@click.argument('--days', default=7, type=click.IntRange(min=0))
-@click.argument('--weeks', default=4, type=click.IntRange(min=0))
-@click.argument('--months', default=6, type=click.IntRange(min=0))
-@click.argument('--years', default=10, type=click.IntRange(min=0))
+# @click.option('--days', default=7, type=click.IntRange(min=0))
+# @click.option('--weeks', default=4, type=click.IntRange(min=0))
+# @click.option('--months', default=6, type=click.IntRange(min=0))
+# @click.option('--years', default=10, type=click.IntRange(min=0))
 @click.option('--verbose', is_flag=True)
-def main(path, days, weeks, months, years, verbose):
+def main(                       # days, weeks, months, years,
+         verbose):
     logging.basicConfig(level=logging.INFO if verbose else logging.WARNING)
 
     # Get the list of snapshots.
@@ -38,7 +37,40 @@ def main(path, days, weeks, months, years, verbose):
     # More importantly, that means that if there are missing backups,
     # or multiple backups per day, we won't get confused and over-delete.
     # ...I think.
-    pass
+
+    now = arrow.now()
+    for dataset, snapshots in zfs_snapshots().items():
+        acc_keep, acc_kill = test_expire(now, snapshots)
+        if len(acc_kill) > 2:
+            logging.warning(
+                'Multiple snaps marked for destruction! %s',
+                dataset)
+        # do the actual "zfs destroy" here.
+
+
+def zfs_snapshots():     # -> {'tank/foo/bar': ['1970-01-01T...', ...], ...}
+    # FIXME: use pyzfs instead of subprocess+csv!
+    # NOTE: I thought of doing this in separate stages, like
+    #         for dataset in zfs list -H:
+    #           for snapshot in zfs list -H -t snapshot $dataset:
+    #             pass
+    #       Doing ONE BIG "zfs list" means less raciness (I hope).
+    acc = collections.defaultdict(list)
+    for line in subprocess.check_output(
+            ['zfs', 'list', '-Htsnapshot',
+             '-r', 'tank/hosted-backup/backups/djk',  # DEBUGGING
+            ],
+            universal_newlines=True).splitlines():
+        snapshot_name, _, _, _, _ = line.strip().split('\t')
+        dataset_name, snapshot_suffix = snapshot_name.split('@')
+        try:
+            arrow.get(snapshot_suffix)
+        except arrow.parser.ParserError:
+            logging.info(
+                'Ignoring snapshot does not belong to us: %s', snapshot_name)
+        else:
+            acc[dataset_name].append(snapshot_suffix)
+    return dict(acc)
 
 
 def test():
@@ -89,17 +121,16 @@ def test():
             make_snapshot()
 
 
-def test_expire(now, snapshots):
-    days, weeks, months, years = 7, 4, 12, 10
+def decide_what_to_expire(now, snapshots):
+    days, weeks, months, years = 7, 4, 12, 999
+    acc_keep, acc_kill = [], []         # ACCUMULATOR
+
     snapshots.sort(key=arrow.get, reverse=True)  # most recent date first
 
-    before_len = len(snapshots)
-
-    for prev_snapshot, snapshot in zip([None] + snapshots,
-                                       snapshots):
-        prev_snapshot_ts = arrow.get(prev_snapshot) if prev_snapshot else None
-        snapshot_ts = arrow.get(snapshot) if snapshot else None
-        if prev_snapshot is None:
+    for snapshot in snapshots:
+        prev_snapshot_ts = arrow.get(acc_keep[-1]) if acc_keep else None
+        snapshot_ts = arrow.get(snapshot)
+        if not acc_keep:
             logging.debug('%s %s first snapshot', now, snapshot_ts)
             keep = True
         elif snapshot_ts > now:
@@ -147,23 +178,16 @@ def test_expire(now, snapshots):
             # just throw away anything else.
             # FIXME: we should keep "infinite" years by default, and
             #        raise an error in this case!
-            keep = False
+            raise RuntimeError()
 
         logging.info('%s %s %s (%s)',
                      now,
                      snapshot_ts,
                      'keep' if keep else 'KILL',
                      my_humanize(now, snapshot_ts))
-        if keep:
-            pass
-        else:
-            logging.debug('%s zfs destroy ...@%s', now, snapshot)
-            # edit the simulation, rather than actually deleting
-            snapshots.remove(snapshot)
+        (acc_keep if keep else acc_kill).append(snapshot)
 
-    after_len = len(snapshots)
-    if before_len - after_len > 1:
-        logging.warning('%s multiple KILLs in this expiry!', now)
+    return (acc_keep, acc_kill)
 
 
 # This bodge helps you examine test_expire's output.
@@ -189,4 +213,5 @@ def my_humanize(now: arrow.Arrow, ts: arrow.Arrow) -> str:
     return s
 
 
-test()
+if __name__ == '__main__':
+    main()
