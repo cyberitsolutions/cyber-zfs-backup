@@ -132,28 +132,5 @@ def decide_what_to_expire(now, snapshots):
     return snapshots_to_kill
 
 
-# This bodge helps you examine test_expire's output.
-# It is something like arrow.Arrow.humanize().
-# It is something like postgresql age().
-def my_humanize(now: arrow.Arrow, ts: arrow.Arrow) -> str:
-    days_different = now.toordinal() - ts.toordinal()
-    s = 'today'
-    if days_different == 0:
-        return s
-    s += ' +' if days_different > 0 else ' -'
-    if days_different > 365:
-        s += ' {} years'.format(days_different//365)
-        days_different = days_different % 365
-    if days_different > 31:     # shitty approximation!
-        s += ' {} months'.format(days_different//31)
-        days_different = days_different % 31
-    if days_different > 7:     # shitty approximation!
-        s += ' {} weeks'.format(days_different//7)
-        days_different = days_different % 7
-    if days_different:     # shitty approximation!
-        s += ' {} days'.format(days_different)
-    return s
-
-
 if __name__ == '__main__':
     main()
