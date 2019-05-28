@@ -73,54 +73,6 @@ def zfs_snapshots():     # -> {'tank/foo/bar': ['1970-01-01T...', ...], ...}
     return dict(acc)
 
 
-def test():
-    logging.basicConfig(level=logging.INFO)
-    import random
-
-    now = arrow.now()
-
-    def make_snapshot():
-        # Our current backup code names snapshots (NB: Z = UTC)
-        #   tank/foo/bar@2019-05-27T14:00:00Z
-        # For this test, we'll just use the part after '@'.
-        # arrow.get() understands that format without help.
-        snapshots.append(
-            str(now.to('UTC').strftime('%Y-%m-%dT%H:%M:%SZ')))
-
-    # This variable stores our fake view of "the world", i.e.
-    # just a list of snapshot names (as str objects).
-    snapshots = []
-
-    for i in range(1000):
-        # Go forward 1 day, to simulate the progress of time.
-        now = now.floor('day').shift(days=1)
-        # Add some jitter.
-        now = now.replace(hour=random.randrange(3),
-                          minute=random.randrange(60))
-
-        # Simulate a backup.  It succeeds 80% of the time.
-        if random.random() <= 0.95:
-            make_snapshot()
-            logging.info('%s backup done', now)
-        else:
-            logging.warning('%s backup failed', now)
-
-        # Add some jitter --- the time between the backup and the expiry
-        now = now.shift(minutes=90*random.random())
-
-        # Simulate the expiry.
-        # We pass the list and IT WILL BE MUTATED to simulate the deletions.
-        logging.info('%s expiry starts', now)
-        test_expire(now, snapshots)
-
-        # Simulate a rare second manual backup done by the sysadmin.
-        # This lets us test a few "multiple snaps per day".
-        if random.random() <= 0.02:
-            logging.warning('%s sysadmin made manual backup(s)', now)
-            now = now.shift(minutes=300*random.random())
-            make_snapshot()
-
-
 def decide_what_to_expire(now, snapshots):
     days, weeks, months, years = 7, 4, 12, 999
     acc_keep, acc_kill = [], []         # ACCUMULATOR
