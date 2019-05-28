@@ -1,8 +1,8 @@
 #!/usr/bin/python3
-import os
-import logging
-import subprocess
 import collections
+import logging
+import os
+import subprocess
 
 
 # NOTE: we use arrow (not datetime) because
@@ -52,11 +52,13 @@ def main(verbose, debug, force_destroy_lots):
     now = arrow.now()
     dataset_snapshots_to_kill = []  # ACCUMULATOR
     for dataset, snapshots in zfs_snapshots().items():
-        logging.debug('Considering dataset "%s" (%s snaps)', dataset, len(snapshots))
+        logging.debug('Considering dataset "%s" (%s snaps)',
+                      dataset, len(snapshots))
         if not snapshots:
             continue
         if any(now < arrow.get(s) for s in snapshots):
-            raise RuntimeError('Snapshot is in the future!', dataset, snapshots)
+            raise RuntimeError('Snapshot(s) in the future!',
+                               dataset, snapshots)
         snapshots_to_kill = decide_what_to_destroy(now, snapshots)
 
         # Sanity check.
@@ -112,11 +114,10 @@ def zfs_snapshots(pools_or_datasets=None):
 def decide_what_to_destroy(now, snapshots):
     # FIXME: stop hard-coding the retention policy here?
     # FIXME: support different policies for different datasets?
-    # FIXME: this retention policy is too small!  Space is cheap.
     # NOTE: We ALWAYS keep at least one snapshot per year.
     #       If you really don't want this,
     #       you can do a manual expiry once a year.
-    days, weeks, months = 7, 4, 12
+    days, weeks, months = 31, 12, 36
     snapshots_to_keep, snapshots_to_kill = [], []  # ACCUMULATORS
 
     # Make sure the most recent date is first.
@@ -128,7 +129,8 @@ def decide_what_to_destroy(now, snapshots):
     # work.)
     snapshots.sort(key=arrow.get, reverse=True)
     for snapshot in snapshots:
-        # NOTE: ts_prev is the last *KEPT* snapshot, not the last CANDIDATE snapshot.
+        # NOTE: ts_prev is the last *KEPT* snapshot, not
+        #       the last CANDIDATE snapshot.
         ts_prev = arrow.get(snapshots_to_keep[-1]) if snapshots_to_keep else None
         ts_cur = arrow.get(snapshot)
 
