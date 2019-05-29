@@ -56,6 +56,7 @@ def main():
 
     now = arrow.now()
     zfs_destroy_arguments = []  # ACCUMULATOR
+    require_force_destroy_lots = False  # DEFAULT
     for dataset, snapshots in zfs_snapshots(args.pools_or_datasets).items():
         logging.debug('Considering dataset "%s" (%s snaps)',
                       dataset, len(snapshots))
@@ -74,8 +75,9 @@ def main():
             require_force_destroy_lots = True
 
         # "pool/foo/bar@snap1,snap2,snap3,..."
-        zfs_destroy_arguments.append(
-            '{}@{}'.format(dataset, ','.join(snapshots_to_kill)))
+        if snapshots_to_kill:
+            zfs_destroy_arguments.append(
+                '{}@{}'.format(dataset, ','.join(snapshots_to_kill)))
 
     if require_force_destroy_lots and not args.force_destroy_lots:
         logging.error('Refusing to destroy lots of snapshots without --force-destroy-lots')
