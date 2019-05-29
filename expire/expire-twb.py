@@ -56,8 +56,6 @@ def main():
     for dataset, snapshots in zfs_snapshots(args.pools_or_datasets).items():
         logging.debug('Considering dataset "%s" (%s snaps)',
                       dataset, len(snapshots))
-        if not snapshots:
-            continue
         if any(now < arrow.get(s) for s in snapshots):
             raise RuntimeError('Snapshot(s) in the future!',
                                dataset, snapshots)
