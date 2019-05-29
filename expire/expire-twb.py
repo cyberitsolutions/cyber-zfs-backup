@@ -15,7 +15,10 @@ import arrow                    # https://arrow.readthedocs.io
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--verbose',
+    parser.add_argument('--dry-run', '--no-act', '-n',
+                        action='store_true',
+                        help='Pass -n to "zfs destroy"')
+    parser.add_argument('--verbose', '-v',
                         action='store_const',
                         dest='loglevel',
                         const=logging.INFO,
@@ -52,7 +55,7 @@ def main():
     # ...I think.
 
     now = arrow.now()
-    dataset_snapshots_to_kill = []  # ACCUMULATOR
+    zfs_destroy_arguments = []  # ACCUMULATOR
     for dataset, snapshots in zfs_snapshots(args.pools_or_datasets).items():
         logging.debug('Considering dataset "%s" (%s snaps)',
                       dataset, len(snapshots))
@@ -69,20 +72,24 @@ def main():
                             '{:2.0%}'.format(percentage_to_kill),
                             dataset)
             require_force_destroy_lots = True
-        dataset_snapshots_to_kill += [
-            '{}@{}'.format(dataset, s)
-            for s in snapshots_to_kill]
+
+        # "pool/foo/bar@snap1,snap2,snap3,..."
+        zfs_destroy_arguments.append(
+            '{}@{}'.format(dataset, ','.join(snapshots_to_kill)))
 
     if require_force_destroy_lots and not args.force_destroy_lots:
         logging.error('Refusing to destroy lots of snapshots without --force-destroy-lots')
         exit(os.EX_USAGE)
 
-    if args.loglevel < logging.WARNING:
-        print('The following snapshots will be removed:')
-        for s in dataset_snapshots_to_kill:
-            print(s)
-
-    subprocess.check_call(['echo', 'zfs', 'destroy', '...FIXME...'])
+    # zfs destroy (without -r) can only operate on one dataset at a time, but
+    # it can destroy multiple snapshots within that dataset at once.
+    # So, do that.
+    for zfs_destroy_argument in zfs_destroy_arguments:
+        subprocess.check_call(
+            ['zfs', 'destroy'] +
+            (['-n'] if args.dry_run else []) +
+            (['-v'] if args.loglevel < logging.WARNING else []) +
+            [zfs_destroy_argument])
 
 
 def zfs_snapshots(pools_or_datasets=None):
