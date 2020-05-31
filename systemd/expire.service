@@ -1,0 +1,33 @@
+[Service]
+ExecStart=/opt/cyber-zfs-destroy-old-snapshots
+
+# systemd lockdown.
+[Service]
+PrivateNetwork=yes
+DynamicUser=yes
+CapabilityBoundingSet=
+RestrictAddressFamilies=AF_UNIX
+RestrictNamespaces=yes
+DevicePolicy=closed
+IPAddressDeny=any
+NoNewPrivileges=yes
+PrivateDevices=yes
+PrivateMounts=yes
+PrivateTmp=yes
+PrivateUsers=yes
+ProtectControlGroups=yes
+ProtectHome=yes
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+ProtectSystem=strict
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources
+RestrictRealtime=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+UMask=0077
+
+# systemd un-lockdown (whitelist what we need)
+[Service]
+# FIXME
