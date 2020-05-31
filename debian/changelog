@@ -1,0 +1,5 @@
+cyber-zfs-backup (0.1) buster; urgency=medium
+
+  * Initial Debianization
+
+ -- Trent W. Buck <trentbuck@gmail.com>  Mon, 01 Jun 2020 01:59:44 +1000

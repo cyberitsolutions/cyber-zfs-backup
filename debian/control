@@ -1,0 +1,22 @@
+Source: cyber-zfs-backup
+Section: admin
+Priority: optional
+Maintainer: Trent W. Buck <twb@cyber.com.au>
+Uploaders: Trent W. Buck <trentbuck@gmail.com>
+Build-Depends:
+ debhelper-compat (= 12),
+ dh-sequence-python3,
+ dh-python,
+ python3-all
+Standards-Version: 4.3.0
+Rules-Requires-Root: no
+
+Package: python3-cyber-zfs-backup
+Section: python
+Architecture: all
+Depends: ${misc:Depends}, ${python3:Depends},
+ python3-arrow,
+ zfsutils (>= 0.8~)
+Enhances: zfsutils
+Description: FIXME
+ FIXME

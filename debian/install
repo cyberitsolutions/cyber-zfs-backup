@@ -1,0 +1,10 @@
+## Trying to use "dh_systemd_enable --name eric" wasn't working.
+## All the variants I tried failed in confusing ways,
+## and the manpage didn't help me understand AT ALL.
+##
+## Further, we want to have .timer units, which dh_systemd_* doesn't
+## support as at dh-systemd=1.33.
+##
+## Try creating the entire systemd config ourselves and hope
+## dh_systemd_* pick up on it. --twb, May 2016 (#24019)
+systemd/* lib/systemd/system/
