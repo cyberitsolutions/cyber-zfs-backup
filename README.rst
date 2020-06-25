@@ -1,3 +1,25 @@
+Sales Pitch
+===========
+Like zfs-auto-snapshot_ or syncoid_, except that it
+
+• does a recursive snapshot (so all datasets get the same timestamp)
+• does a incremental *replication* push (so no arguments about who expired what)
+• does timestamp-based snapshot names (YYYY-MM-DD...),
+  not rotation-based snapshot names (daily.N).
+
+Limitations:
+
+• because of "zfs recv -R", you cannot have *different* retention policies on the backup server.
+• because of recursive snapshot, you cannot "opt out" of snapshots for a boring dataset (e.g. zippy/zippy/var/tmp or zippy/zippy/var/cache).
+• strongly encourages you *not* to start your datasets at the root of your pool (i.e. it wants -o mountpoint=/ on "zippy/zippy" not on "zippy").
+• it's "some rando's crappy script", whereas zfs-auto-snapshot is a first-party OpenZFS thing with more mindshare.
+
+.. _zfs-auto-snapshot: https://github.com/zfsonlinux/zfs-auto-snapshot
+.. _syncoid: https://github.com/jimsalterjrs/sanoid
+
+
+Boring Discussion
+=================
 Let each host have a hostname.
 Let each host have a ZFS pool.
 Let each host have a subset of that pool for its own datasets.
@@ -50,6 +72,4 @@ To compute the latest shared snapshot, the sender shall SSH into the receiver an
 It SHALL NOT simply guess.
 If the sender and receiver both have data (i.e. initial backup has finished) AND have no snapshots in common, the backup process should abort noisly, not send a non-incremental.
 
-
-
-
+FIXME: more discussion here.
