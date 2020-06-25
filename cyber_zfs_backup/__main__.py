@@ -2,6 +2,7 @@
 import argparse
 import logging
 import pathlib
+import re
 import socket
 
 import arrow
@@ -84,11 +85,15 @@ def parse_args():
 
     # Ensure these strings are safe to shove down an SSH pipeline (i.e. through system(3)).
     for word in args.pool_or_dataset.split('/'):
-        if not word.isidentifier():
+        if not is_rfc952(word):  # FIXME: be less picky here
             raise RuntimeError('pool/dataset name is not safe to send over SSH!',
                                args.pool_or_dataset)
 
     return args
+
+
+def is_rfc952(s):
+    return bool(re.fullmatch('^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$', s))
 
 
 if __name__ == '__main__':
