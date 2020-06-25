@@ -14,10 +14,7 @@ setuptools.setup(
     # Ref. https://github.com/pypa/sampleproject
     entry_points={
         'console_scripts': [
-            'cyber-zfs-snapshot-expire-and-push=cyber_zfs_backup.__main__',
-            'cyber-zfs-snapshot=cyber_zfs_backup.snapshot',
-            'cyber-zfs-expire=cyber_zfs_backup.expire',
-            'cyber-zfs-push=cyber_zfs_backup.push',
+            'cyber-zfs-backup=cyber_zfs_backup.__main__:main',
         ]
     }
 )

@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-import argparse
 import collections
 import logging
 import os
@@ -13,31 +12,7 @@ import arrow                    # https://arrow.readthedocs.io
 # import libzfs_core            # https://pyzfs.readthedocs.io
 
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--dry-run', '--no-act', '-n',
-                        action='store_true',
-                        help='Pass -n to "zfs destroy"')
-    parser.add_argument('--verbose', '-v',
-                        action='store_const',
-                        dest='loglevel',
-                        const=logging.INFO,
-                        default=logging.WARNING)
-    parser.add_argument('--debug',
-                        action='store_const',
-                        dest='loglevel',
-                        const=logging.DEBUG,
-                        default=logging.WARNING)
-    parser.add_argument('--force-destroy-lots', action='store_true')
-    parser.add_argument('pools_or_datasets', nargs='*', metavar='POOL/DATASET',
-                        help="""
-                        By default ALL datasets in ALL pools are considered.
-                        To consider only one pool or dataset (recursively!),
-                        pass it as an argument.
-                        """)
-    args = parser.parse_args()
-    logging.basicConfig(level=args.loglevel)
-
+def main(args):
     # Get the list of snapshots.
     # For each snapshot (newest first),
     #
@@ -54,16 +29,15 @@ def main():
     # or multiple backups per day, we won't get confused and over-delete.
     # ...I think.
 
-    now = arrow.now()
     zfs_destroy_arguments = []  # ACCUMULATOR
     require_force_destroy_lots = False  # DEFAULT
-    for dataset, snapshots in zfs_snapshots(args.pools_or_datasets).items():
+    for dataset, snapshots in zfs_snapshots(args.pool_or_dataset).items():
         logging.debug('Considering dataset "%s" (%s snaps)',
                       dataset, len(snapshots))
-        if any(now < arrow.get(s) for s in snapshots):
+        if any(args.now < arrow.get(s) for s in snapshots):
             raise RuntimeError('Snapshot(s) in the future!',
                                dataset, snapshots)
-        snapshots_to_kill = decide_what_to_destroy(now, snapshots)
+        snapshots_to_kill = decide_what_to_destroy(args.now, snapshots)
 
         # Sanity check.
         # If we run regularly (every day), we shouldn't be removing much!
@@ -94,7 +68,7 @@ def main():
              zfs_destroy_argument])
 
 
-def zfs_snapshots(pools_or_datasets=None):
+def zfs_snapshots(pool_or_dataset):
     # -> {'tank/foo/bar': ['1970-01-01T...', ...], ...}
 
     # FIXME: use pyzfs instead of subprocess+csv!
@@ -105,8 +79,7 @@ def zfs_snapshots(pools_or_datasets=None):
     #       Doing ONE BIG "zfs list" means less raciness (I hope).
     acc = collections.defaultdict(list)
     for line in subprocess.check_output(
-            ['zfs', 'list', '-H', '-t', 'snapshot',
-             *(['-r'] + pools_or_datasets if pools_or_datasets else [])],
+            ['zfs', 'list', '-H', '-t', 'snapshot', '-r', pool_or_dataset],
             universal_newlines=True).splitlines():
         snapshot_name, _, _, _, _ = line.strip().split('\t')
         dataset_name, snapshot_suffix = snapshot_name.split('@')
@@ -177,7 +150,3 @@ def decide_what_to_destroy(now, snapshots):
         (snapshots_to_keep if keep else snapshots_to_kill).append(snapshot)
 
     return snapshots_to_kill
-
-
-if __name__ == '__main__':
-    main()

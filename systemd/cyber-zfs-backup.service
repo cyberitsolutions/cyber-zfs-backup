@@ -1,5 +1,5 @@
 [Service]
-ExecStart=/opt/cyber-zfs-destroy-old-snapshots
+ExecStart=cyber-zfs-backup
 
 # systemd lockdown.
 [Service]
