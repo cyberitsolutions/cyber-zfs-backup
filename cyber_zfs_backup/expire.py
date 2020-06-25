@@ -84,6 +84,8 @@ def zfs_snapshots(pool_or_dataset):
         snapshot_name, _, _, _, _ = line.strip().split('\t')
         dataset_name, snapshot_suffix = snapshot_name.split('@')
         try:
+            # FIXME: this will handle (wrongly) snapshot names like "Monday".
+            #        Add additional input validation here.
             arrow.get(snapshot_suffix)
         except arrow.parser.ParserError:
             logging.info(
