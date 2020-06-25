@@ -40,7 +40,8 @@ def parse_args():
     now = arrow.utcnow()
     parser.set_defaults(
         now=now,
-        snapshot_name=now.strftime('%Y-%m-%dT%H:%M:%SZ'))
+        snapshot_name=now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+        snapshot_name_re=re.compile(r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$'))
     parser.add_argument('--dry-run', '--no-act', '-n',
                         action='store_true')
     parser.add_argument('--verbose', '-v',
