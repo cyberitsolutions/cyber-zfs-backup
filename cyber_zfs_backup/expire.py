@@ -31,7 +31,7 @@ def main(args):
 
     zfs_destroy_arguments = []  # ACCUMULATOR
     require_force_destroy_lots = False  # DEFAULT
-    for dataset, snapshots in zfs_snapshots(args.pool_or_dataset).items():
+    for dataset, snapshots in zfs_snapshots(args).items():
         logging.debug('Considering dataset "%s" (%s snaps)',
                       dataset, len(snapshots))
         if any(args.now < arrow.get(s) for s in snapshots):
@@ -69,7 +69,7 @@ def main(args):
              zfs_destroy_argument])
 
 
-def zfs_snapshots(pool_or_dataset):
+def zfs_snapshots(args):
     # -> {'tank/foo/bar': ['1970-01-01T...', ...], ...}
 
     # FIXME: use pyzfs instead of subprocess+csv!
@@ -80,19 +80,16 @@ def zfs_snapshots(pool_or_dataset):
     #       Doing ONE BIG "zfs list" means less raciness (I hope).
     acc = collections.defaultdict(list)
     for line in subprocess.check_output(
-            ['zfs', 'list', '-H', '-t', 'snapshot', '-o', 'name', pool_or_dataset],
+            ['zfs', 'list', '-H', '-t', 'snapshot', '-o', 'name', args.pool_or_dataset],
             universal_newlines=True).splitlines():
         line = line.strip()
         dataset_name, _, snapshot_suffix = line.partition('@')
-        try:
-            # FIXME: this will handle (wrongly) snapshot names like "Monday".
-            #        Add additional input validation here.
-            arrow.get(snapshot_suffix)
-        except arrow.parser.ParserError:
+        if args.snapshot_name_re.fullmatch(snapshot_suffix):
+            arrow.get(snapshot_suffix)  # raise arrow.parser.ParserError (should never happen)
+            acc[dataset_name].append(snapshot_suffix)
+        else:
             logging.info(
                 'Ignoring snapshot does not belong to us: %s', line)
-        else:
-            acc[dataset_name].append(snapshot_suffix)
     return dict(acc)
 
 
