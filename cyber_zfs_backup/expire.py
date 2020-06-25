@@ -79,17 +79,17 @@ def zfs_snapshots(pool_or_dataset):
     #       Doing ONE BIG "zfs list" means less raciness (I hope).
     acc = collections.defaultdict(list)
     for line in subprocess.check_output(
-            ['zfs', 'list', '-H', '-t', 'snapshot', '-r', pool_or_dataset],
+            ['zfs', 'list', '-H', '-t', 'snapshot', '-o', 'name', '-r', pool_or_dataset],
             universal_newlines=True).splitlines():
-        snapshot_name, _, _, _, _ = line.strip().split('\t')
-        dataset_name, snapshot_suffix = snapshot_name.split('@')
+        line = line.strip()
+        dataset_name, _, snapshot_suffix = line.partition('@')
         try:
             # FIXME: this will handle (wrongly) snapshot names like "Monday".
             #        Add additional input validation here.
             arrow.get(snapshot_suffix)
         except arrow.parser.ParserError:
             logging.info(
-                'Ignoring snapshot does not belong to us: %s', snapshot_name)
+                'Ignoring snapshot does not belong to us: %s', line)
         else:
             acc[dataset_name].append(snapshot_suffix)
     return dict(acc)
