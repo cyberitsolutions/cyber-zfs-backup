@@ -65,6 +65,7 @@ def main(args):
             ['zfs', 'destroy',
              *(['-n'] if args.dry_run else []),
              *(['-v'] if args.loglevel < logging.WARNING else []),
+             '-r',
              zfs_destroy_argument])
 
 
@@ -79,7 +80,7 @@ def zfs_snapshots(pool_or_dataset):
     #       Doing ONE BIG "zfs list" means less raciness (I hope).
     acc = collections.defaultdict(list)
     for line in subprocess.check_output(
-            ['zfs', 'list', '-H', '-t', 'snapshot', '-o', 'name', '-r', pool_or_dataset],
+            ['zfs', 'list', '-H', '-t', 'snapshot', '-o', 'name', pool_or_dataset],
             universal_newlines=True).splitlines():
         line = line.strip()
         dataset_name, _, snapshot_suffix = line.partition('@')
