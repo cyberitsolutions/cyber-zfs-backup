@@ -16,7 +16,8 @@ Section: python
 Architecture: all
 Depends: ${misc:Depends}, ${python3:Depends},
  python3-arrow,
- zfsutils (>= 0.8~)
-Enhances: zfsutils
+ zfsutils-linux (>= 0.8)
+Enhances: zfsutils-linux
+Suggests: openssh-client
 Description: FIXME
  FIXME
