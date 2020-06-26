@@ -79,10 +79,10 @@ def parse_args():
     # Work around not using subcommands, above.
     if 'expire' not in args.actions:
         if args.force_destroy_lots:
-            logging.warn('--force-destroy-lots without --action=expire has no effect')
+            logging.warning('--force-destroy-lots without --action=expire has no effect')
     if 'push' in args.actions:
         if args.ssh_config:
-            logging.warn('--ssh-config without --action=push has no effect')
+            logging.warning('--ssh-config without --action=push has no effect')
 
     # Ensure these strings are safe to shove down an SSH pipeline (i.e. through system(3)).
     for word in args.pool_or_dataset.split('/'):
