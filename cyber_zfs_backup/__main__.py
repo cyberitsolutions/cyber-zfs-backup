@@ -39,6 +39,7 @@ def parse_args():
     #       ZFS does not allow "+" in snapshot names.
     now = arrow.utcnow()
     parser.set_defaults(
+        hostname=hostname,
         now=now,
         snapshot_name=now.strftime('%Y-%m-%dT%H:%M:%SZ'),
         snapshot_name_re=re.compile(r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$'))
@@ -69,6 +70,7 @@ def parse_args():
     # expire-specific options
     parser.add_argument('--force-destroy-lots', action='store_true')
     # push-specific options
+    parser.add_argument('--force-non-incremental', action='store_true')
     parser.add_argument('--ssh-destination', default='offsite')
     parser.add_argument('--zfs-receive-dataset', default=f'offsite/{hostname}')
     parser.add_argument('--ssh-config', type=pathlib.Path, help='for IdentityFile= et cetera')

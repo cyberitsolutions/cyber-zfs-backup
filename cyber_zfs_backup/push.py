@@ -18,7 +18,7 @@ def main(args):
     # FIXME: code duplication here (with itself, and with expire.py)
     # NOTE: we can't use libzfs on the far end of an SSH command, unless
     #       we do some kinda crazy shit where we send a python script over there.
-    remote_snapshots_stdout = subprocess.check_output(
+    remote_snapshots_proc = subprocess.run(
         ['ssh', args.ssh_destination,
          *(['-F', args.ssh_config] if args.ssh_config else []),
          *(['sudo'] if args.use_sudo else []),
@@ -27,26 +27,44 @@ def main(args):
          '-s', 'creation',
          '-t', 'snapshot',
          args.zfs_receive_dataset],
-        universal_newlines=True)
-    local_snapshots_stdout = subprocess.check_output(
-        ['zfs', 'list', '-H',
-         '-o', 'name',
-         '-s', 'creation',
-         '-t', 'snapshot',
-         args.pool_or_dataset],
-        universal_newlines=True)
-    remote_snapshot_names = set(
-        snapshot_name
-        for line in remote_snapshots_stdout.splitlines()
-        for dataset_name, _, snapshot_name in [line.partition('@')]
-        if args.snapshot_name_re.fullmatch(snapshot_name))
-    local_snapshot_names = set(
-        snapshot_name
-        for line in local_snapshots_stdout.splitlines()
-        for dataset_name, _, snapshot_name in [line.partition('@')]
-        if args.snapshot_name_re.fullmatch(snapshot_name))
-    common_snapshot_names = remote_snapshot_names.intersection(local_snapshot_names)
-    latest_common_snapshot = max(common_snapshot_names, key=arrow.get)
+        universal_newlines=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE)
+    if (remote_snapshots_proc.returncode == 1 and
+        'dataset does not exist' in remote_snapshots_proc.stderr):
+        push_is_incremental = False
+        if not args.force_non_incremental:
+            raise RuntimeError(
+                'remote dataset does not exist yet;'
+                ' use --force-non-incremental to do a full sync',
+                args.zfs_receive_dataset)
+    elif remote_snapshots_proc.returncode != 0:
+        print(remote_snapshots_proc.stderr, end='', file=sys.stderr, flush=True)
+        raise subprocess.CalledProcessError(
+            returncode=remote_snapshots_proc.returncode,
+            cmd=remote_snapshots_proc.args)
+    else:
+        push_is_incremental = True
+        remote_snapshots_stdout = remote_snapshots_proc.stdout
+        local_snapshots_stdout = subprocess.check_output(
+            ['zfs', 'list', '-H',
+             '-o', 'name',
+             '-s', 'creation',
+             '-t', 'snapshot',
+             args.pool_or_dataset],
+            universal_newlines=True)
+        remote_snapshot_names = set(
+            snapshot_name
+            for line in remote_snapshots_stdout.splitlines()
+            for dataset_name, _, snapshot_name in [line.partition('@')]
+            if args.snapshot_name_re.fullmatch(snapshot_name))
+        local_snapshot_names = set(
+            snapshot_name
+            for line in local_snapshots_stdout.splitlines()
+            for dataset_name, _, snapshot_name in [line.partition('@')]
+            if args.snapshot_name_re.fullmatch(snapshot_name))
+        common_snapshot_names = remote_snapshot_names.intersection(local_snapshot_names)
+        latest_common_snapshot = max(common_snapshot_names, key=arrow.get)
 
     # Do an incremental replication send.
     with subprocess.Popen(
@@ -57,7 +75,9 @@ def main(args):
              #        Do any have *important* backcompat issues?
              '--large-block', '--embed', '--compressed', '--raw', '--parsable',
              '--replicate',      # essential for our design!
-             '-I', latest_common_snapshot,
+             *(['-I', latest_common_snapshot] if push_is_incremental else []),
+             # FIXME: args.snapshot_name assumes --action=snapshot has happened.
+             #        When doing just --action=push, this snapshot doesn't exist!
              f'{args.pool_or_dataset}@{args.snapshot_name}'],
             stdout=subprocess.PIPE) as zfs_send_proc:
         subprocess.check_call(
@@ -67,7 +87,7 @@ def main(args):
              'zfs', 'receive',
              *(['-n'] if args.dry_run else []),
              *(['-v'] if args.loglevel < logging.WARNING else []),
-             '-F',              # essential for our design!
+             *(['-F'] if push_is_incremental else []),  # essential for our design!
              # FIXME: use '-d' instead of args.zfs_receive_dataset?
              args.zfs_receive_dataset],
             stdin=zfs_send_proc.stdout)
