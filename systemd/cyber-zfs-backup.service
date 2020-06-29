@@ -1,7 +1,7 @@
 [Service]
 ExecStart=cyber-zfs-backup
 
-# systemd lockdown.
+# Generic systemd "default-deny" policy.
 [Service]
 PrivateNetwork=yes
 DynamicUser=yes
@@ -27,7 +27,24 @@ RestrictRealtime=yes
 LockPersonality=yes
 MemoryDenyWriteExecute=yes
 UMask=0077
+# New in systemd/buster-backports (since buster)
+ProtectClock=yes
+ProtectKernelLogs=yes
+RestrictSUIDSGID=yes
+ProtectHostname=yes
 
-# systemd un-lockdown (whitelist what we need)
+# ALLOW "zfs snapshot" and "zfs destroy".
 [Service]
-# FIXME
+# zfs(8) needs write access to /dev/zfs (char-misc).
+PrivateDevices=no
+DeviceAllow=/dev/zfs
+CapabilityBoundingSet=CAP_SYS_ADMIN
+# Why does zfs need a full user list?
+DynamicUser=no
+PrivateUsers=no
+
+# ALLOW "ssh otherhost zfs receive".
+[Service]
+PrivateNetwork=no
+IPAddressDeny=
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
