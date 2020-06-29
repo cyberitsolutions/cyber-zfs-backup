@@ -54,8 +54,10 @@ def main(args):
                 '{}@{}'.format(dataset, ','.join(snapshots_to_kill)))
 
     if require_force_destroy_lots and not args.force_destroy_lots:
-        logging.error('Refusing to destroy lots of snapshots without --force-destroy-lots')
-        exit(os.EX_USAGE)
+        # NOTE: not an error anymore, because
+        # we still want push.py to run (I think)!
+        logging.warning('Refusing to destroy lots of snapshots without --force-destroy-lots')
+        return
 
     # zfs destroy (without -r) can only operate on one dataset at a time, but
     # it can destroy multiple snapshots within that dataset at once.
