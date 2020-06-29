@@ -11,11 +11,6 @@ def main(args):
     # 2. zfs send incremental from <that snapshot> to <current snapshot>
     # 3. pipe (2) into <SSH to remote host and zfs recv -F>.
 
-    # FIXME: deal with the following cases:
-    #          1. remote_dataset doesn't exist yet (--> do non-incremental replication send)
-    #          2. remote_dataset exists but has no snaps (--> raise error)
-    #          3. remote_dataset exists and has snaps, but no snaps in common (--> raise error)
-
     # FIXME: code duplication here (with itself, and with expire.py)
     # NOTE: we can't use libzfs on the far end of an SSH command, unless
     #       we do some kinda crazy shit where we send a python script over there.
@@ -65,6 +60,11 @@ def main(args):
             for dataset_name, _, snapshot_name in [line.partition('@')]
             if args.snapshot_name_re.fullmatch(snapshot_name))
         common_snapshot_names = remote_snapshot_names.intersection(local_snapshot_names)
+        if not common_snapshot_names:
+            logging.error(
+                'local and remote datasets have no snapshots in common;'
+                ' this should be impossible, human intervention required')
+            exit(os.EX_DATAERR)
         latest_common_snapshot = max(common_snapshot_names, key=arrow.get)
 
     # Do an incremental replication send.
