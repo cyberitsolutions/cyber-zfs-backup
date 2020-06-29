@@ -73,10 +73,10 @@ def main(args):
             ['zfs', 'send',
              # NOTE: "zfs send -n | zfs recv -n" is wrong, so only -n the recv.
              # *(['--dryrun'] if args.dry_run else []),
-             *(['--verbose'] if args.loglevel < logging.WARNING else []),
+             *(['--verbose', '--parsable'] if args.loglevel < logging.WARNING else []),
              # FIXME: are these "nice to have" or "essential"?
              #        Do any have *important* backcompat issues?
-             '--large-block', '--embed', '--compressed', '--raw', '--parsable',
+             '--large-block', '--embed', '--compressed', '--raw',
              '--replicate',      # essential for our design!
              *(['-I', latest_common_snapshot] if push_is_incremental else []),
              # FIXME: args.snapshot_name assumes --action=snapshot has happened.
