@@ -3,7 +3,7 @@ Sales Pitch
 Like zfs-auto-snapshot_ or syncoid_, except that it
 
 • does a recursive snapshot (so all datasets get the same timestamp)
-• does a incremental *replication* push (so no arguments about who expired what)
+• does an incremental *replication* push (so no arguments about who expired what)
 • does timestamp-based snapshot names (YYYY-MM-DD...),
   not rotation-based snapshot names (daily.N).
 
@@ -16,6 +16,60 @@ Limitations:
 
 .. _zfs-auto-snapshot: https://github.com/zfsonlinux/zfs-auto-snapshot
 .. _syncoid: https://github.com/jimsalterjrs/sanoid
+
+
+Get Started
+===========
+
+1. Run it by hand from the git clone::
+
+       $ python3 -m cyber_zfs_backup --help
+
+   Or make it into a deb package::
+
+       $ apt-get build-dep ./
+       $ debuild
+       # apt install ../python3-cyber-zfs-backup_…_all.deb
+       # cyber-zfs-backup --help
+
+2. The .deb provides a systemd timer (cron job).
+
+   To change *when* the job runs::
+
+       # systemctl edit cyber-zfs-backup.timer
+       [Timer]
+       OnCalendar=
+       OnCalendar=13:00
+
+   To change *what* the job runs::
+
+       # systemctl edit cyber-zfs-backup
+       [Service]
+       ExecStart=
+       ExecStart=cyber-zfs-backup --dataset=morpheus/my-funny-dataset-name
+
+3. If you don't need push support, add "--action snapshot expire".
+
+   If you need push support, set up SSH:
+
+   a. The deb includes some examples in /etc/ssh/.
+      To use them, add "--ssh-config=/etc/ssh/cyber-zfs-backup.ssh_config".
+
+   b. Make sure the remote host trusts /etc/ssh/cyber-zfs-backup.id_ed25519.
+      ("ssh-copy-id -i", or edit authorized_keys by hand).
+
+      FIXME: work out something like "restrict,command=rrsync -rw /".
+
+   c. Make sure the local host trust's the remote host's host keys.
+      Something like this::
+
+         # ssh -F /etc/ssh/cyber-zfs-backup.ssh_config -o BatchMode=no offsite
+         The authenticity of host 'offsite.example.com (172.16.17.18)' can't be established.
+         ECDSA key fingerprint is SHA256:deadbeefbabedeadbeefbabedeafbeefbabedeadbee.
+         Are you sure you want to continue connecting (yes/no)? yes
+         Warning: Permanently added '203.7.155.208' (ECDSA) to the list of known hosts.
+
+
 
 
 Boring Discussion

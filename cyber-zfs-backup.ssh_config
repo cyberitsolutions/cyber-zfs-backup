@@ -1,0 +1,18 @@
+# This is an example -*-conf-*- you can use with:
+#     cyber-zfs-backup --ssh-config=/etc/ssh/cyber-zfs-backup.ssh_config
+# Or just put your config in the default place (/etc/ssh/ssh_config).
+
+# NOTE: "cyber-zfs-backup --ssh-destination=offsite" is the default,
+#       so we pattern match "offsite" here.
+Host offsite
+  ## These are the options you probably care about.
+  #HostName my-offsite-backup-server.dyndns.org
+  #Port 22
+  User root
+  BatchMode yes
+  IdentityFile       /etc/ssh/cyber-zfs-backup.id_ed25519
+  UserKnownHostsFile /etc/ssh/cyber-zfs-backup.known_hosts
+
+  ## DO NOT do StrictHostKeyChecking=no, except
+  ## to initialize the known_hosts file.
+  #StrictHostKeyChecking no

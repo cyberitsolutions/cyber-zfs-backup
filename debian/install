@@ -8,3 +8,5 @@
 ## Try creating the entire systemd config ourselves and hope
 ## dh_systemd_* pick up on it. --twb, May 2016 (#24019)
 systemd/* lib/systemd/system/
+
+cyber-zfs-backup.ssh_config  etc/ssh/

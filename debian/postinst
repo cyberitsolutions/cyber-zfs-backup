@@ -1,0 +1,12 @@
+#!/bin/sh
+set -e
+
+# Generate an SSH key, just because it's easier to do it than to have a README that says to do it.
+if  [ "$1" = configure ] &&
+    [ ! -e /etc/ssh/cyber-zfs-backup.id_ed25519 ] &&
+    which ssh-keygen >/dev/null 2>&1
+then
+    ssh-keygen -f /etc/ssh/cyber-zfs-backup.id_ed25519 -t ed25519 -N '' -C "cyber-zfs-backup push key from $(hostname) to offsite"
+fi
+
+#DEBHELPER#

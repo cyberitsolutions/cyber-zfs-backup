@@ -10,6 +10,7 @@ Build-Depends:
  python3-all
 Standards-Version: 4.3.0
 Rules-Requires-Root: no
+VCS-Git: https://github.com/cyberitsolutions/cyber-zfs-backup
 
 Package: python3-cyber-zfs-backup
 Section: python
@@ -19,5 +20,10 @@ Depends: ${misc:Depends}, ${python3:Depends},
  zfsutils-linux (>= 0.8)
 Enhances: zfsutils-linux
 Suggests: openssh-client
-Description: FIXME
- FIXME
+# FIXME: keep this Description in-sync with README.rst.
+Description: zfs local snapshot rotation (archive) and offsite push (disaster recovery)
+ Like zfs-auto-snapshot or sanoid/syncoid, except that
+ .
+  * recursive snapshots;
+  * replication push;
+  * automatic "multi-rotation" retention policy
