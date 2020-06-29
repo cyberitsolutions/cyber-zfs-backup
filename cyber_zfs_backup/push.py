@@ -70,7 +70,8 @@ def main(args):
     # Do an incremental replication send.
     with subprocess.Popen(
             ['zfs', 'send',
-             *(['--dryrun'] if args.dry_run else []),
+             # NOTE: "zfs send -n | zfs recv -n" is wrong, so only -n the recv.
+             # *(['--dryrun'] if args.dry_run else []),
              *(['--verbose'] if args.loglevel < logging.WARNING else []),
              # FIXME: are these "nice to have" or "essential"?
              #        Do any have *important* backcompat issues?
