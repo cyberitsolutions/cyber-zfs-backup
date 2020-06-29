@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 import logging
+import os
 import subprocess
 
 import arrow
@@ -34,10 +35,10 @@ def main(args):
         'dataset does not exist' in remote_snapshots_proc.stderr):
         push_is_incremental = False
         if not args.force_non_incremental:
-            raise RuntimeError(
+            logging.error(
                 'remote dataset does not exist yet;'
-                ' use --force-non-incremental to do a full sync',
-                args.zfs_receive_dataset)
+                ' use --force-non-incremental to do a full sync')
+            exit(os.EX_DATAERR)
     elif remote_snapshots_proc.returncode != 0:
         print(remote_snapshots_proc.stderr, end='', file=sys.stderr, flush=True)
         raise subprocess.CalledProcessError(
