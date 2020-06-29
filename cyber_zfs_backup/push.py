@@ -89,6 +89,10 @@ def main(args):
              *(['-n'] if args.dry_run else []),
              *(['-v'] if args.loglevel < logging.WARNING else []),
              *(['-F'] if push_is_incremental else []),  # essential for our design!
+             # FIXME: do we need something like this to avoid A/A and A/B competing for the root mount???
+             '-o', f'mountpoint=/srv/backup/{args.hostname}',
+             '-o', f'canmount=noauto',
+             '-o', f'readonly=on',
              # FIXME: use '-d' instead of args.zfs_receive_dataset?
              args.zfs_receive_dataset],
             stdin=zfs_send_proc.stdout)
