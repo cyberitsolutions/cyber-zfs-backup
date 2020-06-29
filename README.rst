@@ -126,4 +126,12 @@ To compute the latest shared snapshot, the sender shall SSH into the receiver an
 It SHALL NOT simply guess.
 If the sender and receiver both have data (i.e. initial backup has finished) AND have no snapshots in common, the backup process should abort noisly, not send a non-incremental.
 
+
+FIXME: Creation Date Metadata
+-----------------------------
+We use an easy-to-parse timestamp format in the snapshot name.
+Why don't we just parse "zfs list -t snapshot -o creation" ?
+Because that is outputting a timestamp format that is *GARBAGE* and impossible to parse safely.
+
+
 FIXME: more discussion here.
