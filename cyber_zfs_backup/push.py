@@ -66,6 +66,15 @@ def main(args):
                 'local and remote datasets have no snapshots in common;'
                 ' this should be impossible, human intervention required')
             exit(os.EX_DATAERR)
+
+        # FIXME: if a push is interrupted (e.g. by a network outage),
+        #        it is *VERY VERY LIKELY* that the root dataset see the new snapshot, but
+        #        some child datasets will not.
+        #        This means latest_common_snapshot will choose a set that IS NOT VALID.
+        #        AND IT WILL NOT FIX ITSELF, EVER.
+        #        THIS LACK OF SELF-HEALING IS A MAJOR PROBLEM AND MUST BE FIXED.
+        #        Possibly we should "walk backwards" over the last, say, 20 common snapshots,
+        #        trying each one until one of them succeeds? --twb, Jun 2020
         latest_common_snapshot = max(common_snapshot_names, key=arrow.get)
 
     # Do an incremental replication send.
