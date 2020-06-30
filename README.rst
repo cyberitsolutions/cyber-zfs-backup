@@ -134,4 +134,12 @@ Why don't we just parse "zfs list -t snapshot -o creation" ?
 Because that is outputting a timestamp format that is *GARBAGE* and impossible to parse safely.
 
 
+FIXME: ZFS Channel Programs
+---------------------------
+Currently we just run zfs and parse the output, like savages.
+We should use ZCP instead and get more atomicity.
+
+https://openzfs.org/wiki/Projects/ZFS_Channel_Programs
+
+
 FIXME: more discussion here.
