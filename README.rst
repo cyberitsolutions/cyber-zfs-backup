@@ -142,6 +142,8 @@ We should use ZCP instead and get more atomicity.
 • https://openzfs.org/wiki/Projects/ZFS_Channel_Programs
 • https://www.delphix.com/blog/delphix-engineering/zfs-channel-programs
 • https://zfsonlinux.org/manpages/0.8.4/man8/zfs-program.8.html
+• https://github.com/openzfs/zfs/blob/master/contrib/zcp/autosnap.lua
+  cf. https://github.com/zfsonlinux/zfs-auto-snapshot/blob/master/src/zfs-auto-snapshot.sh
 
 UPDATE: this is a non-starter.  There is no access to date/time
 functions, so there is no viable way to implement a retention policy
