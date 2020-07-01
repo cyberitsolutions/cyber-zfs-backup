@@ -133,6 +133,8 @@ We use an easy-to-parse timestamp format in the snapshot name.
 Why don't we just parse "zfs list -t snapshot -o creation" ?
 Because that is outputting a timestamp format that is *GARBAGE* and impossible to parse safely.
 
+UPDATE: just pass "-p" to zfs list, and you get epoch time.
+
 
 FIXME: ZFS Channel Programs
 ---------------------------
