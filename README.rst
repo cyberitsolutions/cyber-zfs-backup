@@ -139,7 +139,146 @@ FIXME: ZFS Channel Programs
 Currently we just run zfs and parse the output, like savages.
 We should use ZCP instead and get more atomicity.
 
-https://openzfs.org/wiki/Projects/ZFS_Channel_Programs
+• https://openzfs.org/wiki/Projects/ZFS_Channel_Programs
+• https://www.delphix.com/blog/delphix-engineering/zfs-channel-programs
+• https://zfsonlinux.org/manpages/0.8.4/man8/zfs-program.8.html
+
+UPDATE: this is a non-starter.  There is no access to date/time
+functions, so there is no viable way to implement a retention policy
+*inside* a ZFS channel program::
+
+    # zfs program -j -n omega /dev/stdin <<< 'local s="" for k,v in pairs(_G) do s = s .. tostring(v) .. "\t" .. tostring(k) .. "\n" end return s' | jq --raw-output .return | sort
+    1       EPERM
+    10      ECHILD
+    11      EAGAIN
+    12      ENOMEM
+    122     EDQUOT
+    125     ECANCELED
+    13      EACCES
+    14      EFAULT
+    15      ENOTBLK
+    16      EBUSY
+    17      EEXIST
+    18      EXDEV
+    19      ENODEV
+    2       ENOENT
+    20      ENOTDIR
+    21      EISDIR
+    22      EINVAL
+    23      ENFILE
+    24      EMFILE
+    25      ENOTTY
+    26      ETXTBSY
+    27      EFBIG
+    28      ENOSPC
+    29      ESPIPE
+    3       ESRCH
+    30      EROFS
+    31      EMLINK
+    32      EPIPE
+    33      EDOM
+    34      ERANGE
+    35      EDEADLK
+    36      ENAMETOOLONG
+    37      ENOLCK
+    4       EINTR
+    5       EIO
+    6       ENXIO
+    7       E2BIG
+    8       ENOEXEC
+    9       EBADF
+    95      ENOTSUP
+    Lua 5.2 _VERSION
+    function: 00000000019d218e      select
+    function: 00000000080fb5bf      rawequal
+    function: 0000000009baa4e1      getmetatable
+    function: 000000001d6dda9e      rawlen
+    function: 0000000023b33d74      error
+    function: 000000002ab2ecbf      ipairs
+    function: 0000000039f68134      collectgarbage
+    function: 000000004021bc73      type
+    function: 000000004d872795      pairs
+    function: 000000006d63bf09      tostring
+    function: 00000000bcbba06f      rawset
+    function: 00000000c3939123      rawget
+    function: 00000000cf76f1f1      tonumber
+    function: 00000000def8c887      assert
+    function: 00000000f6551542      next
+    function: 00000000f6f338ae      setmetatable
+    table: 00000000210f0f67 _G
+    table: 0000000024f294a7 coroutine
+    table: 0000000054256033 string
+    table: 000000006ad4255f zfs
+    table: 00000000c49f1579 table
+
+    # zfs program -j -n omega /dev/stdin <<< 'local s="" for k,v in pairs(_G.coroutine) do s = s .. tostring(v) .. "\t" .. tostring(k) .. "\n" end return s' | jq --raw-output .return | sort
+    function: 0000000061b2c387      create
+    function: 00000000661ce1c8      resume
+    function: 000000006ba739ac      running
+    function: 00000000abd16109      status
+    function: 00000000adc4bf6c      yield
+    function: 00000000dae48116      wrap
+
+    # zfs program -j -n omega /dev/stdin <<< 'local s="" for k,v in pairs(_G.string) do s = s .. tostring(v) .. "\t" .. tostring(k) .. "\n" end return s' | jq --raw-output .return | sort
+    function: 0000000036b575b7      reverse
+    function: 0000000043205ae5      len
+    function: 000000005b799fc2      gmatch
+    function: 0000000060623f9f      lower
+    function: 000000007ea57532      format
+    function: 000000009f43d105      char
+    function: 00000000b53b8e9f      upper
+    function: 00000000ca8fc3f6      sub
+    function: 00000000cae83a1e      byte
+    function: 00000000d56ed26c      gsub
+    function: 00000000e022c71e      rep
+    function: 00000000ed52ab72      find
+    function: 00000000f603fa1f      match
+
+    # zfs program -j -n omega /dev/stdin <<< 'local s="" for k,v in pairs(_G.table) do s = s .. tostring(v) .. "\t" .. tostring(k) .. "\n" end return s' | jq --raw-output .return | sort
+    function: 0000000025c2df24      concat
+    function: 00000000469d5d8d      insert
+    function: 00000000bb53dc13      sort
+    function: 00000000bca821b7      unpack
+    function: 00000000eb0870da      remove
+    function: 00000000fe629b2f      pack
+
+    # zfs program -j -n omega /dev/stdin <<< 'local s="" for k,v in pairs(_G.zfs) do s = s .. tostring(v) .. "\t" .. tostring(k) .. "\n" end return s' | jq --raw-output .return | sort
+    function: 00000000489d3d0f      exists
+    function: 0000000081600378      debug
+    function: 00000000b872b118      get_prop
+    table: 000000009a0e61fa list
+    table: 00000000a5fe73ef sync
+    table: 00000000aadedb25 check
+
+    # zfs program -j -n omega /dev/stdin <<< 'local s="" for k,v in pairs(_G.zfs.list) do s = s .. tostring(v) .. "\t" .. tostring(k) .. "\n" end return s' | jq --raw-output .return | sort
+    function: 000000005ddfc3ad      clones
+    function: 00000000974d946f      properties
+    function: 000000009c0bdb8f      children
+    function: 000000009e00ec0f      system_properties
+    function: 00000000c4414610      snapshots
+
+    # zfs program -j -n omega /dev/stdin <<< 'local s="" for k,v in pairs(_G.zfs.sync) do s = s .. tostring(v) .. "\t" .. tostring(k) .. "\n" end return s' | jq --raw-output .return | sort
+    function: 000000006dddd4e0      destroy
+    function: 00000000c2f864fa      promote
+    function: 00000000d039fee1      rollback
+    function: 00000000e27c65ce      snapshot
+
+    # zfs program -j -n omega /dev/stdin <<< 'local s="" for k,v in pairs(_G.zfs.check) do s = s .. tostring(v) .. "\t" .. tostring(k) .. "\n" end return s' | jq --raw-output .return | sort
+    function: 000000000ff6dc42      snapshot
+    function: 00000000ea051e3e      rollback
+    function: 00000000ebbecb73      destroy
+    function: 00000000ef0734c9      promote
+
+Also (aside) if you blow the stack, "zfs program" segfaults (meh), but
+also you get errors in dmesg and also all subsequent "zfs" commands
+block in D state until you reboot! ::
+
+    ## DO NOT RUN THIS DANGEROUS CODE!
+    # <RhodiumToad> but I bet they didn't know about how gsub allocates a ton of stack
+    # <RhodiumToad> there are three problematic functions that can do this, gsub is one of them
+    # <RhodiumToad> hm, the table.concat one might not work on 5.2
+    local function f(s) s:gsub(".", f) return "x" end f("foo")
+    return tostring(setmetatable({},{__tostring=function(t) string.format("%s",t) end}))
 
 
 FIXME: more discussion here.
