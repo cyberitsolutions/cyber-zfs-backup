@@ -1,3 +1,9 @@
+cyber-zfs-backup (0.2) bullseye; urgency=medium
+
+  * Dump a release onto git, so obese.cyber.com.au can install it.
+
+ -- Trent W. Buck <trentbuck@gmail.com>  Tue, 19 Jan 2021 18:01:26 +1100
+
 cyber-zfs-backup (0.1) buster; urgency=medium
 
   * Initial Debianization
