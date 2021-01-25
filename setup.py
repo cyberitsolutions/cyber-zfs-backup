@@ -3,7 +3,11 @@ import setuptools
 setuptools.setup(
     name='cyber_zfs_backup',
     version='1.0',
-    packages=['cyber_zfs_backup'],
+    packages=setuptools.find_packages(),
+    install_requires=[
+        'arrow',
+        'pkg-resources',
+    ],
     # NOTE: Python packaging has no clear way to create config files in /etc/.
     # Therefore that is done in debian/*.install instead.
     # package_data={

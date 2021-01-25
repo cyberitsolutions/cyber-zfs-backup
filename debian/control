@@ -17,7 +17,6 @@ Package: python3-cyber-zfs-backup
 Section: python
 Architecture: all
 Depends: ${misc:Depends}, ${python3:Depends},
- python3-arrow,
  zfsutils-linux (>= 0.8)
 Enhances: zfsutils-linux
 Suggests: openssh-client
