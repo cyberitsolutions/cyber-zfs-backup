@@ -13,8 +13,7 @@ Standards-Version: 4.3.0
 Rules-Requires-Root: no
 VCS-Git: https://github.com/cyberitsolutions/cyber-zfs-backup
 
-Package: python3-cyber-zfs-backup
-Section: python
+Package: cyber-zfs-backup
 Architecture: all
 Depends: ${misc:Depends}, ${python3:Depends},
  zfsutils-linux (>= 0.8)
