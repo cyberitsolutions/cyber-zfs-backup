@@ -7,12 +7,21 @@ Like zfs-auto-snapshot_ or syncoid_, except that it
 • does timestamp-based snapshot names (YYYY-MM-DD...),
   not rotation-based snapshot names (daily.N).
 
-Limitations:
+Limitations (permanent):
 
-• because of "zfs recv -R", you cannot have *different* retention policies on the backup server.
-• because of recursive snapshot, you cannot "opt out" of snapshots for a boring dataset (e.g. zippy/zippy/var/tmp or zippy/zippy/var/cache).
+• because of ``zfs send --replicate``, native encryption *must* be done right at the start.  You can't encrypt *only* on the ``zfs receive`` host.
+• because of ``zfs send --replicate``, you cannot have *different* retention policies on the backup server.
+• because of ``zfs snapshot -r`` (recursive), you cannot "opt out" of snapshots for a boring dataset (com.sun:auto-snapshot=false, e.g. zippy/zippy/var/tmp or zippy/zippy/var/cache).
 • strongly encourages you *not* to start your datasets at the root of your pool (i.e. it wants -o mountpoint=/ on "zippy/zippy" not on "zippy").
 • it's "some rando's crappy script", whereas zfs-auto-snapshot is a first-party OpenZFS thing with more mindshare.
+
+Limitations (to be fixed):
+
+• Retention policy is hard-coded (days, weeks, months = 31, 12, 36)
+• No pre/post commands (e.g. for mariadb quiescence)
+• Can't ``--action=push`` without ``--action=snapshot``,
+  because it will try to push a snapshot that doesn't exist.
+  (push.py should just send "whatever the latest snapshot is", I think, i.e. "zfs list -Hp -rd1 -Screation -tsnapshot -oname|head -1")
 
 .. _zfs-auto-snapshot: https://github.com/zfsonlinux/zfs-auto-snapshot
 .. _syncoid: https://github.com/jimsalterjrs/sanoid
