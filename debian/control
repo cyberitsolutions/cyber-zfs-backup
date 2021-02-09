@@ -19,6 +19,10 @@ Depends: ${misc:Depends}, ${python3:Depends},
  zfsutils-linux (>= 0.8)
 Enhances: zfsutils-linux
 Suggests: openssh-client
+# I used to, wrongly, think that PYBUILD_NAME meant the package name had to be python3-XXX.
+# Declare new package is an upgrade path from the old name.
+Replaces: python3-cyber-zfs-backup
+Provides: python3-cyber-zfs-backup
 # FIXME: keep this Description in-sync with README.rst.
 Description: zfs local snapshot rotation (archive) and offsite push (disaster recovery)
  Like zfs-auto-snapshot or sanoid/syncoid, except that
