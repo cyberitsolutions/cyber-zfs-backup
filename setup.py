@@ -3,7 +3,7 @@ import setuptools
 setuptools.setup(
     name='cyber_zfs_backup',
     version='1.0',
-    packages=setuptools.find_packages(),
+    packages=['cyber_zfs_backup'],
     install_requires=[
         'arrow',
         'pkg-resources',
