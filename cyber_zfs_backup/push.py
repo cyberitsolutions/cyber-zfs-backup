@@ -6,6 +6,13 @@ import sys
 
 import arrow
 
+# FIXME: when running as a non-root user (with "zfs allow"),
+#        zpool/zfs aren't in $PATH.
+#        For now I'm just hard-coding "/sbin/zfs".
+#        I tried adding /sbin in PATH in
+#          ~zfs-receive/.config/environment.d/fix-path.conf
+#          ~zfs-receive/.profile
+#        These didn't work.
 
 def main(args):
     # 1. SSH to remote host and find out what the latest snapshot it has is.
@@ -19,7 +26,7 @@ def main(args):
         ['ssh', args.ssh_destination,
          *(['-F', args.ssh_config] if args.ssh_config else []),
          *(['sudo'] if args.use_sudo else []),
-         'zfs', 'list', '-H',
+         '/sbin/zfs', 'list', '-H',
          '-o', 'name',
          '-s', 'creation',
          '-t', 'snapshot',
@@ -44,7 +51,7 @@ def main(args):
         push_is_incremental = True
         remote_snapshots_stdout = remote_snapshots_proc.stdout
         local_snapshots_stdout = subprocess.check_output(
-            ['zfs', 'list', '-H',
+            ['/sbin/zfs', 'list', '-H',
              '-o', 'name',
              '-s', 'creation',
              '-t', 'snapshot',
@@ -79,7 +86,7 @@ def main(args):
 
     # Do an incremental replication send.
     with subprocess.Popen(
-            ['zfs', 'send',
+            ['/sbin/zfs', 'send',
              # NOTE: "zfs send -n | zfs recv -n" is wrong, so only -n the recv.
              # *(['--dryrun'] if args.dry_run else []),
              *(['--verbose', '--parsable'] if args.loglevel < logging.WARNING else []),
@@ -96,7 +103,7 @@ def main(args):
             ['ssh', args.ssh_destination,
              *(['-F', args.ssh_config] if args.ssh_config else []),
              *(['sudo'] if args.use_sudo else []),
-             'zfs', 'receive',
+             '/sbin/zfs', 'receive',
              *(['-n'] if args.dry_run else []),
              *(['-v'] if args.loglevel < logging.WARNING else []),
              *(['-F'] if push_is_incremental else []),  # essential for our design!
