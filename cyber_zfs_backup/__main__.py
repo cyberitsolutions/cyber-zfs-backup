@@ -68,6 +68,14 @@ def parse_args():
     ## NOTE: these could be subcommand options, but
     ## there are not enough of them to bother setting up subcommands.
     # expire-specific options
+    parser.add_argument('--retention-policy', nargs=3, type=int,
+                        metavar='N',
+                        default=[31,  # days
+                                 12,  # weeks
+                                 36],  # months
+                        help='number of days, weeks, months to keep.'
+                        ' Infinite years are kept.'
+                        ' Default 31d 12w 36m.')
     parser.add_argument('--force-destroy-lots', action='store_true')
     # push-specific options
     parser.add_argument('--force-non-incremental', action='store_true')

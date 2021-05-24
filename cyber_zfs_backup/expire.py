@@ -37,7 +37,10 @@ def main(args):
         if any(args.now < arrow.get(s) for s in snapshots):
             raise RuntimeError('Snapshot(s) in the future!',
                                dataset, snapshots)
-        snapshots_to_kill = decide_what_to_destroy(args.now, snapshots)
+        snapshots_to_kill = decide_what_to_destroy(
+            args.now,
+            args.retention_policy,
+            snapshots)
 
         # Sanity check.
         # If we run regularly (every day), we shouldn't be removing much!
@@ -95,13 +98,13 @@ def zfs_snapshots(args):
     return dict(acc)
 
 
-def decide_what_to_destroy(now, snapshots):
+def decide_what_to_destroy(now, retention_policy, snapshots):
     # FIXME: stop hard-coding the retention policy here?
     # FIXME: support different policies for different datasets?
     # NOTE: We ALWAYS keep at least one snapshot per year.
     #       If you really don't want this,
     #       you can do a manual expiry once a year.
-    days, weeks, months = 31, 12, 36
+    days, weeks, months = retention_policy
     snapshots_to_keep, snapshots_to_kill = [], []  # ACCUMULATORS
 
     # Make sure the most recent date is first.
