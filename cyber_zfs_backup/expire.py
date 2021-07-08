@@ -135,7 +135,7 @@ def decide_what_to_destroy(now, retention_policy, snapshots):
         elif weeks:              # we're looking for the next week
             if ts_cur.floor('week') != ts_prev.floor('week'):
                 keep = True     # Week HAS changed, keep this one.
-                weeks -= - 1
+                weeks -= 1
             # else week hasn't changed, so keep = False (default)
         elif months:              # we're looking for the next month
             if ts_cur.floor('month') != ts_prev.floor('month'):
