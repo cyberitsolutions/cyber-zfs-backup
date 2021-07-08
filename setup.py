@@ -7,6 +7,7 @@ setuptools.setup(
     install_requires=[
         'arrow',
         'pkg-resources',
+        'importlib-metadata',   # FIXME: why is this a dependency now???
     ],
     # NOTE: Python packaging has no clear way to create config files in /etc/.
     # Therefore that is done in debian/*.install instead.
