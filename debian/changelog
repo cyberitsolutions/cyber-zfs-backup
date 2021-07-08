@@ -1,3 +1,13 @@
+cyber-zfs-backup (0.3) bullseye; urgency=medium
+
+  * Fix a super awful bug that kept INFINITE WEEKLIES
+  * Runtime-configurable retention policy
+  * doc: add some examples of how to set up SSH
+  * Rename binary package from "python3-cyber-zfs-backup" to just "cyber-zfs-backup".
+  * python dependencies in setup.py (not debian/control)
+
+ -- Trent W. Buck <trentbuck@gmail.com>  Thu, 08 Jul 2021 17:15:56 +1000
+
 cyber-zfs-backup (0.2) bullseye; urgency=medium
 
   * Dump a release onto git, so obese.cyber.com.au can install it.
