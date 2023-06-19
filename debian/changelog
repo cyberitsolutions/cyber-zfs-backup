@@ -1,3 +1,9 @@
+cyber-zfs-backup (0.4) bookworm; urgency=medium
+
+  * Bump for bookworm
+
+ -- Trent W. Buck <trentbuck@gmail.com>  Mon, 19 Jun 2023 17:54:12 +1000
+
 cyber-zfs-backup (0.3) bullseye; urgency=medium
 
   * Fix a super awful bug that kept INFINITE WEEKLIES
