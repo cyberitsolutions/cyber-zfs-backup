@@ -1,6 +1,26 @@
 [Service]
 ExecStart=cyber-zfs-backup
 
+
+# "rsync --stats" tells you how much it sent.
+# "zfs send" doesn't have that (probably most people rely on pv(1)).
+# We can log basic numbers from systemd v235+, though:
+#
+#     cyber-zfs-backup.service:
+#         Consumed 7.644s CPU time,
+#         received 3.7M IP traffic,
+#           sent 658.2M IP traffic.
+#
+# In "systemctl show cyber-zfs-backup" there are more stats.
+# Those stats are zeroed each time the unit runs.
+#
+# PS: useful iff cyber-zfs-backup does "push" (by default, it does).
+#
+# https://github.com/systemd/systemd/blob/v252/man/systemd.resource-control.xml#L502-L521
+[Service]
+IPAccounting=yes
+
+
 # Generic systemd "default-deny" policy.
 [Service]
 PrivateNetwork=yes
