@@ -2,6 +2,9 @@
 #     cyber-zfs-backup --ssh-config=/etc/ssh/cyber-zfs-backup.ssh_config
 # Or just put your config in the default place (/etc/ssh/ssh_config).
 
+# Apparently we need to explicitly load in global config still?
+Include /etc/ssh/ssh_config
+
 # NOTE: "cyber-zfs-backup --ssh-destination=offsite" is the default,
 #       so we pattern match "offsite" here.
 Host offsite
