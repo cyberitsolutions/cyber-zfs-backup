@@ -17,6 +17,12 @@ Package: cyber-zfs-backup
 Architecture: all
 Depends: ${misc:Depends}, ${python3:Depends},
  zfsutils-linux (>= 0.8)
+Recommends:
+# I don't know how to express this "or" in setup.py, so
+# I'm just hard-coding it here.
+# This should only be needed for Debian 10 and older.
+# --twb, April 2026
+ python3 (>= 3.8~) | python3-importlib-metadata
 Enhances: zfsutils-linux
 Suggests: openssh-client
 # I used to, wrongly, think that PYBUILD_NAME meant the package name had to be python3-XXX.

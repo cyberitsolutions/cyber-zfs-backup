@@ -1,3 +1,11 @@
+cyber-zfs-backup (0.5) forky; urgency=medium
+
+  * importlib-metadata is bundled with Python 3.8+, stop asking for it explicitly.
+  * augment (don't replace) /etc/ssh/ssh_config
+  * Log megabytes sent/received by each backup run
+
+ -- Trent W. Buck <trentbuck@gmail.com>  Thu, 30 Apr 2026 16:34:51 +1000
+
 cyber-zfs-backup (0.4) bookworm; urgency=medium
 
   * Bump for bookworm
