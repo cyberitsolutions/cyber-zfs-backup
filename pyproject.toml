@@ -1,0 +1,21 @@
+[build-system]
+requires = ["flit_core >=3.2,<4"]
+build-backend = "flit_core.buildapi"
+
+[project]
+name = "cyber_zfs_backup"
+dynamic = ["version", "description"]
+dependencies = [
+    "arrow",
+    # FIXME: does this actually need to be here?
+    #        I think no, I think it was only there for the old
+    #        setup.py nonsense.
+    # "pkg-resources",
+    # This doesn't make it into debian Depends:, but
+    # Debian 11 (currently oldoldstable) has python 3.9.
+    # So I don't care. --twb, May 2026
+    "importlib-metadata; python_version < '3.8'",
+]
+
+[project.scripts]
+cyber-zfs-backup = "cyber_zfs_backup.__main__:main"

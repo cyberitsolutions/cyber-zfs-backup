@@ -17,11 +17,41 @@ Limitations (permanent):
 
 Limitations (to be fixed):
 
-• Retention policy is hard-coded (days, weeks, months = 31, 12, 36)
-• No pre/post commands (e.g. for mariadb quiescence)
 • Can't ``--action=push`` without ``--action=snapshot``,
   because it will try to push a snapshot that doesn't exist.
   (push.py should just send "whatever the latest snapshot is", I think, i.e. "zfs list -Hp -rd1 -Screation -tsnapshot -oname|head -1")
+
+Limitations (fixed-ish):
+
+• Retention policy is hard-coded (days, weeks, months = 31, 12, 36)
+
+  You can do ``--retention-policy DAYS WEEKS MONTHS``.
+  It is hard-coded for infinite yearlies.
+  If you don't like that, you can manually remove one yearly each year.
+
+  FIXME: you can accidentally remove wanted snapshots if you increase
+  retention policy by patching .service, then running
+  ``cyber-zfs-backup`` by hand without arguments::
+
+      [Service]
+      ExecStart=
+      ExecStart=cyber-zfs-backup.service --retention-policy 100 100 100
+
+• No pre/post commands (e.g. for mariadb quiescence)
+
+  You can do standard systemd pre/post commands, for example to backup the EFI ESP::
+
+      ExecStartPre=-+rsync --delete -ahhHAX --numeric-ids /efi/ offsite:/srv/backup/efi/
+
+  See also https://github.com/cyberitsolutions/cyber-mariadb-zfs-snapshot/
+
+  This makes its own set of snapshots, but
+  we don't care -- replication backups will send those.
+
+  FIXME: if maria snapshots run at (say) 1AM and zfs snapshots run at 10PM,
+  and your app has content in both mariadb and regular files, then
+  they'll be out of sync by 3 hours.  Currently I don't care (all my
+  mariadb stuff is legacy).
 
 .. _zfs-auto-snapshot: https://github.com/zfsonlinux/zfs-auto-snapshot
 .. _syncoid: https://github.com/jimsalterjrs/sanoid

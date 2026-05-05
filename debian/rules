@@ -1,4 +1,5 @@
 #!/usr/bin/make -f
 export PYBUILD_NAME=cyber_zfs_backup
+export PYBUILD_SYSTEM=pyproject
 %:
 	dh $@ --buildsystem=pybuild

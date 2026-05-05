@@ -4,25 +4,22 @@ Priority: optional
 Maintainer: Trent W. Buck <twb@cyber.com.au>
 Uploaders: Trent W. Buck <trentbuck@gmail.com>
 Build-Depends:
- debhelper-compat (= 12),
+ debhelper-compat (= 13),
  dh-sequence-python3,
- dh-python,
- python3-all,
- python3-setuptools
-Standards-Version: 4.3.0
+ flit,
+ pybuild-plugin-pyproject,
+# https://salsa.debian.org/python-team/tools/dh-python/-/blob/7.20260309/README.rst?ref_type=tags#requested-interpreters
+ python3,
+Standards-Version: 4.7.4
 Rules-Requires-Root: no
 VCS-Git: https://github.com/cyberitsolutions/cyber-zfs-backup
 
 Package: cyber-zfs-backup
 Architecture: all
-Depends: ${misc:Depends}, ${python3:Depends},
- zfsutils-linux (>= 0.8)
-Recommends:
-# I don't know how to express this "or" in setup.py, so
-# I'm just hard-coding it here.
-# This should only be needed for Debian 10 and older.
-# --twb, April 2026
- python3 (>= 3.8~) | python3-importlib-metadata
+Depends:
+ ${misc:Depends},
+ ${python3:Depends},
+ zfsutils-linux (>= 0.8),
 Enhances: zfsutils-linux
 Suggests: openssh-client
 # I used to, wrongly, think that PYBUILD_NAME meant the package name had to be python3-XXX.
